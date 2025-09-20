@@ -6,37 +6,39 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor // Lombok constructor for final fields
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-    // Inject các component đã tạo ở các bước trước
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
+
+    private static final String[] WHITE_LIST_URL = {
+            "/health",
+            "/api/v1/auth/**",
+            "/v3/api-docs/**",
+            "/swagger-ui/**"
+    };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // Vô hiệu hóa CSRF vì chúng ta dùng token
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/api/v1/auth/**", // Cho phép tất cả các endpoint trong AuthController
-                                "/v3/api-docs/**",   // Swagger JSON endpoint
-                                "/swagger-ui/**"     // Swagger UI
-                        ).permitAll() // Cho phép truy cập công khai
-                        .anyRequest().authenticated() // Tất cả các request khác phải được xác thực
-                )
-                // Cấu hình quản lý session
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Luôn là STATELESS với JWT
-                // Chỉ định AuthenticationProvider
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)
-                // Thêm JWT filter vào trước filter UsernamePasswordAuthenticationFilter
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .authorizeHttpRequests(auth -> auth
+                        // Sử dụng mảng WHITE_LIST_URL để cho phép truy cập
+                        .requestMatchers(WHITE_LIST_URL).permitAll()
+                        // Tất cả các request khác đều yêu cầu xác thực
+                        .anyRequest().authenticated()
+                );
 
         return http.build();
     }
