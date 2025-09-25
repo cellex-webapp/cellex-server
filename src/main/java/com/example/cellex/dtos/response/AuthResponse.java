@@ -1,4 +1,4 @@
-package com.example.cellex.dtos;
+package com.example.cellex.dtos.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;

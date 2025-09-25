@@ -1,6 +1,6 @@
 package com.example.cellex.controllers;
 
-import com.example.cellex.dtos.CreateUserRequest;
+import com.example.cellex.dtos.request.CreateUserRequest;
 import com.example.cellex.models.User;
 import com.example.cellex.services.UserService;
 import io.swagger.v3.oas.annotations.Operation;

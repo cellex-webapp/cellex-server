@@ -1,4 +1,4 @@
-package com.example.cellex.dtos;
+package com.example.cellex.dtos.request;
 
 import lombok.Data;
 

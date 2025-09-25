@@ -1,6 +1,6 @@
 package com.example.cellex.services;
 
-import com.example.cellex.dtos.CreateUserRequest;
+import com.example.cellex.dtos.request.CreateUserRequest;
 import com.example.cellex.enums.Role;
 import com.example.cellex.models.User;
 import com.example.cellex.repositories.UserRepository;

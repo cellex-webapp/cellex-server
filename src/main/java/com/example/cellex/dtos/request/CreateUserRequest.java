@@ -1,7 +1,6 @@
-package com.example.cellex.dtos;
+package com.example.cellex.dtos.request;
 
 import lombok.Data;
-import java.util.List;
 
 // Data Transfer Object for creating a new user account.
 @Data

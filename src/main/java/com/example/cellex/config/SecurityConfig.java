@@ -20,8 +20,8 @@ public class SecurityConfig {
     private final AuthenticationProvider authenticationProvider;
 
     private static final String[] WHITE_LIST_URL = {
-            "/health",
             "/api/v1/auth/**",
+            "/api/v1/users/add-account",
             "/v3/api-docs/**",
             "/swagger-ui/**"
     };

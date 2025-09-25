@@ -17,12 +17,23 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-@Component // Mark this as a Spring component to be managed by the IoC container
+@Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+
+        // Danh sách các path không cần JWT authentication
+        return path.startsWith("/api/v1/auth/") ||
+                path.startsWith("/v3/api-docs/") ||
+                path.startsWith("/swagger-ui/") ||
+                path.equals("/api/v1/users/add-account");
+    }
 
     @Override
     protected void doFilterInternal(

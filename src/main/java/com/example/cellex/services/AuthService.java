@@ -1,8 +1,8 @@
 package com.example.cellex.services;
 
-import com.example.cellex.dtos.AuthResponse;
-import com.example.cellex.dtos.LoginRequest;
-import com.example.cellex.dtos.RefreshTokenRequest;
+import com.example.cellex.dtos.response.AuthResponse;
+import com.example.cellex.dtos.request.LoginRequest;
+import com.example.cellex.dtos.request.RefreshTokenRequest;
 import com.example.cellex.models.User;
 import com.example.cellex.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
