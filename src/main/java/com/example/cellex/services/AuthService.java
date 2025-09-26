@@ -1,14 +1,15 @@
 package com.example.cellex.services;
 
-import com.example.cellex.dtos.response.AuthResponse;
 import com.example.cellex.dtos.request.LoginRequest;
 import com.example.cellex.dtos.request.RefreshTokenRequest;
+import com.example.cellex.dtos.response.AuthResponse;
+import com.example.cellex.exceptions.AppException;
+import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.models.User;
 import com.example.cellex.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -27,7 +28,7 @@ public class AuthService {
                 )
         );
         var user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         var accessToken = jwtService.generateToken(user);
         var refreshToken = jwtService.generateRefreshToken(user);
@@ -35,21 +36,25 @@ public class AuthService {
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .role(user.getRole().name())
                 .build();
     }
 
     public AuthResponse refreshToken(RefreshTokenRequest request) {
         String userEmail = jwtService.extractUsername(request.getRefreshToken());
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         if (jwtService.isTokenValid(request.getRefreshToken(), user)) {
             var accessToken = jwtService.generateToken(user);
+
             return AuthResponse.builder()
                     .accessToken(accessToken)
                     .refreshToken(request.getRefreshToken())
+                    .role(user.getRole().name())
                     .build();
         }
-        return null;
+        // Ném exception khi token không hợp lệ
+        throw new AppException(ErrorCode.UNAUTHENTICATED);
     }
 }
