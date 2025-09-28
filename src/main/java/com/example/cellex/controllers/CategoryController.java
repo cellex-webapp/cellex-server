@@ -58,7 +58,7 @@ public class CategoryController {
     // READ ALL
     @GetMapping
     @Operation(summary = "Get all active categories", description = "Retrieves a list of all active categories with nested parent objects.")
-    @SecurityRequirement(name = "bearerAuth", scopes = {}) // Public API
+    @SecurityRequirement(name = "bearerAuth", scopes = {})
     public ApiResponse<List<CategoryResponse>> getAllActiveCategories() {
         List<CategoryResponse> categories = categoryService.getAllActiveCategories();
         return ApiResponse.<List<CategoryResponse>>builder()

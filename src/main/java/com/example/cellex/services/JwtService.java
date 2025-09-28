@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PostConstruct;
 import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
@@ -18,14 +19,27 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    @Value("${application.security.jwt.secret-key}")
+    // Fallback to environment variables if properties not found
+    @Value("${application.security.jwt.secret-key:#{environment.APPLICATION_SECURITY_JWT_SECRET_KEY}}")
     private String secretKey;
 
-    @Value("${application.security.jwt.access-token-expiration}")
+    @Value("${application.security.jwt.access-token-expiration:#{environment.APPLICATION_SECURITY_JWT_ACCESS_TOKEN_EXPIRATION}}")
     private long accessTokenExpiration;
 
-    @Value("${application.security.jwt.refresh-token-expiration}")
+    @Value("${application.security.jwt.refresh-token-expiration:#{environment.APPLICATION_SECURITY_JWT_REFRESH_TOKEN_EXPIRATION}}")
     private long refreshTokenExpiration;
+
+    @PostConstruct
+    public void init() {
+        System.out.println("🔑 JWT Configuration loaded:");
+        System.out.println("Secret Key: " + (secretKey != null && !secretKey.isEmpty() ? "✅ Loaded" : "❌ Missing"));
+        System.out.println("Access Token Expiration: " + accessTokenExpiration);
+        System.out.println("Refresh Token Expiration: " + refreshTokenExpiration);
+
+        if (secretKey == null || secretKey.isEmpty()) {
+            throw new RuntimeException("JWT Secret Key is not configured properly!");
+        }
+    }
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -68,11 +82,17 @@ public class JwtService {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSignInKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(getSignInKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (Exception e) {
+            System.err.println("❌ JWT parsing failed: " + e.getMessage());
+            System.err.println("Token: " + token.substring(0, Math.min(token.length(), 20)) + "...");
+            throw e;
+        }
     }
 
     private Key getSignInKey() {

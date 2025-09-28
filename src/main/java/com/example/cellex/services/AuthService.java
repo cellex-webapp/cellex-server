@@ -2,23 +2,35 @@ package com.example.cellex.services;
 
 import com.example.cellex.dtos.request.LoginRequest;
 import com.example.cellex.dtos.request.RefreshTokenRequest;
+import com.example.cellex.dtos.request.SendOtpRequest;
+import com.example.cellex.dtos.request.VerifyOtpRequest;
 import com.example.cellex.dtos.response.AuthResponse;
+import com.example.cellex.enums.Role;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
+import com.example.cellex.models.Otp;
 import com.example.cellex.models.User;
+import com.example.cellex.repositories.OtpRepository;
 import com.example.cellex.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final OtpRepository otpRepository;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
@@ -54,7 +66,65 @@ public class AuthService {
                     .role(user.getRole().name())
                     .build();
         }
-        // Ném exception khi token không hợp lệ
         throw new AppException(ErrorCode.UNAUTHENTICATED);
+    }
+
+    public void sendSignupCode(SendOtpRequest request) {
+        if (!request.getPassword().equals(request.getConfirmPassword())) {
+            throw new AppException(ErrorCode.PASSWORDS_DO_NOT_MATCH);
+        }
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+
+        String otpCode = String.format("%06d", new Random().nextInt(999999));
+
+        Otp otp = Otp.builder()
+                .email(request.getEmail())
+                .code(otpCode)
+                .isUsed(false)
+                .createdAt(LocalDateTime.now())
+                .expiredAt(LocalDateTime.now().plusMinutes(5))
+                .fullName(request.getFullName())
+                .hashedPassword(passwordEncoder.encode(request.getPassword()))
+                .phoneNumber(request.getPhoneNumber())
+                .build();
+        otpRepository.save(otp);
+
+        emailService.sendOtpEmail(request.getEmail(), otpCode);
+    }
+
+    public AuthResponse verifySignupCode(VerifyOtpRequest request) {
+        Otp otp = otpRepository.findByCodeAndEmail(request.getOtp(), request.getEmail())
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_OTP));
+
+        if (otp.isUsed()) {
+            throw new AppException(ErrorCode.OTP_ALREADY_USED);
+        }
+        if (LocalDateTime.now().isAfter(otp.getExpiredAt())) {
+            throw new AppException(ErrorCode.OTP_EXPIRED);
+        }
+
+        otp.setUsed(true);
+        otpRepository.save(otp);
+
+        User newUser = User.builder()
+                .fullName(otp.getFullName())
+                .email(otp.getEmail())
+                .password(otp.getHashedPassword())
+                .phoneNumber(otp.getPhoneNumber())
+                .role(Role.USER)
+                .isActive(true)
+                .build();
+        userRepository.save(newUser);
+
+        var accessToken = jwtService.generateToken(newUser);
+        var refreshToken = jwtService.generateRefreshToken(newUser);
+
+        return AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .role(newUser.getRole().name())
+                .build();
     }
 }

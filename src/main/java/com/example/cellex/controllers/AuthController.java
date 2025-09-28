@@ -2,6 +2,8 @@ package com.example.cellex.controllers;
 
 import com.example.cellex.dtos.request.LoginRequest;
 import com.example.cellex.dtos.request.RefreshTokenRequest;
+import com.example.cellex.dtos.request.SendOtpRequest;
+import com.example.cellex.dtos.request.VerifyOtpRequest;
 import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.AuthResponse;
 import com.example.cellex.services.AuthService;
@@ -19,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-@Tag(name = "Authentication", description = "Endpoints for user authentication")
+@Tag(name = "Authentication", description = "Endpoints for user authentication and registration")
 public class AuthController {
 
     private final AuthService authService;
@@ -74,6 +76,33 @@ public class AuthController {
     public ApiResponse<String> logout() {
         return ApiResponse.<String>builder()
                 .message("Logout successful. Please remove your token on the client side.")
+                .build();
+    }
+
+    @PostMapping("/send-signup-code")
+    @Operation(summary = "Send Sign-up OTP", description = "Validates user info, and sends a 6-digit OTP to the user's email.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "OTP sent successfully."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Passwords do not match or email already exists.")
+    })
+    public ApiResponse<String> sendSignupCode(@RequestBody SendOtpRequest request) {
+        authService.sendSignupCode(request);
+        return ApiResponse.<String>builder()
+                .message("An OTP has been sent to your email.")
+                .build();
+    }
+
+    @PostMapping("/verify-signup-code")
+    @Operation(summary = "Verify OTP & Create Account", description = "Verifies the OTP, creates the user account, and returns auth tokens.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Account created and user logged in successfully."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid, expired, or already used OTP.")
+    })
+    public ApiResponse<AuthResponse> verifySignupCode(@RequestBody VerifyOtpRequest request) {
+        AuthResponse authResponse = authService.verifySignupCode(request);
+        return ApiResponse.<AuthResponse>builder()
+                .result(authResponse)
+                .message("Account created successfully.")
                 .build();
     }
 }

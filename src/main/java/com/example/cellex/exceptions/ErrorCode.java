@@ -19,8 +19,14 @@ public enum ErrorCode {
     UNAUTHENTICATED(1006, "Unauthenticated", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1007, "You do not have permission", HttpStatus.FORBIDDEN),
 
-    // Add other specific errors for your domains here
-    // Example: Product Errors
+    // Sign Up Errors
+    PASSWORDS_DO_NOT_MATCH(1008, "Passwords do not match", HttpStatus.BAD_REQUEST),
+    EMAIL_ALREADY_EXISTS(1009, "This email is already registered", HttpStatus.BAD_REQUEST),
+    INVALID_OTP(1010, "Invalid OTP code", HttpStatus.BAD_REQUEST),
+    OTP_EXPIRED(1011, "OTP has expired", HttpStatus.BAD_REQUEST),
+    OTP_ALREADY_USED(1012, "OTP has already been used", HttpStatus.BAD_REQUEST),
+
+    // Domain Specific Errors
     PRODUCT_NOT_FOUND(2001, "Product not found", HttpStatus.NOT_FOUND),
     CATEGORY_NOT_FOUND(2002, "Category not found", HttpStatus.NOT_FOUND),
     SHOP_NOT_FOUND(2003, "Shop not found", HttpStatus.NOT_FOUND);

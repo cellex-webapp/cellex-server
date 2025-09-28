@@ -11,7 +11,6 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -23,7 +22,6 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
 
-    // Define the public paths once
     private static final String[] WHITE_LIST_URL = {
             "/api/v1/auth/**",
             "/v3/api-docs/**",
@@ -49,6 +47,7 @@ public class SecurityConfig {
     @Order(2)
     public SecurityFilterChain privateEndpointsFilterChain(HttpSecurity http) throws Exception {
         http
+                .securityMatcher("/**")
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().authenticated()
                 )

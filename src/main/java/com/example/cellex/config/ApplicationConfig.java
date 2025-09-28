@@ -46,7 +46,7 @@ public class ApplicationConfig {
         return new BCryptPasswordEncoder();
     }
 
-    @Value("${aws.region}")
+    @Value("${S3_REGION}")
     private String awsRegion;
 
     @Bean

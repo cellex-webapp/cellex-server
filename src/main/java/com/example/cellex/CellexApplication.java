@@ -10,7 +10,6 @@ import org.springframework.data.mongodb.config.EnableMongoAuditing;
 public class CellexApplication {
 
 	public static void main(String[] args) {
-		// Load variables from .env file and set them as system properties
 		Dotenv dotenv = Dotenv.load();
 		dotenv.entries().forEach(entry -> System.setProperty(entry.getKey(), entry.getValue()));
 
