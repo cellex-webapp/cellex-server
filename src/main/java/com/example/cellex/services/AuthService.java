@@ -33,6 +33,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
+    // ... login, refreshToken, and sendSignupCode methods remain the same ...
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -46,7 +47,6 @@ public class AuthService {
         var accessToken = jwtService.generateToken(user);
         var refreshToken = jwtService.generateRefreshToken(user);
 
-        // Tạo UserResponse từ User entity
         UserResponse userResponse = UserResponse.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())
@@ -94,7 +94,6 @@ public class AuthService {
     }
 
     public void sendSignupCode(SendOtpRequest request) {
-        // Method này giữ nguyên, không thay đổi
         if (!request.getPassword().equals(request.getConfirmPassword())) {
             throw new AppException(ErrorCode.PASSWORDS_DO_NOT_MATCH);
         }
@@ -119,6 +118,7 @@ public class AuthService {
         emailService.sendOtpEmail(request.getEmail(), otpCode);
     }
 
+
     public UserResponse verifySignupCode(VerifyOtpRequest request) {
         Otp otp = otpRepository.findByCodeAndEmail(request.getOtp(), request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_OTP));
@@ -141,24 +141,18 @@ public class AuthService {
                 .role(Role.USER)
                 .isActive(true)
                 .build();
-        userRepository.save(newUser);
 
-        var accessToken = jwtService.generateToken(newUser);
-        var refreshToken = jwtService.generateRefreshToken(newUser);
+        User savedUser = userRepository.save(newUser);
 
-        // Tạo UserResponse từ newUser vừa lưu
-        UserResponse userResponse = UserResponse.builder()
-                .id(newUser.getId())
-                .fullName(newUser.getFullName())
-                .email(newUser.getEmail())
-                .phoneNumber(newUser.getPhoneNumber())
-                .avatarUrl(newUser.getAvatarUrl())
-                .role(newUser.getRole())
-                .isActive(newUser.isEnabled())
-                .createdAt(newUser.getCreatedAt())
+        return UserResponse.builder()
+                .id(savedUser.getId())
+                .fullName(savedUser.getFullName())
+                .email(savedUser.getEmail())
+                .phoneNumber(savedUser.getPhoneNumber())
+                .avatarUrl(savedUser.getAvatarUrl())
+                .role(savedUser.getRole())
+                .isActive(savedUser.isEnabled())
+                .createdAt(savedUser.getCreatedAt())
                 .build();
-
-        // Trả về AuthResponse chứa cả token và thông tin user
-        return userResponse;
     }
 }
