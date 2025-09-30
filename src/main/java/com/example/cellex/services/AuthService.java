@@ -5,6 +5,7 @@ import com.example.cellex.dtos.request.RefreshTokenRequest;
 import com.example.cellex.dtos.request.SendOtpRequest;
 import com.example.cellex.dtos.request.VerifyOtpRequest;
 import com.example.cellex.dtos.response.AuthResponse;
+import com.example.cellex.dtos.response.UserResponse;
 import com.example.cellex.enums.Role;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
@@ -45,10 +46,22 @@ public class AuthService {
         var accessToken = jwtService.generateToken(user);
         var refreshToken = jwtService.generateRefreshToken(user);
 
+        // Tạo UserResponse từ User entity
+        UserResponse userResponse = UserResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .phoneNumber(user.getPhoneNumber())
+                .avatarUrl(user.getAvatarUrl())
+                .role(user.getRole())
+                .isActive(user.isEnabled())
+                .createdAt(user.getCreatedAt())
+                .build();
+
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
-                .role(user.getRole().name())
+                .user(userResponse)
                 .build();
     }
 
@@ -60,16 +73,28 @@ public class AuthService {
         if (jwtService.isTokenValid(request.getRefreshToken(), user)) {
             var accessToken = jwtService.generateToken(user);
 
+            UserResponse userResponse = UserResponse.builder()
+                    .id(user.getId())
+                    .fullName(user.getFullName())
+                    .email(user.getEmail())
+                    .phoneNumber(user.getPhoneNumber())
+                    .avatarUrl(user.getAvatarUrl())
+                    .role(user.getRole())
+                    .isActive(user.isEnabled())
+                    .createdAt(user.getCreatedAt())
+                    .build();
+
             return AuthResponse.builder()
                     .accessToken(accessToken)
                     .refreshToken(request.getRefreshToken())
-                    .role(user.getRole().name())
+                    .user(userResponse)
                     .build();
         }
         throw new AppException(ErrorCode.UNAUTHENTICATED);
     }
 
     public void sendSignupCode(SendOtpRequest request) {
+        // Method này giữ nguyên, không thay đổi
         if (!request.getPassword().equals(request.getConfirmPassword())) {
             throw new AppException(ErrorCode.PASSWORDS_DO_NOT_MATCH);
         }
@@ -94,7 +119,7 @@ public class AuthService {
         emailService.sendOtpEmail(request.getEmail(), otpCode);
     }
 
-    public AuthResponse verifySignupCode(VerifyOtpRequest request) {
+    public UserResponse verifySignupCode(VerifyOtpRequest request) {
         Otp otp = otpRepository.findByCodeAndEmail(request.getOtp(), request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_OTP));
 
@@ -121,10 +146,19 @@ public class AuthService {
         var accessToken = jwtService.generateToken(newUser);
         var refreshToken = jwtService.generateRefreshToken(newUser);
 
-        return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .role(newUser.getRole().name())
+        // Tạo UserResponse từ newUser vừa lưu
+        UserResponse userResponse = UserResponse.builder()
+                .id(newUser.getId())
+                .fullName(newUser.getFullName())
+                .email(newUser.getEmail())
+                .phoneNumber(newUser.getPhoneNumber())
+                .avatarUrl(newUser.getAvatarUrl())
+                .role(newUser.getRole())
+                .isActive(newUser.isEnabled())
+                .createdAt(newUser.getCreatedAt())
                 .build();
+
+        // Trả về AuthResponse chứa cả token và thông tin user
+        return userResponse;
     }
 }

@@ -6,6 +6,7 @@ import com.example.cellex.dtos.request.SendOtpRequest;
 import com.example.cellex.dtos.request.VerifyOtpRequest;
 import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.AuthResponse;
+import com.example.cellex.dtos.response.UserResponse;
 import com.example.cellex.services.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -98,10 +99,10 @@ public class AuthController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Account created and user logged in successfully."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid, expired, or already used OTP.")
     })
-    public ApiResponse<AuthResponse> verifySignupCode(@RequestBody VerifyOtpRequest request) {
-        AuthResponse authResponse = authService.verifySignupCode(request);
-        return ApiResponse.<AuthResponse>builder()
-                .result(authResponse)
+    public ApiResponse<UserResponse> verifySignupCode(@RequestBody VerifyOtpRequest request) {
+        UserResponse userResponse = authService.verifySignupCode(request);
+        return ApiResponse.<UserResponse>builder()
+                .result(userResponse)
                 .message("Account created successfully.")
                 .build();
     }
