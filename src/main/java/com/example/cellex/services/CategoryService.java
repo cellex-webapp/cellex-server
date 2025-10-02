@@ -1,6 +1,6 @@
 package com.example.cellex.services;
 
-import com.example.cellex.dtos.request.CategoryRequest;
+import com.example.cellex.dtos.request.category.CategoryRequest;
 import com.example.cellex.dtos.response.CategoryResponse;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;

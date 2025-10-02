@@ -1,6 +1,6 @@
 package com.example.cellex.controllers;
 
-import com.example.cellex.dtos.request.CategoryRequest;
+import com.example.cellex.dtos.request.category.CategoryRequest;
 import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.CategoryResponse;
 import com.example.cellex.services.CategoryService;
@@ -9,9 +9,9 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -35,7 +35,7 @@ public class CategoryController {
     @Operation(summary = "Create a new category", description = "Creates a new category. `isActive` is true by default.")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<CategoryResponse> createCategory(
-            @Parameter(
+            @Valid @Parameter(
                     description = "Category metadata in JSON format.", required = true,
                     examples = @ExampleObject(value = """
                         {
@@ -58,7 +58,7 @@ public class CategoryController {
     // READ ALL
     @GetMapping
     @Operation(summary = "Get all active categories", description = "Retrieves a list of all active categories with nested parent objects.")
-    @SecurityRequirement(name = "bearerAuth", scopes = {})
+    @SecurityRequirement(name = "bearerAuth")
     public ApiResponse<List<CategoryResponse>> getAllActiveCategories() {
         List<CategoryResponse> categories = categoryService.getAllActiveCategories();
         return ApiResponse.<List<CategoryResponse>>builder()
@@ -81,7 +81,7 @@ public class CategoryController {
     @Operation(summary = "Update an existing category", description = "Updates category details, including its active status.")
     public ApiResponse<CategoryResponse> updateCategory(
             @PathVariable String id,
-            @Parameter(
+            @Valid @Parameter(
                     description = "Category metadata in JSON format.", required = true,
                     examples = @ExampleObject(value = """
                         {

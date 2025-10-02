@@ -1,9 +1,9 @@
 package com.example.cellex.services;
 
-import com.example.cellex.dtos.request.LoginRequest;
-import com.example.cellex.dtos.request.RefreshTokenRequest;
-import com.example.cellex.dtos.request.SendOtpRequest;
-import com.example.cellex.dtos.request.VerifyOtpRequest;
+import com.example.cellex.dtos.request.auth.LoginRequest;
+import com.example.cellex.dtos.request.auth.RefreshTokenRequest;
+import com.example.cellex.dtos.request.auth.SendOtpRequest;
+import com.example.cellex.dtos.request.auth.VerifyOtpRequest;
 import com.example.cellex.dtos.response.AuthResponse;
 import com.example.cellex.dtos.response.UserResponse;
 import com.example.cellex.enums.Role;

@@ -33,7 +33,7 @@ build/
 .vscode/
 
 .env
-.env.production
+.env.**
 
 *.pem
 

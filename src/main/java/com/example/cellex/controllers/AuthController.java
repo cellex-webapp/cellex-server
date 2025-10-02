@@ -1,9 +1,9 @@
 package com.example.cellex.controllers;
 
-import com.example.cellex.dtos.request.LoginRequest;
-import com.example.cellex.dtos.request.RefreshTokenRequest;
-import com.example.cellex.dtos.request.SendOtpRequest;
-import com.example.cellex.dtos.request.VerifyOtpRequest;
+import com.example.cellex.dtos.request.auth.LoginRequest;
+import com.example.cellex.dtos.request.auth.RefreshTokenRequest;
+import com.example.cellex.dtos.request.auth.SendOtpRequest;
+import com.example.cellex.dtos.request.auth.VerifyOtpRequest;
 import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.AuthResponse;
 import com.example.cellex.dtos.response.UserResponse;
@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -49,7 +50,7 @@ public class AuthController {
             )
     })
     @PostMapping("/login")
-    public ApiResponse<AuthResponse> login(@RequestBody LoginRequest request) {
+    public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ApiResponse.<AuthResponse>builder()
                 .result(authService.login(request))
                 .message("Login successful.")
@@ -63,7 +64,7 @@ public class AuthController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User associated with token not found")
     })
     @PostMapping("/refresh-token")
-    public ApiResponse<AuthResponse> refreshToken(@RequestBody RefreshTokenRequest request) {
+    public ApiResponse<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
         return ApiResponse.<AuthResponse>builder()
                 .result(authService.refreshToken(request))
                 .build();
@@ -86,7 +87,7 @@ public class AuthController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "OTP sent successfully."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Passwords do not match or email already exists.")
     })
-    public ApiResponse<String> sendSignupCode(@RequestBody SendOtpRequest request) {
+    public ApiResponse<String> sendSignupCode(@Valid @RequestBody SendOtpRequest request) {
         authService.sendSignupCode(request);
         return ApiResponse.<String>builder()
                 .message("An OTP has been sent to your email.")
@@ -99,7 +100,7 @@ public class AuthController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Account created and user logged in successfully."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid, expired, or already used OTP.")
     })
-    public ApiResponse<UserResponse> verifySignupCode(@RequestBody VerifyOtpRequest request) {
+    public ApiResponse<UserResponse> verifySignupCode(@Valid @RequestBody VerifyOtpRequest request) {
         UserResponse userResponse = authService.verifySignupCode(request);
         return ApiResponse.<UserResponse>builder()
                 .result(userResponse)
