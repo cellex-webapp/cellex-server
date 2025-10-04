@@ -24,13 +24,13 @@ public class CategoryService {
 
     // CREATE
     public CategoryResponse createCategory(CategoryRequest request, MultipartFile imageFile) throws IOException {
-        String imageUrl = s3Service.uploadFile(imageFile);
+        String imageUrl = s3Service.uploadFile(imageFile, "categories");
 
         Category category = Category.builder()
                 .name(request.getName())
                 .parentId(request.getParentId())
                 .imageUrl(imageUrl)
-                .isActive(true) // Mặc định khi tạo mới
+                .isActive(true)
                 .build();
 
         Category savedCategory = categoryRepository.save(category);
@@ -53,41 +53,54 @@ public class CategoryService {
 
     // UPDATE
     public CategoryResponse updateCategory(String id, CategoryRequest request, MultipartFile imageFile) throws IOException {
-        Category existingCategory = findCategoryByIdInternal(id);
+        Category category = findCategoryByIdInternal(id);
 
-        String imageUrl = s3Service.uploadFile(imageFile);
-        if (imageUrl != null) {
-            existingCategory.setImageUrl(imageUrl);
+        // Update name if provided
+        if (StringUtils.hasText(request.getName())) {
+            category.setName(request.getName());
         }
 
-        existingCategory.setName(request.getName());
-        existingCategory.setParentId(request.getParentId());
-
-        // Cho phép cập nhật isActive
-        if (request.getIsActive() != null) {
-            existingCategory.setIsActive(request.getIsActive());
+        // Update parent ID if provided
+        if (request.getParentId() != null) {
+            category.setParentId(request.getParentId());
         }
 
-        Category updatedCategory = categoryRepository.save(existingCategory);
-        return mapToCategoryResponse(updatedCategory);
+        // Update image if provided
+        if (imageFile != null && !imageFile.isEmpty()) {
+            // Delete old image if exists
+            if (StringUtils.hasText(category.getImageUrl())) {
+                s3Service.deleteFile(category.getImageUrl());
+            }
+
+            // Upload new image
+            String newImageUrl = s3Service.uploadFile(imageFile, "categories");
+            category.setImageUrl(newImageUrl);
+        }
+
+        Category savedCategory = categoryRepository.save(category);
+        return mapToCategoryResponse(savedCategory);
     }
 
     // DELETE (Hard delete)
     public void deleteCategory(String id) {
-        if (!categoryRepository.existsById(id)) {
-            throw new AppException(ErrorCode.CATEGORY_NOT_FOUND);
+        Category category = findCategoryByIdInternal(id);
+
+        // Delete image from S3 if exists
+        if (StringUtils.hasText(category.getImageUrl())) {
+            s3Service.deleteFile(category.getImageUrl());
         }
-        // Xóa vĩnh viễn
+
+        // Delete permanently
         categoryRepository.deleteById(id);
     }
 
-    // Helper method để tìm category, tránh lặp code
+    // Helper method to find category, avoid code duplication
     private Category findCategoryByIdInternal(String id) {
         return categoryRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
     }
 
-    // Helper method để map từ Entity sang Response DTO
+    // Helper method to map from Entity to Response DTO
     private CategoryResponse mapToCategoryResponse(Category category) {
         if (category == null) return null;
 
@@ -97,7 +110,7 @@ public class CategoryService {
                 .imageUrl(category.getImageUrl())
                 .isActive(category.getIsActive());
 
-        // Nếu có parentId, tìm và đệ quy map object cha
+        // If has parentId, find and recursively map parent object
         if (StringUtils.hasText(category.getParentId())) {
             categoryRepository.findById(category.getParentId()).ifPresent(parentEntity -> {
                 builder.parent(mapToCategoryResponse(parentEntity));

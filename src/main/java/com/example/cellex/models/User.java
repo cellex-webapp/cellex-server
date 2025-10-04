@@ -6,7 +6,6 @@ import org.springframework.data.annotation.*;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
-// Thêm các import cần thiết
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -44,8 +43,8 @@ public class User implements UserDetails {
     @Field("role")
     private Role role;
 
-    @Field("addresses")
-    private String addresses;
+    @Field("address")
+    private Address address;
 
     @Field("customer_segment_id")
     private String customerSegmentId;
@@ -63,7 +62,7 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(role.name()));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
     @Override
@@ -94,5 +93,29 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return this.isActive;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Address {
+        @Field("province_code")
+        private String provinceCode;
+
+        @Field("province_name")
+        private String provinceName;
+
+        @Field("commune_code")
+        private String communeCode;
+
+        @Field("commune_name")
+        private String communeName;
+
+        @Field("detail_address")
+        private String detailAddress;
+
+        @Field("full_address")
+        private String fullAddress;
     }
 }

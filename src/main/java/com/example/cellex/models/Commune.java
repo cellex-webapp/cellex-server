@@ -1,0 +1,19 @@
+package com.example.cellex.models;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class Commune {
+    private String code;
+    private String name;
+    private String codeName;
+    private String divisionType;
+    private String provinceCode;
+    private String districtCode;
+}

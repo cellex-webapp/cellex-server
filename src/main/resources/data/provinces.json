@@ -1,0 +1,30 @@
+[
+  {
+    "code": "01",
+    "name": "Thành phố Hà Nội",
+    "codeName": "ha_noi",
+    "divisionType": "thành phố trung ương",
+    "phoneCode": 24
+  },
+  {
+    "code": "02",
+    "name": "Tỉnh Hà Giang",
+    "codeName": "ha_giang",
+    "divisionType": "tỉnh",
+    "phoneCode": 219
+  },
+  {
+    "code": "04",
+    "name": "Tỉnh Cao Bằng",
+    "codeName": "cao_bang",
+    "divisionType": "tỉnh",
+    "phoneCode": 206
+  },
+  {
+    "code": "79",
+    "name": "Thành phố Hồ Chí Minh",
+    "codeName": "ho_chi_minh",
+    "divisionType": "thành phố trung ương",
+    "phoneCode": 28
+  }
+]
