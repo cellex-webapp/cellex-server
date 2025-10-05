@@ -15,6 +15,7 @@ import com.example.cellex.repositories.OtpRepository;
 import com.example.cellex.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,16 +34,41 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
-    // ... login, refreshToken, and sendSignupCode methods remain the same ...
     public AuthResponse login(LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
+        // Validate email format and length
+        if (request.getEmail() == null || request.getEmail().trim().isEmpty() ||
+                request.getEmail().length() < 3 || !isValidEmail(request.getEmail())) {
+            throw new AppException(ErrorCode.USERNAME_INVALID);
+        }
+
+        // Validate password
+        if (request.getPassword() == null ) {
+            throw new AppException(ErrorCode.PASSWORD_INVALID);
+        }
+
+        // Check if user exists
         var user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if (!user.getPassword().equals(request.getPassword())) {
+            throw new AppException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        // Check if user is active
+        if (!user.isEnabled()) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
+        } catch (BadCredentialsException e) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
 
         var accessToken = jwtService.generateToken(user);
         var refreshToken = jwtService.generateRefreshToken(user);
@@ -66,39 +92,68 @@ public class AuthService {
     }
 
     public AuthResponse refreshToken(RefreshTokenRequest request) {
-        String userEmail = jwtService.extractUsername(request.getRefreshToken());
+        if (request.getRefreshToken() == null || request.getRefreshToken().trim().isEmpty()) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        String userEmail;
+        try {
+            userEmail = jwtService.extractUsername(request.getRefreshToken());
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (jwtService.isTokenValid(request.getRefreshToken(), user)) {
-            var accessToken = jwtService.generateToken(user);
-
-            UserResponse userResponse = UserResponse.builder()
-                    .id(user.getId())
-                    .fullName(user.getFullName())
-                    .email(user.getEmail())
-                    .phoneNumber(user.getPhoneNumber())
-                    .avatarUrl(user.getAvatarUrl())
-                    .role(user.getRole())
-                    .isActive(user.isEnabled())
-                    .createdAt(user.getCreatedAt())
-                    .build();
-
-            return AuthResponse.builder()
-                    .accessToken(accessToken)
-                    .refreshToken(request.getRefreshToken())
-                    .user(userResponse)
-                    .build();
+        if (!user.isEnabled()) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
-        throw new AppException(ErrorCode.UNAUTHENTICATED);
+
+        if (!jwtService.isTokenValid(request.getRefreshToken(), user)) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        var accessToken = jwtService.generateToken(user);
+
+        UserResponse userResponse = UserResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .phoneNumber(user.getPhoneNumber())
+                .avatarUrl(user.getAvatarUrl())
+                .role(user.getRole())
+                .isActive(user.isEnabled())
+                .createdAt(user.getCreatedAt())
+                .build();
+
+        return AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(request.getRefreshToken())
+                .user(userResponse)
+                .build();
     }
 
     public void sendSignupCode(SendOtpRequest request) {
+        // Validate email format and length
+        if (request.getEmail() == null || request.getEmail().trim().isEmpty() ||
+                request.getEmail().length() < 3 || !isValidEmail(request.getEmail())) {
+            throw new AppException(ErrorCode.USERNAME_INVALID);
+        }
+
+        // Validate password
+        if (request.getPassword() == null || request.getPassword().length() < 8) {
+            throw new AppException(ErrorCode.PASSWORD_INVALID);
+        }
+
+        // Validate password confirmation
         if (!request.getPassword().equals(request.getConfirmPassword())) {
             throw new AppException(ErrorCode.PASSWORDS_DO_NOT_MATCH);
         }
+
+        // Check if user already exists
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
+            throw new AppException(ErrorCode.USER_EXISTED);
         }
 
         String otpCode = String.format("%06d", new Random().nextInt(999999));
@@ -118,8 +173,18 @@ public class AuthService {
         emailService.sendOtpEmail(request.getEmail(), otpCode);
     }
 
-
     public UserResponse verifySignupCode(VerifyOtpRequest request) {
+        // Validate email
+        if (request.getEmail() == null || request.getEmail().trim().isEmpty() ||
+                !isValidEmail(request.getEmail())) {
+            throw new AppException(ErrorCode.USERNAME_INVALID);
+        }
+
+        // Check if user already exists
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new AppException(ErrorCode.USER_EXISTED);
+        }
+
         Otp otp = otpRepository.findByCodeAndEmail(request.getOtp(), request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_OTP));
 
@@ -154,5 +219,9 @@ public class AuthService {
                 .isActive(savedUser.isEnabled())
                 .createdAt(savedUser.getCreatedAt())
                 .build();
+    }
+
+    private boolean isValidEmail(String email) {
+        return email.contains("@") && email.contains(".");
     }
 }
