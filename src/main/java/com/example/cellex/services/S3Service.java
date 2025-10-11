@@ -25,7 +25,12 @@ public class S3Service {
     private String region;
 
     public String uploadFile(MultipartFile file, String folder) throws IOException {
-        String fileName = folder + "/" + UUID.randomUUID() + "_" + file.getOriginalFilename();
+        if (file == null || file.isEmpty()) {
+            return null; // No file uploaded
+        }
+
+        String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
+        String fileName = folder + "/" + UUID.randomUUID() + "_" + originalName;
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)

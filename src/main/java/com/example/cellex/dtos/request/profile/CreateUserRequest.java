@@ -1,28 +1,26 @@
 package com.example.cellex.dtos.request.profile;
 
-import jakarta.validation.constraints.*;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Schema(description = "Request to create a new user account with data and avatar parts")
 public class CreateUserRequest {
-    @NotBlank(message = "Full name is required")
-    @Size(min = 2, max = 100, message = "Full name must be between 2 and 100 characters")
-    private String fullName;
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Invalid email format")
-    private String email;
+    @NotNull(message = "User data is required")
+    @Valid
+    @Schema(description = "User account data", implementation = CreateUserDataRequest.class)
+    private CreateUserDataRequest data;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 8, max = 50, message = "Password must be between 8 and 50 characters")
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$",
-            message = "Password must contain at least one lowercase letter, one uppercase letter, and one digit")
-    private String password;
-
-    @NotBlank(message = "Phone number is required")
-    @Pattern(regexp = "^[0-9]{10,11}$", message = "Phone number must be 10-11 digits")
-    private String phoneNumber;
-
-    @Size(max = 255, message = "Address cannot exceed 255 characters")
-    private String addresses;
+    @Schema(description = "Avatar image file (JPEG, PNG, WebP - max 5MB)", type = "string", format = "binary")
+    private MultipartFile avatar;
 }

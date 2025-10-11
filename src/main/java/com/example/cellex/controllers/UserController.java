@@ -1,14 +1,17 @@
 package com.example.cellex.controllers;
 
-import com.example.cellex.dtos.request.profile.CreateUserRequest;
+import com.example.cellex.dtos.request.profile.CreateUserDataRequest;
 import com.example.cellex.dtos.request.profile.UpdateUserRequest;
+import com.example.cellex.dtos.request.profile.UpdateUserDataRequest;
 import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.UserResponse;
+import com.example.cellex.enums.Role;
 import com.example.cellex.models.User;
 import com.example.cellex.services.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -19,12 +22,13 @@ import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.List;
 
-@Tag(name = "User Management", description = "APIs for managing user accounts")
+@Tag(name = "User Management", description = "APIs for managing user accounts and profiles")
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
@@ -41,12 +45,16 @@ public class UserController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
                     description = "Users retrieved successfully",
-                    content = { @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class)) }
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class))
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403",
                     description = "Access denied - Admin role required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Invalid or missing token",
                     content = @Content
             )
     })
@@ -68,8 +76,7 @@ public class UserController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
                     description = "User retrieved successfully",
-                    content = { @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class)) }
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class))
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
@@ -79,6 +86,11 @@ public class UserController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403",
                     description = "Access denied - Admin role required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Invalid or missing token",
                     content = @Content
             )
     })
@@ -102,8 +114,7 @@ public class UserController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
                     description = "Current user profile retrieved successfully",
-                    content = { @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class)) }
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class))
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "401",
@@ -117,20 +128,19 @@ public class UserController {
         UserResponse user = userService.getCurrentUser(currentUser.getId());
         return ApiResponse.<UserResponse>builder()
                 .result(user)
-                .message("Current user profile retrieved successfully.")
+                .message("User retrieved successfully.")
                 .build();
     }
 
     @Operation(
             summary = "Create a new user account",
-            description = "Creates a new user with the ADMIN role and an active status by default. The email must be unique."
+            description = "Creates a new user account with role, avatar, and address information."
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "201",
                     description = "Account created successfully",
-                    content = { @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class)) }
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class))
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "409",
@@ -139,15 +149,45 @@ public class UserController {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
-                    description = "Invalid request data",
+                    description = "Invalid request data or file upload failed",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Admin role required",
                     content = @Content
             )
     })
-    @PostMapping("/add-account")
+    @PostMapping(value = "/add-account", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<User> addAccount(@Valid @RequestBody CreateUserRequest request) {
-        User createdUser = userService.createAccount(request);
+    public ApiResponse<User> addAccount(
+            @Valid @Parameter(
+                    description = "User data in JSON format", required = true,
+                    examples = @ExampleObject(value = """
+                        {
+                          "fullName": "Nguyễn Văn An",
+                          "email": "admin@example.com",
+                          "password": "Password123",
+                          "phoneNumber": "0987654321",
+                          "role": "ADMIN",
+                          "provinceCode": "01",
+                          "communeCode": "00001",
+                          "detailAddress": "123 Đường Lê Lợi"
+                        }
+                        """),
+                    content = @Content(schema = @Schema(implementation = CreateUserDataRequest.class))
+            )
+            @RequestPart("data") CreateUserDataRequest userData,
+
+            @Parameter(
+                    description = "Avatar image file (optional)",
+                    content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE)
+            )
+            @RequestPart(value = "avatar", required = false) MultipartFile avatar
+    ) throws IOException {
+
+        User createdUser = userService.createAccount(userData, avatar);
         return ApiResponse.<User>builder()
                 .result(createdUser)
                 .message("Account created successfully.")
@@ -156,14 +196,13 @@ public class UserController {
 
     @Operation(
             summary = "Update user profile",
-            description = "Updates user profile including full name, avatar, and address. All fields are optional."
+            description = "Updates the current user's profile including full name, avatar, and address."
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
                     description = "Profile updated successfully",
-                    content = { @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponse.class)) }
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class))
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
@@ -172,16 +211,51 @@ public class UserController {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
-                    description = "Invalid request data",
+                    description = "Invalid input data or file upload failed",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Valid JWT token required",
                     content = @Content
             )
     })
-    @PutMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<UserResponse> updateProfile(
             Authentication authentication,
-            @Valid @ModelAttribute UpdateUserRequest request) throws IOException {
+
+            @Valid @Parameter(
+                    description = "User data in JSON format", required = true,
+                    examples = @ExampleObject(value = """
+                        {
+                          "fullName": "Nguyễn Văn An",
+                          "provinceCode": "01",
+                          "communeCode": "00001",
+                          "detailAddress": "123 Đường Lê Lợi"
+                        }
+                        """),
+                    content = @Content(schema = @Schema(implementation = UpdateUserDataRequest.class))
+            )
+            @RequestPart("data") UpdateUserDataRequest userData,
+
+            @Parameter(
+                    description = "Avatar image file (optional)",
+                    content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE)
+            )
+            @RequestPart(value = "avatar", required = false) MultipartFile avatar
+    ) throws IOException {
 
         User currentUser = (User) authentication.getPrincipal();
+
+        // Build UpdateUserRequest from userData and avatar
+        UpdateUserRequest request = UpdateUserRequest.builder()
+                .fullName(userData.getFullName())
+                .avatar(avatar)
+                .provinceCode(userData.getProvinceCode())
+                .communeCode(userData.getCommuneCode())
+                .detailAddress(userData.getDetailAddress())
+                .build();
+
         UserResponse updatedUser = userService.updateProfile(currentUser.getId(), request);
 
         return ApiResponse.<UserResponse>builder()

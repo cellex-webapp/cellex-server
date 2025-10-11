@@ -12,7 +12,4 @@ import lombok.NoArgsConstructor;
 public class Province {
     private String code;
     private String name;
-    private String codeName;
-    private String divisionType;
-    private Integer phoneCode;
 }

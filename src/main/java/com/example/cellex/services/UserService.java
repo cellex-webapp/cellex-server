@@ -1,16 +1,17 @@
 package com.example.cellex.services;
 
-import com.example.cellex.dtos.request.profile.CreateUserRequest;
+import com.example.cellex.dtos.request.profile.CreateUserDataRequest;
 import com.example.cellex.dtos.request.profile.UpdateUserRequest;
 import com.example.cellex.dtos.response.UserResponse;
-import com.example.cellex.enums.Role;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.models.User;
 import com.example.cellex.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserService {
 
     private final UserRepository userRepository;
@@ -26,23 +28,101 @@ public class UserService {
     private final AddressService addressService;
     private final PasswordEncoder passwordEncoder;
 
-    // Add the missing createAccount method
-    public User createAccount(CreateUserRequest request) {
+    @Transactional
+    public User createAccount(CreateUserDataRequest request, MultipartFile avatar) {
+        log.info("Creating account for email: {} with role: {}", request.getEmail(), request.getRole());
+
         // Check if email already exists
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            log.warn("Account creation failed - email already exists: {}", request.getEmail());
             throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
-        User newUser = User.builder()
+        // Build user with new address system
+        User.UserBuilder userBuilder = User.builder()
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .phoneNumber(request.getPhoneNumber())
-                .role(Role.ADMIN)
-                .isActive(true)
-                .build();
+                .role(request.getRole())
+                .isActive(true);
 
-        return userRepository.save(newUser);
+        // Handle avatar upload if provided
+        if (avatar != null && !avatar.isEmpty()) {
+            try {
+                String avatarUrl = s3Service.uploadFile(avatar, "avatars");
+                userBuilder.avatarUrl(avatarUrl);
+                log.debug("Avatar uploaded for new user: {}", avatarUrl);
+            } catch (IOException e) {
+                log.error("Failed to upload avatar for new user: {}", request.getEmail(), e);
+                throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+            }
+        }
+
+        // Handle address if provided
+        if (request.getProvinceCode() != null || request.getCommuneCode() != null ||
+            request.getDetailAddress() != null) {
+
+            User.Address address = buildAddress(request.getProvinceCode(),
+                    request.getCommuneCode(), request.getDetailAddress());
+            userBuilder.address(address);
+            log.debug("Address set for new user: {}", address.getFullAddress());
+        }
+
+        User savedUser = userRepository.save(userBuilder.build());
+        log.info("Account created successfully for email: {} with role: {}",
+                savedUser.getEmail(), savedUser.getRole());
+
+        return savedUser;
+    }
+
+    private User.Address buildAddress(String provinceCode, String communeCode, String detailAddress) {
+        User.Address.AddressBuilder addressBuilder = User.Address.builder();
+
+        // Set province info
+        if (provinceCode != null && !provinceCode.trim().isEmpty()) {
+            addressBuilder.provinceCode(provinceCode.trim());
+            var province = addressService.getProvinceByCode(provinceCode.trim());
+            if (province != null) {
+                addressBuilder.provinceName(province.getName());
+            } else {
+                log.warn("Province not found with code: {}", provinceCode);
+            }
+        }
+
+        // Set commune info
+        if (communeCode != null && !communeCode.trim().isEmpty()) {
+            addressBuilder.communeCode(communeCode.trim());
+            var commune = addressService.getCommuneByCode(communeCode.trim());
+            if (commune != null) {
+                addressBuilder.communeName(commune.getName());
+            } else {
+                log.warn("Commune not found with code: {}", communeCode);
+            }
+        }
+
+        // Set detail address
+        if (detailAddress != null && !detailAddress.trim().isEmpty()) {
+            addressBuilder.detailAddress(detailAddress.trim());
+        }
+
+        // Build the address to get the names
+        User.Address tempAddress = addressBuilder.build();
+
+        // Generate full address
+        StringBuilder fullAddress = new StringBuilder();
+        if (tempAddress.getDetailAddress() != null && !tempAddress.getDetailAddress().isEmpty()) {
+            fullAddress.append(tempAddress.getDetailAddress()).append(", ");
+        }
+        if (tempAddress.getCommuneName() != null) {
+            fullAddress.append(tempAddress.getCommuneName()).append(", ");
+        }
+        if (tempAddress.getProvinceName() != null) {
+            fullAddress.append(tempAddress.getProvinceName());
+        }
+
+        addressBuilder.fullAddress(fullAddress.toString().replaceAll(", $", ""));
+        return addressBuilder.build();
     }
 
     public UserResponse updateProfile(String userId, UpdateUserRequest request) {

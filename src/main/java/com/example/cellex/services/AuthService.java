@@ -50,9 +50,6 @@ public class AuthService {
         var user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (!user.getPassword().equals(request.getPassword())) {
-            throw new AppException(ErrorCode.USER_NOT_FOUND);
-        }
 
         // Check if user is active
         if (!user.isEnabled()) {

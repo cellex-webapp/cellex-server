@@ -1,30 +1,138 @@
 [
   {
     "code": "01",
-    "name": "Thành phố Hà Nội",
-    "codeName": "ha_noi",
-    "divisionType": "thành phố trung ương",
-    "phoneCode": 24
+    "name": "An Giang"
   },
   {
     "code": "02",
-    "name": "Tỉnh Hà Giang",
-    "codeName": "ha_giang",
-    "divisionType": "tỉnh",
-    "phoneCode": 219
+    "name": "Bắc Ninh"
+  },
+  {
+    "code": "03",
+    "name": "Cà Mau"
   },
   {
     "code": "04",
-    "name": "Tỉnh Cao Bằng",
-    "codeName": "cao_bang",
-    "divisionType": "tỉnh",
-    "phoneCode": 206
+    "name": "Cao Bằng"
   },
   {
-    "code": "79",
-    "name": "Thành phố Hồ Chí Minh",
-    "codeName": "ho_chi_minh",
-    "divisionType": "thành phố trung ương",
-    "phoneCode": 28
+    "code": "05",
+    "name": "Cần Thơ"
+  },
+  {
+    "code": "06",
+    "name": "Đà Nẵng"
+  },
+  {
+    "code": "07",
+    "name": "Đắk Lắk"
+  },
+  {
+    "code": "08",
+    "name": "Điện Biên"
+  },
+  {
+    "code": "09",
+    "name": "Đồng Nai"
+  },
+  {
+    "code": "10",
+    "name": "Đồng Tháp"
+  },
+  {
+    "code": "11",
+    "name": "Gia Lai"
+  },
+  {
+    "code": "12",
+    "name": "Hà Nội"
+  },
+  {
+    "code": "13",
+    "name": "Hà Tĩnh"
+  },
+  {
+    "code": "14",
+    "name": "Hải Phòng"
+  },
+  {
+    "code": "15",
+    "name": "Huế"
+  },
+  {
+    "code": "16",
+    "name": "Hưng Yên"
+  },
+  {
+    "code": "17",
+    "name": "Khánh Hòa"
+  },
+  {
+    "code": "18",
+    "name": "Lai Châu"
+  },
+  {
+    "code": "19",
+    "name": "Lạng Sơn"
+  },
+  {
+    "code": "20",
+    "name": "Lào Cai"
+  },
+  {
+    "code": "21",
+    "name": "Lâm Đồng"
+  },
+  {
+    "code": "22",
+    "name": "Nghệ An"
+  },
+  {
+    "code": "23",
+    "name": "Ninh Bình"
+  },
+  {
+    "code": "24",
+    "name": "Phú Thọ"
+  },
+  {
+    "code": "25",
+    "name": "Quảng Ngãi"
+  },
+  {
+    "code": "26",
+    "name": "Quảng Ninh"
+  },
+  {
+    "code": "27",
+    "name": "Quảng Trị"
+  },
+  {
+    "code": "28",
+    "name": "Sơn La"
+  },
+  {
+    "code": "29",
+    "name": "Tây Ninh"
+  },
+  {
+    "code": "30",
+    "name": "Thái Nguyên"
+  },
+  {
+    "code": "31",
+    "name": "Thanh Hóa"
+  },
+  {
+    "code": "32",
+    "name": "TP HCM"
+  },
+  {
+    "code": "33",
+    "name": "Tuyên Quang"
+  },
+  {
+    "code": "34",
+    "name": "Vĩnh Long"
   }
 ]

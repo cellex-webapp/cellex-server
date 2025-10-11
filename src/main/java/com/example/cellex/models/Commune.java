@@ -12,8 +12,5 @@ import lombok.NoArgsConstructor;
 public class Commune {
     private String code;
     private String name;
-    private String codeName;
-    private String divisionType;
     private String provinceCode;
-    private String districtCode;
 }
