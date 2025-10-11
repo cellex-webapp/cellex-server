@@ -25,6 +25,7 @@ public enum ErrorCode {
     INVALID_OTP(1010, "Invalid OTP code", HttpStatus.BAD_REQUEST),
     OTP_EXPIRED(1011, "OTP has expired", HttpStatus.BAD_REQUEST),
     OTP_ALREADY_USED(1012, "OTP has already been used", HttpStatus.BAD_REQUEST),
+    EMAIL_SEND_FAILED(1013, "Failed to send email. Please try again later", HttpStatus.INTERNAL_SERVER_ERROR),
 
     // Domain Specific Errors
     PRODUCT_NOT_FOUND(2001, "Product not found", HttpStatus.NOT_FOUND),
