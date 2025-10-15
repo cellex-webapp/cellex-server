@@ -21,6 +21,12 @@ public class EmailService {
 
     public void sendOtpEmail(String to, String otp) {
         try {
+            // Validate email configuration first
+            if (fromEmail == null || fromEmail.equals("your-email@gmail.com")) {
+                log.error("Email configuration not properly set. fromEmail: {}", fromEmail);
+                throw new AppException(ErrorCode.EMAIL_SEND_FAILED);
+            }
+
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
             message.setTo(to);
@@ -30,8 +36,11 @@ public class EmailService {
             mailSender.send(message);
             log.info("OTP email sent successfully to: {}", to);
 
+        } catch (AppException e) {
+            // Re-throw AppException to maintain proper error code
+            throw e;
         } catch (Exception e) {
-            log.error("Failed to send email to: {}", to, e);
+            log.error("Failed to send email to: {}. Error: {}", to, e.getMessage(), e);
             throw new AppException(ErrorCode.EMAIL_SEND_FAILED);
         }
     }
