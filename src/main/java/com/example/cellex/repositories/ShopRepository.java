@@ -10,6 +10,7 @@ import java.util.Optional;
 @Repository
 public interface ShopRepository extends MongoRepository<Shop, String> {
     Optional<Shop> findByVendorId(String vendorId);
+    Optional<Shop> findByVendorIdAndIsVerifiedTrue(String vendorId);
     List<Shop> findByIsVerified(Boolean isVerified);
     boolean existsByVendorId(String vendorId);
 }

@@ -30,9 +30,18 @@ public enum ErrorCode {
     // Domain Specific Errors
     PRODUCT_NOT_FOUND(2001, "Product not found", HttpStatus.NOT_FOUND),
     CATEGORY_NOT_FOUND(2002, "Category not found", HttpStatus.NOT_FOUND),
-    SHOP_NOT_FOUND(2003, "Shop not found", HttpStatus.NOT_FOUND),
-    SHOP_ALREADY_EXISTS(2004, "Shop already exists for this vendor", HttpStatus.BAD_REQUEST),
-    SHOP_NOT_VERIFIED(2005, "Shop is not verified", HttpStatus.BAD_REQUEST);
+    CATEGORY_NOT_EXISTED(2003, "Category not existed", HttpStatus.NOT_FOUND),
+    SHOP_NOT_FOUND(2004, "Shop not found", HttpStatus.NOT_FOUND),
+    SHOP_ALREADY_EXISTS(2005, "Shop already exists for this vendor", HttpStatus.BAD_REQUEST),
+    SHOP_NOT_VERIFIED(2006, "Shop is not verified", HttpStatus.BAD_REQUEST),
+    SHOP_NOT_FOUND_OR_NOT_VERIFIED(2007, "Shop not found or not verified", HttpStatus.BAD_REQUEST),
+
+    // Category Attribute Errors
+    CATEGORY_ATTRIBUTE_NOT_FOUND(2008, "Category attribute not found", HttpStatus.NOT_FOUND),
+    ATTRIBUTE_KEY_EXISTED(2009, "Attribute key already exists in this category", HttpStatus.BAD_REQUEST),
+    SELECT_OPTIONS_REQUIRED(2010, "Select options are required for SELECT or MULTI_SELECT type", HttpStatus.BAD_REQUEST),
+    REQUIRED_ATTRIBUTE_MISSING(2011, "Required attribute is missing", HttpStatus.BAD_REQUEST),
+    INVALID_ATTRIBUTE_VALUE(2012, "Invalid attribute value", HttpStatus.BAD_REQUEST);
 
     private final int code;
     private final String message;
