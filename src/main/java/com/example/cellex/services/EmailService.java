@@ -35,7 +35,6 @@ public class EmailService {
 
             mailSender.send(message);
             log.info("OTP email sent successfully to: {}", to);
-
         } catch (AppException e) {
             // Re-throw AppException to maintain proper error code
             throw e;

@@ -30,7 +30,9 @@ public enum ErrorCode {
     // Domain Specific Errors
     PRODUCT_NOT_FOUND(2001, "Product not found", HttpStatus.NOT_FOUND),
     CATEGORY_NOT_FOUND(2002, "Category not found", HttpStatus.NOT_FOUND),
-    SHOP_NOT_FOUND(2003, "Shop not found", HttpStatus.NOT_FOUND);
+    SHOP_NOT_FOUND(2003, "Shop not found", HttpStatus.NOT_FOUND),
+    SHOP_ALREADY_EXISTS(2004, "Shop already exists for this vendor", HttpStatus.BAD_REQUEST),
+    SHOP_NOT_VERIFIED(2005, "Shop is not verified", HttpStatus.BAD_REQUEST);
 
     private final int code;
     private final String message;
