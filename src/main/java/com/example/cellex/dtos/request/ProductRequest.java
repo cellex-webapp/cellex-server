@@ -36,9 +36,6 @@ public class ProductRequest {
     @Min(value = 0, message = "Số lượng tồn kho phải từ 0 trở lên")
     private Integer stockQuantity;
 
-    @NotEmpty(message = "Phải có ít nhất một hình ảnh")
-    private List<String> images;
-
     @Valid
     @NotEmpty(message = "Phải có thông tin thuộc tính sản phẩm")
     private List<ProductAttributeValueRequest> attributeValues;

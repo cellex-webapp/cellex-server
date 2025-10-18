@@ -17,8 +17,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/products")
@@ -28,11 +30,12 @@ public class ProductController {
 
     private final ProductService productService;
 
+    // CREATE - JSON Data
     @PostMapping
     @PreAuthorize("hasRole('VENDOR')")
     @Operation(
             summary = "Tạo sản phẩm mới",
-            description = "Vendor tạo sản phẩm mới cho cửa hàng của mình",
+            description = "Vendor tạo sản phẩm mới cho cửa hàng của mình sử dụng JSON data",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<ProductResponse>> createProduct(
@@ -45,6 +48,54 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
                 .code(1000)
                 .message("Tạo sản phẩm thành công")
+                .result(response)
+                .build());
+    }
+
+    // CREATE - Upload Images
+    @PostMapping("/{productId}/upload-images")
+    @PreAuthorize("hasRole('VENDOR')")
+    @Operation(
+            summary = "Upload ảnh cho sản phẩm",
+            description = "Upload một hoặc nhiều ảnh cho sản phẩm đã tạo",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<ApiResponse<ProductResponse>> uploadProductImages(
+            Authentication authentication,
+            @Parameter(description = "ID của sản phẩm") @PathVariable String productId,
+            @Parameter(description = "Danh sách file ảnh", required = true)
+            @RequestParam("images") MultipartFile[] imageFiles) throws IOException {
+
+        String vendorId = authentication.getName();
+        ProductResponse response = productService.uploadProductImages(vendorId, productId, imageFiles);
+
+        return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
+                .code(1000)
+                .message("Upload ảnh sản phẩm thành công")
+                .result(response)
+                .build());
+    }
+
+    // UPDATE - Upload Images
+    @PutMapping("/{productId}/upload-images")
+    @PreAuthorize("hasRole('VENDOR')")
+    @Operation(
+            summary = "Cập nhật ảnh sản phẩm",
+            description = "Cập nhật ảnh cho sản phẩm (thay thế tất cả ảnh cũ)",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<ApiResponse<ProductResponse>> updateProductImages(
+            Authentication authentication,
+            @Parameter(description = "ID của sản phẩm") @PathVariable String productId,
+            @Parameter(description = "Danh sách file ảnh mới", required = true)
+            @RequestParam("images") MultipartFile[] imageFiles) throws IOException {
+
+        String vendorId = authentication.getName();
+        ProductResponse response = productService.updateProductImages(vendorId, productId, imageFiles);
+
+        return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
+                .code(1000)
+                .message("Cập nhật ảnh sản phẩm thành công")
                 .result(response)
                 .build());
     }

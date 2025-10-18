@@ -17,8 +17,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -34,6 +37,7 @@ public class ProductService {
     private final ShopRepository shopRepository;
     private final CategoryRepository categoryRepository;
     private final CategoryAttributeRepository categoryAttributeRepository;
+    private final S3Service s3Service; // Assuming you have an S3Service for file uploads
 
     public ProductResponse createProduct(String vendorId, ProductRequest request) {
         // Kiểm tra shop của vendor có tồn tại và đã được verify chưa
@@ -69,7 +73,7 @@ public class ProductService {
                 .categoryId(request.getCategoryId())
                 .name(request.getName())
                 .description(request.getDescription())
-                .images(request.getImages())
+                .images(List.of()) // Khởi tạo danh sách ảnh trống, sẽ upload riêng sau
                 .price(request.getPrice())
                 .saleOff(request.getSaleOff())
                 .finalPrice(finalPrice)
@@ -145,7 +149,6 @@ public class ProductService {
         product.setCategoryId(request.getCategoryId());
         product.setName(request.getName());
         product.setDescription(request.getDescription());
-        product.setImages(request.getImages());
         product.setPrice(request.getPrice());
         product.setSaleOff(request.getSaleOff());
         product.setFinalPrice(finalPrice);
@@ -194,6 +197,89 @@ public class ProductService {
 
         Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
         return mapToResponse(savedProduct, shop, category);
+    }
+
+    // Upload images for product
+    public ProductResponse uploadProductImages(String vendorId, String productId, MultipartFile[] imageFiles) throws IOException {
+        Product product = getProductAndValidateOwnership(vendorId, productId);
+
+        if (imageFiles == null || imageFiles.length == 0) {
+            throw new AppException(ErrorCode.INVALID_INPUT);
+        }
+
+        // Upload all images to Cloudinary
+        List<String> imageUrls = new ArrayList<>();
+        for (MultipartFile file : imageFiles) {
+            if (!file.isEmpty()) {
+                String imageUrl = s3Service.uploadFile(file, "products");
+                imageUrls.add(imageUrl);
+            }
+        }
+
+        // Add new images to existing ones
+        List<String> currentImages = product.getImages() != null ? new ArrayList<>(product.getImages()) : new ArrayList<>();
+        currentImages.addAll(imageUrls);
+        product.setImages(currentImages);
+
+        Product savedProduct = productRepository.save(product);
+
+        Shop shop = shopRepository.findById(product.getShopId()).orElse(null);
+        Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
+
+        return mapToResponse(savedProduct, shop, category);
+    }
+
+    // Update/Replace all product images
+    public ProductResponse updateProductImages(String vendorId, String productId, MultipartFile[] imageFiles) throws IOException {
+        Product product = getProductAndValidateOwnership(vendorId, productId);
+
+        if (imageFiles == null || imageFiles.length == 0) {
+            throw new AppException(ErrorCode.INVALID_INPUT);
+        }
+
+        // Delete old images from Cloudinary
+        if (product.getImages() != null && !product.getImages().isEmpty()) {
+            for (String oldImageUrl : product.getImages()) {
+                try {
+                    s3Service.deleteFile(oldImageUrl);
+                } catch (Exception e) {
+                    log.warn("Failed to delete old image: {}", oldImageUrl, e);
+                }
+            }
+        }
+
+        // Upload new images
+        List<String> imageUrls = new ArrayList<>();
+        for (MultipartFile file : imageFiles) {
+            if (!file.isEmpty()) {
+                String imageUrl = s3Service.uploadFile(file, "products");
+                imageUrls.add(imageUrl);
+            }
+        }
+
+        product.setImages(imageUrls);
+        Product savedProduct = productRepository.save(product);
+
+        Shop shop = shopRepository.findById(product.getShopId()).orElse(null);
+        Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
+
+        return mapToResponse(savedProduct, shop, category);
+    }
+
+    // Helper method to get product and validate ownership
+    private Product getProductAndValidateOwnership(String vendorId, String productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        // Kiểm tra quyền sở hữu thông qua shop
+        Shop shop = shopRepository.findByVendorIdAndIsVerifiedTrue(vendorId)
+                .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND_OR_NOT_VERIFIED));
+
+        if (!product.getShopId().equals(shop.getId())) {
+            throw new AppException(ErrorCode.ACCESS_DENIED);
+        }
+
+        return product;
     }
 
     private void validateRequiredAttributes(List<CategoryAttribute> requiredAttributes,
