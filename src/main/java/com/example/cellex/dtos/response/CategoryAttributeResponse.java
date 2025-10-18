@@ -21,8 +21,6 @@ public class CategoryAttributeResponse {
     private String dataType;
     private String unit;
     private Boolean isRequired;
-    private Boolean isFilterable;
-    private Boolean isComparable;
     private Boolean isHighlight;
     private List<String> selectOptions;
     private String validationPattern;

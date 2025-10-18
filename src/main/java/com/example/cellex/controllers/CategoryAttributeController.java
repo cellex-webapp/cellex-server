@@ -40,8 +40,7 @@ public class CategoryAttributeController {
                     - attributeKey phải là duy nhất trong danh mục
                     - Với dataType = SELECT hoặc MULTI_SELECT phải có selectOptions
                     - isRequired = true nghĩa là bắt buộc nhập khi tạo sản phẩm
-                    - isFilterable = true cho phép khách hàng lọc sản phẩm theo thuộc tính này
-                    - isComparable = true cho phép so sánh sản phẩm theo thuộc tính này
+                    - isHighlight = true cho phép hiển thị trên card sản phẩm
                     
                     **Các kiểu dữ liệu:**
                     - TEXT: Văn bản tự do (VD: Mô tả chi tiết)
@@ -66,8 +65,7 @@ public class CategoryAttributeController {
                                             "dataType": "SELECT",
                                             "unit": "GB",
                                             "isRequired": true,
-                                            "isFilterable": true,
-                                            "isComparable": true,
+                                            "isHighlight": true,
                                             "selectOptions": ["4GB", "8GB", "16GB", "32GB"],
                                             "sortOrder": 1,
                                             "description": "Dung lượng RAM của thiết bị"
@@ -93,8 +91,6 @@ public class CategoryAttributeController {
                                                 "dataType": "SELECT",
                                                 "unit": "GB",
                                                 "isRequired": true,
-                                                "isFilterable": true,
-                                                "isComparable": true,
                                                 "isHighlight": true,
                                                 "selectOptions": ["4GB", "8GB", "16GB", "32GB"],
                                                 "sortOrder": 1,
@@ -107,8 +103,6 @@ public class CategoryAttributeController {
                                                 "attributeKey": "color",
                                                 "dataType": "SELECT",
                                                 "isRequired": true,
-                                                "isFilterable": true,
-                                                "isComparable": false,
                                                 "isHighlight": false,
                                                 "selectOptions": ["Đen", "Trắng", "Xanh", "Đỏ", "Vàng"],
                                                 "sortOrder": 5,
@@ -122,8 +116,6 @@ public class CategoryAttributeController {
                                                 "dataType": "NUMBER",
                                                 "unit": "gram",
                                                 "isRequired": false,
-                                                "isFilterable": true,
-                                                "isComparable": true,
                                                 "isHighlight": false,
                                                 "validationPattern": "^[0-9]+(\\\\.[0-9]+)?$",
                                                 "sortOrder": 10,
@@ -170,8 +162,7 @@ public class CategoryAttributeController {
                                                 "dataType": "SELECT",
                                                 "unit": "GB",
                                                 "isRequired": true,
-                                                "isFilterable": true,
-                                                "isComparable": true,
+                                                "isHighlight": true,
                                                 "selectOptions": ["4GB", "8GB", "16GB", "32GB"],
                                                 "sortOrder": 1
                                             },
@@ -181,8 +172,7 @@ public class CategoryAttributeController {
                                                 "attributeKey": "color",
                                                 "dataType": "SELECT",
                                                 "isRequired": true,
-                                                "isFilterable": true,
-                                                "isComparable": false,
+                                                "isHighlight": false,
                                                 "selectOptions": ["Đen", "Trắng", "Xanh", "Đỏ"],
                                                 "sortOrder": 5
                                             }
@@ -198,58 +188,6 @@ public class CategoryAttributeController {
         return ResponseEntity.ok(ApiResponse.<List<CategoryAttributeResponse>>builder()
                 .code(1000)
                 .message("Lấy danh sách thuộc tính thành công")
-                .result(responses)
-                .build());
-    }
-
-    @GetMapping("/filterable")
-    @Operation(
-            summary = "Lấy danh sách thuộc tính có thể lọc",
-            description = """
-                    **Mục đích:** Lấy các thuộc tính có thể dùng để lọc sản phẩm (isFilterable = true)
-                    
-                    **Sử dụng khi:**
-                    - Xây dựng bộ lọc sản phẩm trên trang danh mục
-                    - Hiển thị sidebar filter cho khách hàng
-                    - Tạo menu lọc nâng cao
-                    
-                    **Ví dụ:** Trong danh mục Laptop, thuộc tính "RAM", "CPU", "Giá" có thể lọc được
-                    """
-    )
-    public ResponseEntity<ApiResponse<List<CategoryAttributeResponse>>> getFilterableAttributes(
-            @Parameter(description = "ID của danh mục sản phẩm", example = "67112345678901234567890b")
-            @PathVariable String categoryId) {
-
-        List<CategoryAttributeResponse> responses = categoryAttributeService.getFilterableAttributes(categoryId);
-        return ResponseEntity.ok(ApiResponse.<List<CategoryAttributeResponse>>builder()
-                .code(1000)
-                .message("Lấy danh sách thuộc tính lọc thành công")
-                .result(responses)
-                .build());
-    }
-
-    @GetMapping("/comparable")
-    @Operation(
-            summary = "Lấy danh sách thuộc tính có thể so sánh",
-            description = """
-                    **Mục đích:** Lấy các thuộc tính có thể dùng để so sánh sản phẩm (isComparable = true)
-                    
-                    **Sử dụng khi:**
-                    - Xây dựng tính năng so sánh sản phẩm
-                    - Hiển thị bảng so sánh chi tiết
-                    - Tạo tool so sánh nâng cao
-                    
-                    **Ví dụ:** So sánh 2 laptop về RAM, CPU, Card đồ họa nhưng không so sánh màu sắc
-                    """
-    )
-    public ResponseEntity<ApiResponse<List<CategoryAttributeResponse>>> getComparableAttributes(
-            @Parameter(description = "ID của danh mục sản phẩm", example = "67112345678901234567890b")
-            @PathVariable String categoryId) {
-
-        List<CategoryAttributeResponse> responses = categoryAttributeService.getComparableAttributes(categoryId);
-        return ResponseEntity.ok(ApiResponse.<List<CategoryAttributeResponse>>builder()
-                .code(1000)
-                .message("Lấy danh sách thuộc tính so sánh thành công")
                 .result(responses)
                 .build());
     }

@@ -11,10 +11,6 @@ public interface CategoryAttributeRepository extends MongoRepository<CategoryAtt
 
     List<CategoryAttribute> findByCategoryIdAndIsActiveTrueOrderBySortOrderAsc(String categoryId);
 
-    List<CategoryAttribute> findByCategoryIdAndIsFilterableTrueAndIsActiveTrueOrderBySortOrderAsc(String categoryId);
-
-    List<CategoryAttribute> findByCategoryIdAndIsComparableTrueAndIsActiveTrueOrderBySortOrderAsc(String categoryId);
-
     List<CategoryAttribute> findByCategoryIdAndIsHighlightTrueAndIsActiveTrueOrderBySortOrderAsc(String categoryId);
 
     boolean existsByCategoryIdAndAttributeKey(String categoryId, String attributeKey);

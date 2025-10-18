@@ -32,10 +32,6 @@ public class CategoryAttribute {
 
     private Boolean isRequired; // Bắt buộc nhập hay không
 
-    private Boolean isFilterable; // Có thể dùng để lọc sản phẩm không
-
-    private Boolean isComparable; // Có thể so sánh giữa các sản phẩm không
-
     private Boolean isHighlight; // Có phải là thông số nổi bật không (hiển thị trên card sản phẩm)
 
     private List<String> selectOptions; // Các lựa chọn nếu dataType là SELECT hoặc MULTI_SELECT

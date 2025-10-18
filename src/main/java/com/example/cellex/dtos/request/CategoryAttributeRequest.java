@@ -53,18 +53,6 @@ public class CategoryAttributeRequest {
             required = true)
     private Boolean isRequired;
 
-    @NotNull(message = "Trạng thái có thể lọc không được null")
-    @Schema(description = "Có thể sử dụng để lọc sản phẩm hay không",
-            example = "true",
-            required = true)
-    private Boolean isFilterable;
-
-    @NotNull(message = "Trạng thái có thể so sánh không được null")
-    @Schema(description = "Có thể sử dụng để so sánh sản phẩm hay không",
-            example = "true",
-            required = true)
-    private Boolean isComparable;
-
     @NotNull(message = "Trạng thái thông số nổi bật không được null")
     @Schema(description = "Có phải là thông số nổi bật hiển thị trên card sản phẩm hay không",
             example = "true",

@@ -47,8 +47,6 @@ public class CategoryAttributeService {
                 .dataType(request.getDataType())
                 .unit(request.getUnit())
                 .isRequired(request.getIsRequired())
-                .isFilterable(request.getIsFilterable())
-                .isComparable(request.getIsComparable())
                 .isHighlight(request.getIsHighlight())
                 .selectOptions(request.getSelectOptions())
                 .validationPattern(request.getValidationPattern())
@@ -65,24 +63,6 @@ public class CategoryAttributeService {
     public List<CategoryAttributeResponse> getCategoryAttributes(String categoryId) {
         List<CategoryAttribute> attributes = categoryAttributeRepository
                 .findByCategoryIdAndIsActiveTrueOrderBySortOrderAsc(categoryId);
-
-        return attributes.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    public List<CategoryAttributeResponse> getFilterableAttributes(String categoryId) {
-        List<CategoryAttribute> attributes = categoryAttributeRepository
-                .findByCategoryIdAndIsFilterableTrueAndIsActiveTrueOrderBySortOrderAsc(categoryId);
-
-        return attributes.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    public List<CategoryAttributeResponse> getComparableAttributes(String categoryId) {
-        List<CategoryAttribute> attributes = categoryAttributeRepository
-                .findByCategoryIdAndIsComparableTrueAndIsActiveTrueOrderBySortOrderAsc(categoryId);
 
         return attributes.stream()
                 .map(this::mapToResponse)
@@ -119,8 +99,6 @@ public class CategoryAttributeService {
         attribute.setDataType(request.getDataType());
         attribute.setUnit(request.getUnit());
         attribute.setIsRequired(request.getIsRequired());
-        attribute.setIsFilterable(request.getIsFilterable());
-        attribute.setIsComparable(request.getIsComparable());
         attribute.setIsHighlight(request.getIsHighlight());
         attribute.setSelectOptions(request.getSelectOptions());
         attribute.setValidationPattern(request.getValidationPattern());
@@ -154,8 +132,6 @@ public class CategoryAttributeService {
                 .dataType(attribute.getDataType())
                 .unit(attribute.getUnit())
                 .isRequired(attribute.getIsRequired())
-                .isFilterable(attribute.getIsFilterable())
-                .isComparable(attribute.getIsComparable())
                 .isHighlight(attribute.getIsHighlight())
                 .selectOptions(attribute.getSelectOptions())
                 .validationPattern(attribute.getValidationPattern())
