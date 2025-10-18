@@ -26,11 +26,26 @@ public class CategoryService {
     public CategoryResponse createCategory(CategoryRequest request, MultipartFile imageFile) throws IOException {
         String imageUrl = s3Service.uploadFile(imageFile, "categories");
 
+        // Tự động tạo slug nếu không có
+        String slug = request.getSlug();
+        if (slug == null || slug.trim().isEmpty()) {
+            slug = generateSlugFromName(request.getName());
+        } else {
+            slug = normalizeSlug(slug);
+        }
+
+        // Kiểm tra slug có trùng không
+        if (categoryRepository.existsBySlug(slug)) {
+            slug = generateUniqueSlug(slug);
+        }
+
         Category category = Category.builder()
                 .name(request.getName())
+                .slug(slug)
                 .parentId(request.getParentId())
                 .imageUrl(imageUrl)
-                .isActive(true)
+                .description(request.getDescription())
+                .isActive(request.getIsActive() != null ? request.getIsActive() : true)
                 .build();
 
         Category savedCategory = categoryRepository.save(category);
@@ -51,6 +66,13 @@ public class CategoryService {
         return mapToCategoryResponse(category);
     }
 
+    // READ ONE BY SLUG
+    public CategoryResponse getCategoryBySlug(String slug) {
+        Category category = categoryRepository.findBySlugAndIsActiveTrue(slug)
+                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
+        return mapToCategoryResponse(category);
+    }
+
     // UPDATE
     public CategoryResponse updateCategory(String id, CategoryRequest request, MultipartFile imageFile) throws IOException {
         Category category = findCategoryByIdInternal(id);
@@ -60,9 +82,29 @@ public class CategoryService {
             category.setName(request.getName());
         }
 
+        // Update slug if provided
+        if (StringUtils.hasText(request.getSlug())) {
+            String newSlug = normalizeSlug(request.getSlug());
+            // Kiểm tra slug có trùng với category khác không (trừ chính nó)
+            if (!category.getSlug().equals(newSlug) && categoryRepository.existsBySlug(newSlug)) {
+                newSlug = generateUniqueSlug(newSlug);
+            }
+            category.setSlug(newSlug);
+        }
+
+        // Update description if provided
+        if (request.getDescription() != null) {
+            category.setDescription(request.getDescription());
+        }
+
         // Update parent ID if provided
         if (request.getParentId() != null) {
             category.setParentId(request.getParentId());
+        }
+
+        // Update isActive if provided
+        if (request.getIsActive() != null) {
+            category.setIsActive(request.getIsActive());
         }
 
         // Update image if provided
@@ -128,7 +170,10 @@ public class CategoryService {
         CategoryResponse.CategoryResponseBuilder builder = CategoryResponse.builder()
                 .id(category.getId())
                 .name(category.getName())
+                .slug(category.getSlug())
+                .parentId(category.getParentId())
                 .imageUrl(category.getImageUrl())
+                .description(category.getDescription())
                 .isActive(category.getIsActive());
 
         // If has parentId, find and recursively map parent object
@@ -139,5 +184,33 @@ public class CategoryService {
         }
 
         return builder.build();
+    }
+
+    // Tạo slug tự động từ name
+    private String generateSlugFromName(String name) {
+        String slug = name.toLowerCase().replaceAll("[^a-z0-9]+", "-");
+        slug = slug.replaceAll("^-|-$", ""); // Xóa dấu - ở đầu và cuối
+        return slug;
+    }
+
+    // Chuẩn hóa slug
+    private String normalizeSlug(String slug) {
+        // Ví dụ: chuyển đổi về dạng thường, xóa khoảng trắng, ký tự đặc biệt, ...
+        slug = slug.toLowerCase().trim();
+        slug = slug.replaceAll("[^a-z0-9-]", ""); // Giữ chỉ chữ cái, số và dấu -
+        slug = slug.replaceAll("-+", "-"); // Thay thế nhiều dấu - liên tiếp bằng 1 dấu -
+        slug = slug.replaceAll("^-|-$", ""); // Xóa dấu - ở đầu và cuối
+        return slug;
+    }
+
+    // Tạo slug duy nhất
+    private String generateUniqueSlug(String slug) {
+        int count = 1;
+        String newSlug = slug;
+        while (categoryRepository.existsBySlug(newSlug)) {
+            newSlug = slug + "-" + count;
+            count++;
+        }
+        return newSlug;
     }
 }

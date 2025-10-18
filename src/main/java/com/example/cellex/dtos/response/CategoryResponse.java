@@ -12,9 +12,10 @@ import lombok.NoArgsConstructor;
 public class CategoryResponse {
     private String id;
     private String name;
+    private String slug;
     private String parentId;
     private String imageUrl;
+    private String description;
     private Boolean isActive;
     private CategoryResponse parent; // Thêm field parent để map category cha
 }
-

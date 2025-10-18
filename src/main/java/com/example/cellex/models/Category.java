@@ -19,9 +19,13 @@ public class Category {
 
     private String name;
 
+    private String slug; // URL-friendly name
+
     private String parentId;
 
     private String imageUrl;
+
+    private String description; // Mô tả chi tiết về danh mục
 
     @Builder.Default
     private Boolean isActive = true;

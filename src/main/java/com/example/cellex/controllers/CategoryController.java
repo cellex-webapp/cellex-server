@@ -78,6 +78,17 @@ public class CategoryController {
                 .build();
     }
 
+    // READ ONE BY SLUG
+    @GetMapping("/{slug}")
+    @Operation(summary = "Get a category by slug", description = "Retrieves a category by its URL-friendly slug")
+    public ApiResponse<CategoryResponse> getCategoryBySlug(@PathVariable String slug) {
+        CategoryResponse category = categoryService.getCategoryBySlug(slug);
+        return ApiResponse.<CategoryResponse>builder()
+                .result(category)
+                .message("Category retrieved successfully by slug.")
+                .build();
+    }
+
     // UPDATE - JSON Data
     @PutMapping("/{id}")
     @Operation(summary = "Update an existing category", description = "Updates category details using JSON data.")
