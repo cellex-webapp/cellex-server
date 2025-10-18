@@ -132,9 +132,10 @@ public class UserController {
                 .build();
     }
 
+    // CREATE - JSON Data
     @Operation(
             summary = "Create a new user account",
-            description = "Creates a new user account with role, avatar, and address information."
+            description = "Creates a new user account with role and address information using JSON data."
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -149,7 +150,7 @@ public class UserController {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
-                    description = "Invalid request data or file upload failed",
+                    description = "Invalid request data",
                     content = @Content
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -158,45 +159,40 @@ public class UserController {
                     content = @Content
             )
     })
-    @PostMapping(value = "/add-account", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping("/add-account")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<User> addAccount(
-            @Valid @Parameter(
-                    description = "User data in JSON format", required = true,
-                    examples = @ExampleObject(value = """
-                        {
-                          "fullName": "Nguyễn Văn An",
-                          "email": "admin@example.com",
-                          "password": "Password123",
-                          "phoneNumber": "0987654321",
-                          "role": "ADMIN",
-                          "provinceCode": "01",
-                          "communeCode": "00001",
-                          "detailAddress": "123 Đường Lê Lợi"
-                        }
-                        """),
-                    content = @Content(schema = @Schema(implementation = CreateUserDataRequest.class))
-            )
-            @RequestPart("data") CreateUserDataRequest userData,
-
-            @Parameter(
-                    description = "Avatar image file (optional)",
-                    content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE)
-            )
-            @RequestPart(value = "avatar", required = false) MultipartFile avatar
-    ) throws IOException {
-
-        User createdUser = userService.createAccount(userData, avatar);
+    public ApiResponse<User> addAccount(@Valid @RequestBody CreateUserDataRequest userData) throws IOException {
+        User createdUser = userService.createAccount(userData, null);
         return ApiResponse.<User>builder()
                 .result(createdUser)
                 .message("Account created successfully.")
                 .build();
     }
 
+    // CREATE - Upload Avatar
+    @Operation(
+            summary = "Upload avatar for user",
+            description = "Uploads an avatar for an existing user account."
+    )
+    @PostMapping("/{userId}/upload-avatar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<UserResponse> uploadUserAvatar(
+            @PathVariable String userId,
+            @Parameter(description = "Avatar image file", required = true)
+            @RequestParam("avatar") MultipartFile avatar) throws IOException {
+
+        UserResponse updatedUser = userService.uploadUserAvatar(userId, avatar);
+        return ApiResponse.<UserResponse>builder()
+                .result(updatedUser)
+                .message("User avatar uploaded successfully.")
+                .build();
+    }
+
+    // UPDATE - JSON Data
     @Operation(
             summary = "Update user profile",
-            description = "Updates the current user's profile including full name, avatar, and address."
+            description = "Updates the current user's profile information using JSON data."
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -211,7 +207,7 @@ public class UserController {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
-                    description = "Invalid input data or file upload failed",
+                    description = "Invalid input data",
                     content = @Content
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -220,49 +216,37 @@ public class UserController {
                     content = @Content
             )
     })
-    @PutMapping(value = "/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping("/me")
     public ApiResponse<UserResponse> updateProfile(
             Authentication authentication,
-
-            @Valid @Parameter(
-                    description = "User data in JSON format", required = true,
-                    examples = @ExampleObject(value = """
-                        {
-                          "fullName": "Nguyễn Văn An",
-                          "phoneNumber": "0987654321",
-                          "provinceCode": "01",
-                          "communeCode": "00001",
-                          "detailAddress": "123 Đường Lê Lợi"
-                        }
-                        """),
-                    content = @Content(schema = @Schema(implementation = UpdateUserDataRequest.class))
-            )
-            @RequestPart("data") UpdateUserDataRequest userData,
-
-            @Parameter(
-                    description = "Avatar image file (optional)",
-                    content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE)
-            )
-            @RequestPart(value = "avatar", required = false) MultipartFile avatar
-    ) throws IOException {
+            @Valid @RequestBody UpdateUserDataRequest request) throws IOException {
 
         User currentUser = (User) authentication.getPrincipal();
-
-        // Build UpdateUserRequest from userData and avatar
-        UpdateUserRequest request = UpdateUserRequest.builder()
-                .fullName(userData.getFullName())
-                .phoneNumber(userData.getPhoneNumber())
-                .avatar(avatar)
-                .provinceCode(userData.getProvinceCode())
-                .communeCode(userData.getCommuneCode())
-                .detailAddress(userData.getDetailAddress())
-                .build();
-
         UserResponse updatedUser = userService.updateProfile(currentUser.getId(), request);
 
         return ApiResponse.<UserResponse>builder()
                 .result(updatedUser)
                 .message("Profile updated successfully.")
+                .build();
+    }
+
+    // UPDATE - Upload Avatar
+    @Operation(
+            summary = "Update user avatar",
+            description = "Updates the current user's avatar image."
+    )
+    @PutMapping("/me/upload-avatar")
+    public ApiResponse<UserResponse> updateUserAvatar(
+            Authentication authentication,
+            @Parameter(description = "Avatar image file", required = true)
+            @RequestParam("avatar") MultipartFile avatar) throws IOException {
+
+        User currentUser = (User) authentication.getPrincipal();
+        UserResponse updatedUser = userService.uploadUserAvatar(currentUser.getId(), avatar);
+
+        return ApiResponse.<UserResponse>builder()
+                .result(updatedUser)
+                .message("Avatar updated successfully.")
                 .build();
     }
 }

@@ -3,9 +3,11 @@ package com.example.cellex.dtos.request.category;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.Builder;
 import lombok.Data;
 
 @Data
+@Builder
 public class CategoryRequest {
     @NotBlank(message = "Category name is required")
     @Size(min = 2, max = 100, message = "Category name must be between 2 and 100 characters")

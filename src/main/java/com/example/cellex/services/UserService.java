@@ -1,6 +1,7 @@
 package com.example.cellex.services;
 
 import com.example.cellex.dtos.request.profile.CreateUserDataRequest;
+import com.example.cellex.dtos.request.profile.UpdateUserDataRequest;
 import com.example.cellex.dtos.request.profile.UpdateUserRequest;
 import com.example.cellex.dtos.response.UserResponse;
 import com.example.cellex.exceptions.AppException;
@@ -222,6 +223,55 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         return mapToUserResponse(user);
+    }
+
+    // Upload/Update user avatar
+    public UserResponse uploadUserAvatar(String userId, MultipartFile avatar) throws IOException {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if (avatar == null || avatar.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT);
+        }
+
+        // Delete old avatar if exists
+        if (user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
+            s3Service.deleteFile(user.getAvatarUrl());
+        }
+
+        // Upload new avatar
+        String avatarUrl = s3Service.uploadFile(avatar, "avatars");
+        user.setAvatarUrl(avatarUrl);
+
+        User savedUser = userRepository.save(user);
+        return mapToUserResponse(savedUser);
+    }
+
+    // Update profile with JSON data only
+    public UserResponse updateProfile(String userId, UpdateUserDataRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        // Update basic info
+        if (request.getFullName() != null && !request.getFullName().trim().isEmpty()) {
+            user.setFullName(request.getFullName().trim());
+        }
+
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().trim().isEmpty()) {
+            user.setPhoneNumber(request.getPhoneNumber().trim());
+        }
+
+        // Handle address update
+        if (request.getProvinceCode() != null || request.getCommuneCode() != null ||
+                request.getDetailAddress() != null) {
+
+            User.Address address = buildAddress(request.getProvinceCode(),
+                    request.getCommuneCode(), request.getDetailAddress());
+            user.setAddress(address);
+        }
+
+        User savedUser = userRepository.save(user);
+        return mapToUserResponse(savedUser);
     }
 
     private UserResponse mapToUserResponse(User user) {

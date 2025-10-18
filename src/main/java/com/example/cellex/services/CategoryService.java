@@ -100,6 +100,27 @@ public class CategoryService {
                 .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
     }
 
+    // Upload/Update category image
+    public CategoryResponse uploadCategoryImage(String id, MultipartFile imageFile) throws IOException {
+        Category category = findCategoryByIdInternal(id);
+
+        if (imageFile == null || imageFile.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT);
+        }
+
+        // Delete old image if exists
+        if (StringUtils.hasText(category.getImageUrl())) {
+            s3Service.deleteFile(category.getImageUrl());
+        }
+
+        // Upload new image
+        String newImageUrl = s3Service.uploadFile(imageFile, "categories");
+        category.setImageUrl(newImageUrl);
+
+        Category savedCategory = categoryRepository.save(category);
+        return mapToCategoryResponse(savedCategory);
+    }
+
     // Helper method to map from Entity to Response DTO
     private CategoryResponse mapToCategoryResponse(Category category) {
         if (category == null) return null;

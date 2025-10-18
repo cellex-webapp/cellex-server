@@ -7,7 +7,6 @@ import com.example.cellex.services.CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,35 +29,38 @@ public class CategoryController {
 
     private final CategoryService categoryService;
 
-    // CREATE
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Create a new category", description = "Creates a new category. `isActive` is true by default.")
+    // CREATE - JSON Data
+    @PostMapping
+    @Operation(summary = "Create a new category", description = "Creates a new category using JSON data.")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<CategoryResponse> createCategory(
-            @Valid @Parameter(
-                    description = "Category metadata in JSON format.", required = true,
-                    examples = @ExampleObject(value = """
-                        {
-                          "name": "Laptops",
-                          "parentId": "60d5ec49c3e2a3b4c8d3f8e1"
-                        }
-                        """),
-                    content = @Content(schema = @Schema(implementation = CategoryRequest.class))
-            )
-            @RequestPart("data") CategoryRequest request,
-            @RequestPart(value = "image", required = false) MultipartFile imageFile) throws IOException {
+            @Valid @RequestBody CategoryRequest request) throws IOException {
 
-        CategoryResponse newCategory = categoryService.createCategory(request, imageFile);
+        CategoryResponse newCategory = categoryService.createCategory(request, null);
         return ApiResponse.<CategoryResponse>builder()
                 .result(newCategory)
                 .message("Category created successfully.")
                 .build();
     }
 
+    // CREATE - Upload Image
+    @PostMapping("/{id}/upload-image")
+    @Operation(summary = "Upload image for category", description = "Uploads an image for an existing category.")
+    public ApiResponse<CategoryResponse> uploadCategoryImage(
+            @PathVariable String id,
+            @Parameter(description = "Category image file", required = true)
+            @RequestParam("image") MultipartFile imageFile) throws IOException {
+
+        CategoryResponse updatedCategory = categoryService.uploadCategoryImage(id, imageFile);
+        return ApiResponse.<CategoryResponse>builder()
+                .result(updatedCategory)
+                .message("Category image uploaded successfully.")
+                .build();
+    }
+
     // READ ALL
     @GetMapping
     @Operation(summary = "Get all active categories", description = "Retrieves a list of all active categories with nested parent objects.")
-    @SecurityRequirement(name = "bearerAuth")
     public ApiResponse<List<CategoryResponse>> getAllActiveCategories() {
         List<CategoryResponse> categories = categoryService.getAllActiveCategories();
         return ApiResponse.<List<CategoryResponse>>builder()
@@ -76,29 +78,32 @@ public class CategoryController {
                 .build();
     }
 
-    // UPDATE
-    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Update an existing category", description = "Updates category details, including its active status.")
+    // UPDATE - JSON Data
+    @PutMapping("/{id}")
+    @Operation(summary = "Update an existing category", description = "Updates category details using JSON data.")
     public ApiResponse<CategoryResponse> updateCategory(
             @PathVariable String id,
-            @Valid @Parameter(
-                    description = "Category metadata in JSON format.", required = true,
-                    examples = @ExampleObject(value = """
-                        {
-                           "name": "Gaming Laptops",
-                           "parentId": "parent_id",
-                           "isActive": true
-                        }
-                        """),
-                    content = @Content(schema = @Schema(implementation = CategoryRequest.class))
-            )
-            @RequestPart("data") CategoryRequest request,
-            @RequestPart(value = "image", required = false) MultipartFile imageFile) throws IOException {
+            @Valid @RequestBody CategoryRequest request) throws IOException {
 
-        CategoryResponse updatedCategory = categoryService.updateCategory(id, request, imageFile);
+        CategoryResponse updatedCategory = categoryService.updateCategory(id, request, null);
         return ApiResponse.<CategoryResponse>builder()
                 .result(updatedCategory)
                 .message("Category updated successfully.")
+                .build();
+    }
+
+    // UPDATE - Upload Image
+    @PutMapping("/{id}/upload-image")
+    @Operation(summary = "Update category image", description = "Updates the image for an existing category.")
+    public ApiResponse<CategoryResponse> updateCategoryImage(
+            @PathVariable String id,
+            @Parameter(description = "Category image file", required = true)
+            @RequestParam("image") MultipartFile imageFile) throws IOException {
+
+        CategoryResponse updatedCategory = categoryService.uploadCategoryImage(id, imageFile);
+        return ApiResponse.<CategoryResponse>builder()
+                .result(updatedCategory)
+                .message("Category image updated successfully.")
                 .build();
     }
 

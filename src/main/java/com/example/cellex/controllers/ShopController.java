@@ -6,11 +6,12 @@ import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.ShopResponse;
 import com.example.cellex.services.ShopService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -32,21 +33,83 @@ public class ShopController {
 
     private final ShopService shopService;
 
-    @PostMapping(value = "/register-vendor", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Đăng ký trở thành vendor", description = "User đăng ký tạo cửa hàng để trở thành vendor với upload logo")
+    // CREATE - JSON Data
+    @PostMapping("/register-vendor")
+    @Operation(summary = "Đăng ký trở thành vendor", description = "User đăng ký tạo cửa hàng để trở thành vendor sử dụng JSON data")
     public ResponseEntity<ApiResponse<ShopResponse>> registerVendor(
-            @RequestPart("request") @Valid VendorRegistrationRequest request,
-            @RequestPart(value = "logo", required = false) MultipartFile logoFile,
+            @Valid @RequestBody VendorRegistrationRequest request,
             Authentication authentication) throws IOException {
 
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         String userId = ((com.example.cellex.models.User) userDetails).getId();
 
-        ShopResponse shopResponse = shopService.registerVendorShop(userId, request, logoFile);
+        ShopResponse shopResponse = shopService.registerVendorShop(userId, request, null);
 
         return ResponseEntity.ok(ApiResponse.<ShopResponse>builder()
                 .code(200)
                 .message("Đăng ký cửa hàng thành công. Vui lòng chờ admin duyệt.")
+                .result(shopResponse)
+                .build());
+    }
+
+    // CREATE - Upload Logo
+    @PostMapping("/{shopId}/upload-logo")
+    @Operation(summary = "Upload logo cho cửa hàng", description = "Upload logo cho cửa hàng đã tạo")
+    public ResponseEntity<ApiResponse<ShopResponse>> uploadShopLogo(
+            @PathVariable String shopId,
+            @Parameter(description = "Logo cửa hàng", required = true)
+            @RequestParam("logo") MultipartFile logoFile,
+            Authentication authentication) throws IOException {
+
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        String userId = ((com.example.cellex.models.User) userDetails).getId();
+
+        ShopResponse shopResponse = shopService.uploadShopLogo(shopId, userId, logoFile);
+
+        return ResponseEntity.ok(ApiResponse.<ShopResponse>builder()
+                .code(200)
+                .message("Upload logo cửa hàng thành công.")
+                .result(shopResponse)
+                .build());
+    }
+
+    // UPDATE - JSON Data
+    @PutMapping("/{shopId}")
+    @Operation(summary = "Cập nhật thông tin cửa hàng", description = "Vendor cập nhật thông tin cửa hàng sử dụng JSON data")
+    public ResponseEntity<ApiResponse<ShopResponse>> updateShop(
+            @PathVariable String shopId,
+            @Valid @RequestBody VendorRegistrationRequest request,
+            Authentication authentication) throws IOException {
+
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        String userId = ((com.example.cellex.models.User) userDetails).getId();
+
+        ShopResponse shopResponse = shopService.updateShop(shopId, userId, request);
+
+        return ResponseEntity.ok(ApiResponse.<ShopResponse>builder()
+                .code(200)
+                .message("Cập nhật thông tin cửa hàng thành công.")
+                .result(shopResponse)
+                .build());
+    }
+
+    // UPDATE - Upload Logo
+    @PutMapping("/{shopId}/upload-logo")
+    @Operation(summary = "Cập nhật logo cửa hàng", description = "Vendor cập nhật logo cửa hàng")
+    public ResponseEntity<ApiResponse<ShopResponse>> updateShopLogo(
+            @PathVariable String shopId,
+            @Parameter(description = "Logo cửa hàng mới", required = true)
+            @RequestParam("logo") MultipartFile logoFile,
+            Authentication authentication) throws IOException {
+
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        String userId = ((com.example.cellex.models.User) userDetails).getId();
+
+        ShopResponse shopResponse = shopService.uploadShopLogo(shopId, userId, logoFile);
+
+        return ResponseEntity.ok(ApiResponse.<ShopResponse>builder()
+                .code(200)
+                .message("Cập nhật logo cửa hàng thành công.")
                 .result(shopResponse)
                 .build());
     }

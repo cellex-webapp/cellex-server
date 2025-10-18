@@ -41,7 +41,28 @@ public enum ErrorCode {
     ATTRIBUTE_KEY_EXISTED(2009, "Attribute key already exists in this category", HttpStatus.BAD_REQUEST),
     SELECT_OPTIONS_REQUIRED(2010, "Select options are required for SELECT or MULTI_SELECT type", HttpStatus.BAD_REQUEST),
     REQUIRED_ATTRIBUTE_MISSING(2011, "Required attribute is missing", HttpStatus.BAD_REQUEST),
-    INVALID_ATTRIBUTE_VALUE(2012, "Invalid attribute value", HttpStatus.BAD_REQUEST);
+    INVALID_ATTRIBUTE_VALUE(2012, "Invalid attribute value", HttpStatus.BAD_REQUEST),
+
+    // File Upload Errors
+    INVALID_INPUT(3001, "Invalid input data", HttpStatus.BAD_REQUEST),
+    FILE_UPLOAD_FAILED(3002, "File upload failed", HttpStatus.INTERNAL_SERVER_ERROR),
+    FILE_DELETE_FAILED(3003, "File delete failed", HttpStatus.INTERNAL_SERVER_ERROR),
+    INVALID_FILE_FORMAT(3004, "Invalid file format", HttpStatus.BAD_REQUEST),
+    FILE_SIZE_TOO_LARGE(3005, "File size too large", HttpStatus.BAD_REQUEST),
+    FILE_NOT_FOUND(3006, "File not found", HttpStatus.NOT_FOUND),
+
+    // Access Control Errors
+    ACCESS_DENIED(4001, "Access denied", HttpStatus.FORBIDDEN),
+    RESOURCE_NOT_OWNED(4002, "You don't own this resource", HttpStatus.FORBIDDEN),
+    OPERATION_NOT_ALLOWED(4003, "Operation not allowed", HttpStatus.FORBIDDEN),
+
+    // Validation Errors
+    FIELD_REQUIRED(5001, "Required field is missing", HttpStatus.BAD_REQUEST),
+    FIELD_TOO_LONG(5002, "Field value is too long", HttpStatus.BAD_REQUEST),
+    FIELD_TOO_SHORT(5003, "Field value is too short", HttpStatus.BAD_REQUEST),
+    INVALID_EMAIL_FORMAT(5004, "Invalid email format", HttpStatus.BAD_REQUEST),
+    INVALID_PHONE_FORMAT(5005, "Invalid phone number format", HttpStatus.BAD_REQUEST),
+    DUPLICATE_VALUE(5006, "Duplicate value not allowed", HttpStatus.BAD_REQUEST);
 
     private final int code;
     private final String message;

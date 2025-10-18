@@ -42,7 +42,7 @@ public class EnvLoader {
                     envProperties.put(springKey, value);
 
                     System.out.println("✅ Loaded: " + springKey + " = " +
-                            (key.contains("SECRET") ? "***hidden***" : value));
+                            (key.contains("SECRET") || key.contains("API_SECRET") ? "***hidden***" : value));
                 }
             }
 
@@ -76,6 +76,14 @@ public class EnvLoader {
                 return "aws.s3.bucketName";
             case "S3_REGION":
                 return "aws.region";
+            case "CLOUDINARY_CLOUD_NAME":
+                return "cloudinary.cloud_name";
+            case "CLOUDINARY_API_KEY":
+                return "cloudinary.api_key";
+            case "CLOUDINARY_API_SECRET":
+                return "cloudinary.api_secret";
+            case "CLOUDINARY_FOLDER_PREFIX":
+                return "cloudinary.folder-prefix";
             default:
                 return envKey.toLowerCase().replace("_", ".");
         }

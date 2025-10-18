@@ -100,6 +100,68 @@ public class ShopService {
         return mapToShopResponse(shop);
     }
 
+    // Upload/Update shop logo
+    public ShopResponse uploadShopLogo(String shopId, String vendorId, MultipartFile logoFile) throws IOException {
+        Shop shop = shopRepository.findById(shopId)
+                .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
+
+        // Kiểm tra quyền sở hữu shop
+        if (!shop.getVendorId().equals(vendorId)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED);
+        }
+
+        if (logoFile == null || logoFile.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT);
+        }
+
+        // Delete old logo if exists
+        if (shop.getLogoUrl() != null && !shop.getLogoUrl().isEmpty()) {
+            s3Service.deleteFile(shop.getLogoUrl());
+        }
+
+        // Upload new logo
+        String logoUrl = s3Service.uploadFile(logoFile, "shop-logos");
+        shop.setLogoUrl(logoUrl);
+
+        Shop savedShop = shopRepository.save(shop);
+        return mapToShopResponse(savedShop);
+    }
+
+    // Update shop information (JSON data only)
+    public ShopResponse updateShop(String shopId, String vendorId, VendorRegistrationRequest request) {
+        Shop shop = shopRepository.findById(shopId)
+                .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
+
+        // Kiểm tra quyền sở hữu shop
+        if (!shop.getVendorId().equals(vendorId)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED);
+        }
+
+        // Update shop information
+        if (request.getShopName() != null && !request.getShopName().trim().isEmpty()) {
+            shop.setShopName(request.getShopName().trim());
+        }
+
+        if (request.getDescription() != null && !request.getDescription().trim().isEmpty()) {
+            shop.setDescription(request.getDescription().trim());
+        }
+
+        if (request.getAddress() != null && !request.getAddress().trim().isEmpty()) {
+            shop.setAddress(request.getAddress().trim());
+        }
+
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().trim().isEmpty()) {
+            shop.setPhoneNumber(request.getPhoneNumber().trim());
+        }
+
+        if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
+            shop.setEmail(request.getEmail().trim());
+        }
+
+        Shop savedShop = shopRepository.save(shop);
+        return mapToShopResponse(savedShop);
+    }
+
     private ShopResponse mapToShopResponse(Shop shop) {
         return ShopResponse.builder()
                 .id(shop.getId())

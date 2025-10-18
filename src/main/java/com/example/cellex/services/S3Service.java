@@ -1,63 +1,83 @@
 package com.example.cellex.services;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
-import java.util.UUID;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class S3Service {
 
-    private final S3Client s3Client;
+    private final Cloudinary cloudinary;
 
-    @Value("${aws.s3.bucketName}")
-    private String bucketName;
-
-    @Value("${aws.region}")
-    private String region;
+    @Value("${cloudinary.folder-prefix:}")
+    private String folderPrefix;
 
     public String uploadFile(MultipartFile file, String folder) throws IOException {
         if (file == null || file.isEmpty()) {
             return null; // No file uploaded
         }
 
-        String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
-        String fileName = folder + "/" + UUID.randomUUID() + "_" + originalName;
+        String targetFolder = (folderPrefix != null && !folderPrefix.isEmpty()) ? folderPrefix + "/" + folder : folder;
 
-        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(bucketName)
-                .key(fileName)
-                .contentType(file.getContentType())
-                .build();
+        Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
+                "folder", targetFolder,
+                "resource_type", "auto"
+        ));
 
-        s3Client.putObject(putObjectRequest, RequestBody.fromBytes(file.getBytes()));
-
-        return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, fileName);
+        Object secureUrl = uploadResult.get("secure_url");
+        return secureUrl != null ? secureUrl.toString() : null;
     }
 
     public void deleteFile(String fileUrl) {
+        if (fileUrl == null || fileUrl.trim().isEmpty()) return;
+
         try {
-            String fileName = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
-            String folderPath = fileUrl.substring(fileUrl.indexOf(".com/") + 5, fileUrl.lastIndexOf("/"));
-            String fullKey = folderPath + "/" + fileName;
+            // Extract public_id from Cloudinary URL
+            // Example URL: https://res.cloudinary.com/<cloud_name>/image/upload/v1620000000/folder/subfolder/filename.jpg
+            String publicId = extractPublicIdFromUrl(fileUrl);
+            if (publicId == null || publicId.isEmpty()) return;
 
-            DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(fullKey)
-                    .build();
-
-            s3Client.deleteObject(deleteObjectRequest);
+            cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
         } catch (Exception e) {
-            // Log error but don't throw exception
-            System.err.println("Failed to delete file from S3: " + e.getMessage());
+            System.err.println("Failed to delete file from Cloudinary: " + e.getMessage());
+        }
+    }
+
+    private String extractPublicIdFromUrl(String url) {
+        try {
+            // Remove query params
+            int q = url.indexOf('?');
+            String cleaned = (q >= 0) ? url.substring(0, q) : url;
+
+            // Find "/upload/" then strip optional version segment v12345/
+            int uploadIndex = cleaned.indexOf("/upload/");
+            if (uploadIndex < 0) return null;
+
+            String afterUpload = cleaned.substring(uploadIndex + "/upload/".length());
+
+            // Remove version if present
+            Pattern versionPattern = Pattern.compile("^v\\d+/(.+)$");
+            Matcher m = versionPattern.matcher(afterUpload);
+            if (m.find()) {
+                afterUpload = m.group(1);
+            }
+
+            // Remove file extension
+            int lastDot = afterUpload.lastIndexOf('.');
+            String withoutExt = (lastDot > 0) ? afterUpload.substring(0, lastDot) : afterUpload;
+
+            return withoutExt;
+        } catch (Exception e) {
+            return null;
         }
     }
 }
