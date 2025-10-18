@@ -19,6 +19,25 @@ public class UserResponse {
     private String phoneNumber;
     private String avatarUrl;
     private Role role;
+    private AddressResponse address;
+    private String customerSegmentId;
     private boolean isActive;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AddressResponse {
+        private String street;
+        private String ward;
+        private String province;
+
+        @Builder.Default
+        private String country = "Việt Nam";
+
+        private String fullAddress;
+        private boolean isDefault;
+    }
 }

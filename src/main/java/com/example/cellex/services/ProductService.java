@@ -18,7 +18,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -55,9 +54,6 @@ public class ProductService {
         // Validate các thuộc tính bắt buộc đã được cung cấp
         validateRequiredAttributes(requiredAttributes, request.getAttributeValues());
 
-        // Tạo slug từ tên sản phẩm
-        String slug = generateUniqueSlug(request.getName());
-
         // Tính final price
         Double finalPrice = request.getPrice();
         if (request.getSaleOff() != null && request.getSaleOff() > 0) {
@@ -72,7 +68,6 @@ public class ProductService {
                 .shopId(shop.getId())
                 .categoryId(request.getCategoryId())
                 .name(request.getName())
-                .slug(slug)
                 .description(request.getDescription())
                 .images(request.getImages())
                 .price(request.getPrice())
@@ -91,16 +86,6 @@ public class ProductService {
 
     public ProductResponse getProductById(String productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
-
-        Shop shop = shopRepository.findById(product.getShopId()).orElse(null);
-        Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
-
-        return mapToResponse(product, shop, category);
-    }
-
-    public ProductResponse getProductBySlug(String slug) {
-        Product product = productRepository.findBySlug(slug)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
 
         Shop shop = shopRepository.findById(product.getShopId()).orElse(null);
@@ -146,12 +131,6 @@ public class ProductService {
             validateRequiredAttributes(requiredAttributes, request.getAttributeValues());
         }
 
-        // Tạo slug mới nếu tên thay đổi
-        String slug = product.getSlug();
-        if (!product.getName().equals(request.getName())) {
-            slug = generateUniqueSlug(request.getName());
-        }
-
         // Tính lại final price
         Double finalPrice = request.getPrice();
         if (request.getSaleOff() != null && request.getSaleOff() > 0) {
@@ -165,7 +144,6 @@ public class ProductService {
         // Update product
         product.setCategoryId(request.getCategoryId());
         product.setName(request.getName());
-        product.setSlug(slug);
         product.setDescription(request.getDescription());
         product.setImages(request.getImages());
         product.setPrice(request.getPrice());
@@ -295,40 +273,12 @@ public class ProductService {
         }
     }
 
-    private String generateUniqueSlug(String name) {
-        String baseSlug = createSlug(name);
-        String slug = baseSlug;
-        int counter = 1;
-
-        while (productRepository.existsBySlug(slug)) {
-            slug = baseSlug + "-" + counter;
-            counter++;
-        }
-
-        return slug;
-    }
-
-    private String createSlug(String name) {
-        // Chuyển về lowercase và loại bỏ dấu
-        String normalized = Normalizer.normalize(name.toLowerCase(), Normalizer.Form.NFD);
-        String slug = normalized.replaceAll("[^\\p{ASCII}]", "");
-
-        // Thay thế khoảng trắng và ký tự đặc biệt bằng dấu gạch ngang
-        slug = slug.replaceAll("[^a-z0-9\\s-]", "")
-                  .replaceAll("\\s+", "-")
-                  .replaceAll("-+", "-")
-                  .replaceAll("^-|-$", "");
-
-        return slug;
-    }
-
     private ProductResponse mapToResponse(Product product, Shop shop, Category category) {
         ProductResponse.ProductResponseBuilder builder = ProductResponse.builder()
                 .id(product.getId())
                 .shopId(product.getShopId())
                 .categoryId(product.getCategoryId())
                 .name(product.getName())
-                .slug(product.getSlug())
                 .description(product.getDescription())
                 .images(product.getImages())
                 .price(product.getPrice())

@@ -18,15 +18,12 @@ public class ProductResponse {
     private String shopId;
     private String categoryId;
     private String name;
-    private String slug;
     private String description;
-    private String shortDescription;
     private List<String> images;
     private Double price;
     private Double saleOff;
     private Double finalPrice;
     private Integer stockQuantity;
-    private Double weight;
     private List<ProductAttributeValueResponse> attributeValues;
     private Double averageRating;
     private Integer reviewCount;

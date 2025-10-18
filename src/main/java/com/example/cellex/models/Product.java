@@ -26,8 +26,6 @@ public class Product {
 
     private String name;
 
-    private String slug;
-
     private String description;
 
     private List<String> images;

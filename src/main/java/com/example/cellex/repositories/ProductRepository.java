@@ -8,12 +8,9 @@ import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface ProductRepository extends MongoRepository<Product, String> {
-
-    Optional<Product> findBySlug(String slug);
 
     Page<Product> findByCategoryIdAndIsPublishedTrue(String categoryId, Pageable pageable);
 
@@ -27,6 +24,4 @@ public interface ProductRepository extends MongoRepository<Product, String> {
     // Tìm sản phẩm theo thuộc tính cụ thể (để so sánh)
     @Query("{'categoryId': ?0, 'attributeValues.attributeKey': ?1, 'attributeValues.value': ?2, 'isPublished': true}")
     List<Product> findByCategoryAndAttributeValue(String categoryId, String attributeKey, String attributeValue);
-
-    boolean existsBySlug(String slug);
 }

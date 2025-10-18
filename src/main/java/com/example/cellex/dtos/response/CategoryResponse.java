@@ -17,3 +17,4 @@ public class CategoryResponse {
     private Boolean isActive;
     private CategoryResponse parent; // Thêm field parent để map category cha
 }
+

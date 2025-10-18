@@ -20,6 +20,13 @@ public class UpdateUserRequest {
     @Size(max = 100, message = "Full name cannot exceed 100 characters")
     private String fullName;
 
+    @Pattern(
+        regexp = "^(\\+84|84|0)([3|5|7|8|9])([0-9]{8})$",
+        message = "Số điện thoại không đúng định dạng Việt Nam"
+    )
+    @Schema(description = "Số điện thoại theo định dạng Việt Nam", example = "0987654321")
+    private String phoneNumber;
+
     @Schema(description = "User's avatar image file", type = "string", format = "binary")
     private MultipartFile avatar;
 

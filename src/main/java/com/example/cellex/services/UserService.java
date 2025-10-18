@@ -198,8 +198,11 @@ public class UserService {
                 .phoneNumber(savedUser.getPhoneNumber())
                 .avatarUrl(savedUser.getAvatarUrl())
                 .role(savedUser.getRole())
+                .address(mapToAddressResponse(savedUser.getAddress()))
+                .customerSegmentId(savedUser.getCustomerSegmentId())
                 .isActive(savedUser.isEnabled())
                 .createdAt(savedUser.getCreatedAt())
+                .updatedAt(savedUser.getUpdatedAt())
                 .build();
     }
     public List<UserResponse> getAllUsers() {
@@ -229,8 +232,26 @@ public class UserService {
                 .phoneNumber(user.getPhoneNumber())
                 .avatarUrl(user.getAvatarUrl())
                 .role(user.getRole())
+                .address(mapToAddressResponse(user.getAddress()))
+                .customerSegmentId(user.getCustomerSegmentId())
                 .isActive(user.isEnabled())
                 .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
+    }
+
+    private UserResponse.AddressResponse mapToAddressResponse(User.Address address) {
+        if (address == null) {
+            return null;
+        }
+
+        return UserResponse.AddressResponse.builder()
+                .street(address.getDetailAddress())
+                .ward(address.getCommuneName())
+                .province(address.getProvinceName())
+                .country("Việt Nam") // Mặc định là Vietnam
+                .fullAddress(address.getFullAddress())
+                .isDefault(true)
                 .build();
     }
 

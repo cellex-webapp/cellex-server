@@ -65,22 +65,6 @@ public class ProductController {
                 .build());
     }
 
-    @GetMapping("/slug/{slug}")
-    @Operation(
-            summary = "Lấy thông tin sản phẩm theo slug",
-            description = "Lấy thông tin chi tiết sản phẩm bằng slug (URL thân thiện)"
-    )
-    public ResponseEntity<ApiResponse<ProductResponse>> getProductBySlug(
-            @Parameter(description = "Slug của sản phẩm") @PathVariable String slug) {
-
-        ProductResponse response = productService.getProductBySlug(slug);
-        return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
-                .code(1000)
-                .message("Lấy thông tin sản phẩm thành công")
-                .result(response)
-                .build());
-    }
-
     @GetMapping("/category/{categoryId}")
     @Operation(
             summary = "Lấy sản phẩm theo danh mục",

@@ -22,9 +22,6 @@ public class ProductRequest {
     @NotBlank(message = "Danh mục không được để trống")
     private String categoryId;
 
-    @NotBlank(message = "Mô tả ngắn không được để trống")
-    private String shortDescription;
-
     private String description;
 
     @NotNull(message = "Giá sản phẩm không được để trống")
@@ -38,9 +35,6 @@ public class ProductRequest {
     @NotNull(message = "Số lượng tồn kho không được để trống")
     @Min(value = 0, message = "Số lượng tồn kho phải từ 0 trở lên")
     private Integer stockQuantity;
-
-    @DecimalMin(value = "0.0", message = "Trọng lượng phải lớn hơn 0")
-    private Double weight;
 
     @NotEmpty(message = "Phải có ít nhất một hình ảnh")
     private List<String> images;

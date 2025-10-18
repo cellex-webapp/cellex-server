@@ -18,3 +18,4 @@ public class CategoryRequest {
     @Schema(description = "Set the active status of the category", example = "true")
     private Boolean isActive;
 }
+

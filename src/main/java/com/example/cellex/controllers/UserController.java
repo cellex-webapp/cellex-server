@@ -229,6 +229,7 @@ public class UserController {
                     examples = @ExampleObject(value = """
                         {
                           "fullName": "Nguyễn Văn An",
+                          "phoneNumber": "0987654321",
                           "provinceCode": "01",
                           "communeCode": "00001",
                           "detailAddress": "123 Đường Lê Lợi"
@@ -250,6 +251,7 @@ public class UserController {
         // Build UpdateUserRequest from userData and avatar
         UpdateUserRequest request = UpdateUserRequest.builder()
                 .fullName(userData.getFullName())
+                .phoneNumber(userData.getPhoneNumber())
                 .avatar(avatar)
                 .provinceCode(userData.getProvinceCode())
                 .communeCode(userData.getCommuneCode())
