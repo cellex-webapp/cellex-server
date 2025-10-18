@@ -22,6 +22,10 @@ public class UserResponse {
     private AddressResponse address;
     private String customerSegmentId;
     private boolean isActive;
+    private boolean isBanned;
+    private String banReason;
+    private LocalDateTime bannedAt;
+    private String bannedBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

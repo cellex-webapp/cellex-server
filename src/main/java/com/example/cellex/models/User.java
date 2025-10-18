@@ -52,6 +52,19 @@ public class User implements UserDetails {
     @Field("is_active")
     private boolean isActive;
 
+    @Field("is_banned")
+    @Builder.Default
+    private boolean isBanned = false;
+
+    @Field("ban_reason")
+    private String banReason;
+
+    @Field("banned_at")
+    private LocalDateTime bannedAt;
+
+    @Field("banned_by")
+    private String bannedBy; // ID của admin thực hiện ban
+
     @CreatedDate
     @Field("created_at")
     private LocalDateTime createdAt;
@@ -82,7 +95,7 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return !this.isBanned; // Cập nhật để kiểm tra trạng thái bị cấm
     }
 
     @Override

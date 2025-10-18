@@ -77,4 +77,17 @@ public class GlobalExceptionHandler {
                 .build();
         return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(apiResponse);
     }
+
+    @ExceptionHandler(AccountBannedException.class)
+    ResponseEntity<ApiResponse> handleAccountLockedException(AccountBannedException exception) {
+        String detailedMessage = String.format("Tài khoản đã bị khóa vào lúc %s. Lý do: %s",
+                exception.getBannedAt(), exception.getBanReason());
+
+        ApiResponse apiResponse = ApiResponse.builder()
+                .code(ErrorCode.ACCOUNT_BANNED.getCode())
+                .message(detailedMessage)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(apiResponse);
+    }
 }

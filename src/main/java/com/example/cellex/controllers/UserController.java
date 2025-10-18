@@ -249,4 +249,47 @@ public class UserController {
                 .message("Avatar updated successfully.")
                 .build();
     }
+
+    // ADMIN - Lock User Account
+    @PostMapping("/{userId}/ban")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+            summary = "Khóa tài khoản người dùng",
+            description = "Admin khóa tài khoản người dùng với lý do cụ thể. Người dùng bị khóa sẽ không thể đăng nhập.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ApiResponse<UserResponse> lockUser(
+            @PathVariable String userId,
+            @Valid @RequestBody com.example.cellex.dtos.request.BanUserRequest request,
+            Authentication authentication) {
+
+        User admin = (User) authentication.getPrincipal();
+        UserResponse lockedUser = userService.banUser(userId, request.getBanReason(), admin.getId());
+
+        return ApiResponse.<UserResponse>builder()
+                .result(lockedUser)
+                .message("Tài khoản đã được khóa thành công.")
+                .build();
+    }
+
+    // ADMIN - Unlock User Account
+    @PostMapping("/{userId}/unban")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+            summary = "Mở khóa tài khoản người dùng",
+            description = "Admin mở khóa tài khoản người dùng đã bị khóa trước đó.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ApiResponse<UserResponse> unlockUser(
+            @PathVariable String userId,
+            Authentication authentication) {
+
+        User admin = (User) authentication.getPrincipal();
+        UserResponse unlockedUser = userService.unbanUser(userId, admin.getId());
+
+        return ApiResponse.<UserResponse>builder()
+                .result(unlockedUser)
+                .message("Tài khoản đã được mở khóa thành công.")
+                .build();
+    }
 }

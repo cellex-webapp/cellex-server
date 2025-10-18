@@ -4,6 +4,7 @@ import com.example.cellex.dtos.request.profile.CreateUserDataRequest;
 import com.example.cellex.dtos.request.profile.UpdateUserDataRequest;
 import com.example.cellex.dtos.request.profile.UpdateUserRequest;
 import com.example.cellex.dtos.response.UserResponse;
+import com.example.cellex.enums.Role;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.models.User;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -274,6 +276,60 @@ public class UserService {
         return mapToUserResponse(savedUser);
     }
 
+    // Ban user account
+    public UserResponse banUser(String userId, String banReason, String adminId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        // Kiểm tra không thể ban chính mình
+        if (userId.equals(adminId)) {
+            throw new AppException(ErrorCode.CANNOT_BAN_SELF);
+        }
+
+        // Kiểm tra không thể ban admin khác
+        if (user.getRole() == Role.ADMIN) {
+            throw new AppException(ErrorCode.CANNOT_BAN_ADMIN);
+        }
+
+        // Kiểm tra tài khoản đã bị ban chưa
+        if (user.isBanned()) {
+            throw new AppException(ErrorCode.ACCOUNT_ALREADY_BANNED);
+        }
+
+        // Ban tài khoản
+        user.setBanned(true);
+        user.setBanReason(banReason);
+        user.setBannedAt(LocalDateTime.now());
+        user.setBannedBy(adminId);
+
+        User savedUser = userRepository.save(user);
+        log.info("User {} has been banned by admin {}", userId, adminId);
+
+        return mapToUserResponse(savedUser);
+    }
+
+    // Unban user account
+    public UserResponse unbanUser(String userId, String adminId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        // Kiểm tra tài khoản có bị ban không
+        if (!user.isBanned()) {
+            throw new AppException(ErrorCode.ACCOUNT_NOT_BANNED);
+        }
+
+        // Mở ban tài khoản
+        user.setBanned(false);
+        user.setBanReason(null);
+        user.setBannedAt(null);
+        user.setBannedBy(null);
+
+        User savedUser = userRepository.save(user);
+        log.info("User {} has been unbanned by admin {}", userId, adminId);
+
+        return mapToUserResponse(savedUser);
+    }
+
     private UserResponse mapToUserResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
@@ -285,6 +341,10 @@ public class UserService {
                 .address(mapToAddressResponse(user.getAddress()))
                 .customerSegmentId(user.getCustomerSegmentId())
                 .isActive(user.isEnabled())
+                .isBanned(user.isBanned())
+                .banReason(user.getBanReason())
+                .bannedAt(user.getBannedAt())
+                .bannedBy(user.getBannedBy())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();

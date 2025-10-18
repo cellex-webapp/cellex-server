@@ -62,8 +62,14 @@ public enum ErrorCode {
     FIELD_TOO_SHORT(5003, "Field value is too short", HttpStatus.BAD_REQUEST),
     INVALID_EMAIL_FORMAT(5004, "Invalid email format", HttpStatus.BAD_REQUEST),
     INVALID_PHONE_FORMAT(5005, "Invalid phone number format", HttpStatus.BAD_REQUEST),
-    DUPLICATE_VALUE(5006, "Duplicate value not allowed", HttpStatus.BAD_REQUEST);
+    DUPLICATE_VALUE(5006, "Duplicate value not allowed", HttpStatus.BAD_REQUEST),
 
+    // Account Ban Errors
+    ACCOUNT_BANNED(6001, "Account is banned", HttpStatus.FORBIDDEN),
+    ACCOUNT_ALREADY_BANNED(6002, "Account is already banned", HttpStatus.BAD_REQUEST),
+    ACCOUNT_NOT_BANNED(6003, "Account is not banned", HttpStatus.BAD_REQUEST),
+    CANNOT_BAN_ADMIN(6004, "Cannot ban admin account", HttpStatus.FORBIDDEN),
+    CANNOT_BAN_SELF(6005, "Cannot ban your own account", HttpStatus.FORBIDDEN);
     private final int code;
     private final String message;
     private final HttpStatus httpStatus;

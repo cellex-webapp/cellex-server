@@ -7,6 +7,7 @@ import com.example.cellex.dtos.request.auth.VerifyOtpRequest;
 import com.example.cellex.dtos.response.AuthResponse;
 import com.example.cellex.dtos.response.UserResponse;
 import com.example.cellex.enums.Role;
+import com.example.cellex.exceptions.AccountBannedException;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.models.Otp;
@@ -50,6 +51,11 @@ public class AuthService {
         var user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
+        // Check if user account is locked
+        if (user.isBanned()) {
+            // Tạo custom exception với thông tin về lý do khóa
+            throw new AccountBannedException(user.getBanReason(), user.getBannedAt());
+        }
 
         // Check if user is active
         if (!user.isEnabled()) {
