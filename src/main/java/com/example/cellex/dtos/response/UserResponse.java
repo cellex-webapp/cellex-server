@@ -35,7 +35,7 @@ public class UserResponse {
     @AllArgsConstructor
     public static class AddressResponse {
         private String street;
-        private String ward;
+        private String commune;
         private String province;
 
         @Builder.Default

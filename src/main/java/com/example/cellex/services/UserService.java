@@ -501,7 +501,7 @@ public class UserService {
 
         return UserResponse.AddressResponse.builder()
                 .street(address.getDetailAddress())
-                .ward(address.getCommuneName())
+                .commune(address.getCommuneName())
                 .province(address.getProvinceName())
                 .country("Việt Nam") // Mặc định là Vietnam
                 .fullAddress(address.getFullAddress())
