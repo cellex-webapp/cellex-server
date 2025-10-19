@@ -46,14 +46,11 @@ public class CategoryController {
             @Parameter(description = "Parent category ID")
             @RequestPart(value = "parentId", required = false) String parentId,
 
-            @Parameter(description = "Display order")
-            @RequestPart(value = "displayOrder", required = false) Integer displayOrder,
-
             @Parameter(description = "Category image file")
             @RequestPart(value = "image", required = false) MultipartFile imageFile) throws IOException {
 
         CategoryResponse newCategory = categoryService.createCategoryMultipart(
-                name, description, parentId, displayOrder, imageFile);
+                name, description, parentId, imageFile);
         return ApiResponse.<CategoryResponse>builder()
                 .result(newCategory)
                 .message("Category created successfully.")
@@ -109,14 +106,11 @@ public class CategoryController {
             @Parameter(description = "Parent category ID")
             @RequestPart(value = "parentId", required = false) String parentId,
 
-            @Parameter(description = "Display order")
-            @RequestPart(value = "displayOrder", required = false) Integer displayOrder,
-
             @Parameter(description = "Category image file")
             @RequestPart(value = "image", required = false) MultipartFile imageFile) throws IOException {
 
         CategoryResponse updatedCategory = categoryService.updateCategoryMultipart(
-                id, name, description, parentId, displayOrder, imageFile);
+                id, name, description, parentId, imageFile);
         return ApiResponse.<CategoryResponse>builder()
                 .result(updatedCategory)
                 .message("Category updated successfully.")

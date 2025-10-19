@@ -1,6 +1,5 @@
 package com.example.cellex.controllers;
 
-import com.example.cellex.dtos.request.ProductRequest;
 import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.ProductResponse;
 import com.example.cellex.services.ProductService;
@@ -13,13 +12,18 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
 
 @RestController
@@ -30,72 +34,193 @@ public class ProductController {
 
     private final ProductService productService;
 
-    // CREATE - JSON Data
-    @PostMapping
+    // CREATE - Multipart Form Data
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('VENDOR')")
     @Operation(
             summary = "Tạo sản phẩm mới",
-            description = "Vendor tạo sản phẩm mới cho cửa hàng của mình sử dụng JSON data",
+            description = """
+                    **Mục đích:** Vendor tạo sản phẩm mới cho cửa hàng của mình sử dụng multipart form data với upload ảnh
+                    
+                    **Lưu ý quan trọng:**
+                    - Chỉ VENDOR đã được verify mới có quyền tạo sản phẩm
+                    - Sử dụng Content-Type: multipart/form-data
+                    - Có thể upload nhiều ảnh cùng lúc hoặc không upload ảnh nào
+                    - attributeValues là JSON string chứa thông tin các thuộc tính sản phẩm
+                    - finalPrice sẽ được tính tự động từ price và saleOff
+                    
+                    **Format attributeValues (JSON string):**
+                    ```json
+                    [
+                        {"attributeId": "attr1_id", "value": "Màu đỏ"},
+                        {"attributeId": "attr2_id", "value": "32GB"},
+                        {"attributeId": "attr3_id", "value": "1920x1080"}
+                    ]
+                    ```
+                    
+                    **Ví dụ tạo sản phẩm iPhone:**
+                    - categoryId: "smartphone_category_id"  
+                    - name: "iPhone 15 Pro Max"
+                    - description: "iPhone 15 Pro Max với chip A17 Pro mạnh mẽ"
+                    - price: "29990000"
+                    - saleOff: "5" (giảm 5%)
+                    - stockQuantity: "50"
+                    - isPublished: "true"
+                    - attributeValues: JSON string chứa màu sắc, bộ nhớ, v.v.
+                    - images: Các file ảnh sản phẩm
+                    """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "201",
+                    description = "Tạo sản phẩm thành công",
+                    content = @io.swagger.v3.oas.annotations.media.Content(
+                            mediaType = "application/json",
+                            examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                                    name = "Success Response",
+                                    value = """
+                                            {
+                                                "code": 1000,
+                                                "message": "Tạo sản phẩm thành công",
+                                                "result": {
+                                                    "id": "product123",
+                                                    "shopId": "shop123",
+                                                    "categoryId": "smartphone_category",
+                                                    "name": "iPhone 15 Pro Max",
+                                                    "description": "iPhone 15 Pro Max với chip A17 Pro mạnh mẽ",
+                                                    "images": [
+                                                        "https://cloudinary.com/image1.jpg",
+                                                        "https://cloudinary.com/image2.jpg"
+                                                    ],
+                                                    "price": 29990000.0,
+                                                    "saleOff": 5.0,
+                                                    "finalPrice": 28490500.0,
+                                                    "stockQuantity": 50,
+                                                    "attributeValues": [
+                                                        {
+                                                            "attributeId": "color_attr",
+                                                            "attributeKey": "color",
+                                                            "attributeName": "Màu sắc",
+                                                            "value": "Titan Tự Nhiên",
+                                                            "unit": null,
+                                                            "dataType": "SELECT"
+                                                        },
+                                                        {
+                                                            "attributeId": "storage_attr", 
+                                                            "attributeKey": "storage",
+                                                            "attributeName": "Bộ nhớ trong",
+                                                            "value": "256GB",
+                                                            "unit": "GB",
+                                                            "dataType": "SELECT"
+                                                        }
+                                                    ],
+                                                    "averageRating": 0.0,
+                                                    "reviewCount": 0,
+                                                    "purchaseCount": 0,
+                                                    "isPublished": true,
+                                                    "createdAt": "2024-01-15T10:30:00",
+                                                    "updatedAt": "2024-01-15T10:30:00"
+                                                }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chưa đăng nhập"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Không có quyền - chỉ VENDOR được verify")
+    })
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<ApiResponse<ProductResponse>> createProduct(
             Authentication authentication,
-            @Valid @RequestBody ProductRequest request) {
+
+            @Parameter(
+                    description = "ID danh mục sản phẩm",
+                    required = true,
+                    example = "smartphone_category_id"
+            )
+            @RequestPart("categoryId") @NotBlank String categoryId,
+
+            @Parameter(
+                    description = "Tên sản phẩm",
+                    required = true,
+                    example = "iPhone 15 Pro Max 256GB"
+            )
+            @RequestPart("name") @NotBlank String name,
+
+            @Parameter(
+                    description = "Mô tả chi tiết sản phẩm",
+                    example = "iPhone 15 Pro Max với chip A17 Pro mạnh mẽ, camera 48MP, màn hình Super Retina XDR 6.7 inch"
+            )
+            @RequestPart(value = "description", required = false) String description,
+
+            @Parameter(
+                    description = "Giá sản phẩm (VND)",
+                    required = true,
+                    example = "29990000"
+            )
+            @RequestPart("price") @NotNull @DecimalMin("0.0") String price,
+
+            @Parameter(
+                    description = "Phần trăm giảm giá (0-100)",
+                    example = "5"
+            )
+            @RequestPart(value = "saleOff", required = false) String saleOff,
+
+            @Parameter(
+                    description = "Số lượng tồn kho",
+                    required = true,
+                    example = "50"
+            )
+            @RequestPart("stockQuantity") @NotNull @Min(0) String stockQuantity,
+
+            @Parameter(
+                    description = """
+                            Thuộc tính sản phẩm (JSON format)
+                            
+                            **Ví dụ:**
+                            ```json
+                            [
+                                {"attributeId": "67112345678901234567890a", "value": "Titan Tự Nhiên"},
+                                {"attributeId": "67112345678901234567890b", "value": "256GB"},
+                                {"attributeId": 67112345678901234567890d", "value": "8GB"},
+                                {"attributeId": "67112345678901234567890c", "value": "6.7 inch"}
+                            ]
+                            ```
+                            """,
+                    example = """
+                            [
+                                {"attributeId": "67112345678901234567890a", "value": "Titan Tự Nhiên"},
+                                {"attributeId": "67112345678901234567890b", "value": "256GB"},
+                                {"attributeId": "67112345678901234567890c", "value": "8GB"}
+                            ]
+                            """
+            )
+            @RequestPart(value = "attributeValues", required = false) String attributeValues,
+
+            @Parameter(
+                    description = "Trạng thái xuất bản (true/false)",
+                    example = "true"
+            )
+            @RequestPart(value = "isPublished", required = false) String isPublished,
+
+            @Parameter(
+                    description = "Ảnh sản phẩm (có thể upload nhiều file)",
+                    content = @io.swagger.v3.oas.annotations.media.Content(
+                            mediaType = MediaType.MULTIPART_FORM_DATA_VALUE
+                    )
+            )
+            @RequestPart(value = "images", required = false) MultipartFile[] images) throws IOException {
 
         String vendorId = authentication.getName();
-        ProductResponse response = productService.createProduct(vendorId, request);
+        ProductResponse response = productService.createProductMultipart(
+                vendorId, categoryId, name, description, price, saleOff,
+                stockQuantity, attributeValues, isPublished, images);
 
         return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
                 .code(1000)
                 .message("Tạo sản phẩm thành công")
-                .result(response)
-                .build());
-    }
-
-    // CREATE - Upload Images
-    @PostMapping("/{productId}/upload-images")
-    @PreAuthorize("hasRole('VENDOR')")
-    @Operation(
-            summary = "Upload ảnh cho sản phẩm",
-            description = "Upload một hoặc nhiều ảnh cho sản phẩm đã tạo",
-            security = @SecurityRequirement(name = "bearerAuth")
-    )
-    public ResponseEntity<ApiResponse<ProductResponse>> uploadProductImages(
-            Authentication authentication,
-            @Parameter(description = "ID của sản phẩm") @PathVariable String productId,
-            @Parameter(description = "Danh sách file ảnh", required = true)
-            @RequestParam("images") MultipartFile[] imageFiles) throws IOException {
-
-        String vendorId = authentication.getName();
-        ProductResponse response = productService.uploadProductImages(vendorId, productId, imageFiles);
-
-        return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
-                .code(1000)
-                .message("Upload ảnh sản phẩm thành công")
-                .result(response)
-                .build());
-    }
-
-    // UPDATE - Upload Images
-    @PutMapping("/{productId}/upload-images")
-    @PreAuthorize("hasRole('VENDOR')")
-    @Operation(
-            summary = "Cập nhật ảnh sản phẩm",
-            description = "Cập nhật ảnh cho sản phẩm (thay thế tất cả ảnh cũ)",
-            security = @SecurityRequirement(name = "bearerAuth")
-    )
-    public ResponseEntity<ApiResponse<ProductResponse>> updateProductImages(
-            Authentication authentication,
-            @Parameter(description = "ID của sản phẩm") @PathVariable String productId,
-            @Parameter(description = "Danh sách file ảnh mới", required = true)
-            @RequestParam("images") MultipartFile[] imageFiles) throws IOException {
-
-        String vendorId = authentication.getName();
-        ProductResponse response = productService.updateProductImages(vendorId, productId, imageFiles);
-
-        return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
-                .code(1000)
-                .message("Cập nhật ảnh sản phẩm thành công")
                 .result(response)
                 .build());
     }
@@ -167,20 +292,157 @@ public class ProductController {
                 .build());
     }
 
-    @PutMapping("/{productId}")
+    // UPDATE - Multipart Form Data
+    @PutMapping(value = "/{productId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('VENDOR')")
     @Operation(
             summary = "Cập nhật sản phẩm",
-            description = "Vendor cập nhật thông tin sản phẩm của mình",
+            description = """
+                    **Mục đích:** Vendor cập nhật thông tin sản phẩm của mình sử dụng multipart form data với upload ảnh
+                    
+                    **Lưu ý quan trọng:**
+                    - Chỉ có thể cập nhật sản phẩm của chính mình
+                    - Tất cả các trường đều là tùy chọn - chỉ cập nhật những trường được gửi
+                    - Nếu upload ảnh mới sẽ thay thế toàn bộ ảnh cũ
+                    - finalPrice sẽ được tính lại tự động khi thay đổi price hoặc saleOff
+                    
+                    **Ví dụ cập nhật sản ph��m:**
+                    - Chỉ cập nhật giá: gửi price = "27990000"
+                    - Chỉ c���p nhật mô tả: gửi description = "Mô tả mới"  
+                    - Cập nhật ảnh: upload file mới vào images
+                    - Cập nhật thuộc tính: gửi attributeValues với JSON mới
+                    """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Cập nhật sản phẩm thành công",
+                    content = @io.swagger.v3.oas.annotations.media.Content(
+                            mediaType = "application/json",
+                            examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                                    name = "Success Response",
+                                    value = """
+                                            {
+                                                "code": 1000,
+                                                "message": "Cập nhật sản phẩm thành công",
+                                                "result": {
+                                                    "id": "product123",
+                                                    "name": "iPhone 15 Pro Max 512GB",
+                                                    "price": 34990000.0,
+                                                    "saleOff": 10.0,
+                                                    "finalPrice": 31491000.0,
+                                                    "stockQuantity": 30,
+                                                    "attributeValues": [
+                                                        {
+                                                            "attributeId": "storage_attr",
+                                                            "attributeName": "Bộ nhớ trong", 
+                                                            "value": "512GB",
+                                                            "unit": "GB"
+                                                        }
+                                                    ],
+                                                    "images": [
+                                                        "https://cloudinary.com/new_image1.jpg",
+                                                        "https://cloudinary.com/new_image2.jpg",
+                                                        "https://cloudinary.com/new_image3.jpg"
+                                                    ],
+                                                    "updatedAt": "2024-01-15T14:25:00"
+                                                }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chưa đăng nhập"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Không có quyền - chỉ được sửa sản phẩm của mình"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Không tìm thấy sản phẩm")
+    })
     public ResponseEntity<ApiResponse<ProductResponse>> updateProduct(
             Authentication authentication,
-            @Parameter(description = "ID của sản phẩm") @PathVariable String productId,
-            @Valid @RequestBody ProductRequest request) {
+
+            @Parameter(
+                    description = "ID của sản phẩm cần cập nhật",
+                    example = "product123"
+            )
+            @PathVariable String productId,
+
+            @Parameter(
+                    description = "ID danh mục mới (nếu muốn chuyển danh mục)",
+                    example = "laptop_category_id"
+            )
+            @RequestPart(value = "categoryId", required = false) String categoryId,
+
+            @Parameter(
+                    description = "Tên sản phẩm mới",
+                    example = "iPhone 15 Pro Max 512GB - Phiên bản nâng cấp"
+            )
+            @RequestPart(value = "name", required = false) String name,
+
+            @Parameter(
+                    description = "Mô tả sản phẩm mới",
+                    example = "iPhone 15 Pro Max 512GB với nhiều cải tiến về camera và hiệu năng"
+            )
+            @RequestPart(value = "description", required = false) String description,
+
+            @Parameter(
+                    description = "Giá mới (VND)",
+                    example = "34990000"
+            )
+            @RequestPart(value = "price", required = false) String price,
+
+            @Parameter(
+                    description = "Phần trăm giảm giá mới (0-100)",
+                    example = "10"
+            )
+            @RequestPart(value = "saleOff", required = false) String saleOff,
+
+            @Parameter(
+                    description = "Số lượng tồn kho mới",
+                    example = "30"
+            )
+            @RequestPart(value = "stockQuantity", required = false) String stockQuantity,
+
+            @Parameter(
+                    description = """
+                            Thuộc tính sản phẩm mới (JSON format) - sẽ thay thế toàn bộ thuộc tính cũ
+                            
+                            **Ví dụ cập nhật bộ nh��� và màu sắc:**
+                            ```json
+                            [
+                                {"attributeId": "color_attr_id", "value": "Titan Xanh"},
+                                {"attributeId": "storage_attr_id", "value": "512GB"},
+                                {"attributeId": "ram_attr_id", "value": "8GB"}
+                            ]
+                            ```
+                            """,
+                    example = """
+                            [
+                                {"attributeId": "67112345678901234567890a", "value": "Titan Xanh"},
+                                {"attributeId": "67112345678901234567890b", "value": "512GB"}
+                            ]
+                            """
+            )
+            @RequestPart(value = "attributeValues", required = false) String attributeValues,
+
+            @Parameter(
+                    description = "Trạng thái xuất bản mới",
+                    example = "false"
+            )
+            @RequestPart(value = "isPublished", required = false) String isPublished,
+
+            @Parameter(
+                    description = "Ảnh sản phẩm mới (sẽ thay thế toàn bộ ảnh cũ)",
+                    content = @io.swagger.v3.oas.annotations.media.Content(
+                            mediaType = MediaType.MULTIPART_FORM_DATA_VALUE
+                    )
+            )
+            @RequestPart(value = "images", required = false) MultipartFile[] images) throws IOException {
 
         String vendorId = authentication.getName();
-        ProductResponse response = productService.updateProduct(vendorId, productId, request);
+        ProductResponse response = productService.updateProductMultipart(
+                vendorId, productId, categoryId, name, description, price, saleOff,
+                stockQuantity, attributeValues, isPublished, images);
 
         return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
                 .code(1000)
@@ -206,28 +468,6 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.<String>builder()
                 .code(1000)
                 .message("Xóa sản phẩm thành công")
-                .result("Sản phẩm đã được xóa")
-                .build());
-    }
-
-    @PatchMapping("/{productId}/publish")
-    @PreAuthorize("hasRole('VENDOR')")
-    @Operation(
-            summary = "Chuyển đổi trạng thái xuất bản",
-            description = "Vendor bật/tắt trạng thái xuất bản sản phẩm",
-            security = @SecurityRequirement(name = "bearerAuth")
-    )
-    public ResponseEntity<ApiResponse<ProductResponse>> togglePublishStatus(
-            Authentication authentication,
-            @Parameter(description = "ID của sản phẩm") @PathVariable String productId) {
-
-        String vendorId = authentication.getName();
-        ProductResponse response = productService.togglePublishStatus(vendorId, productId);
-
-        return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
-                .code(1000)
-                .message("Thay đổi trạng thái xuất bản thành công")
-                .result(response)
                 .build());
     }
 }

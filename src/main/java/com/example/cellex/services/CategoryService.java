@@ -54,7 +54,7 @@ public class CategoryService {
 
     // CREATE MULTIPART - Phương thức mới để hỗ trợ multipart form data
     public CategoryResponse createCategoryMultipart(String name, String description, String parentId,
-                                                   Integer displayOrder, MultipartFile imageFile) throws IOException {
+                                                   MultipartFile imageFile) throws IOException {
         String imageUrl = null;
         if (imageFile != null && !imageFile.isEmpty()) {
             imageUrl = s3Service.uploadFile(imageFile, "categories");
@@ -154,7 +154,7 @@ public class CategoryService {
 
     // UPDATE MULTIPART - Phương thức mới để hỗ trợ multipart form data
     public CategoryResponse updateCategoryMultipart(String id, String name, String description, String parentId,
-                                                   Integer displayOrder, MultipartFile imageFile) throws IOException {
+                                                   MultipartFile imageFile) throws IOException {
         Category category = findCategoryByIdInternal(id);
 
         // Update name if provided
@@ -177,7 +177,6 @@ public class CategoryService {
         if (parentId != null) {
             category.setParentId(parentId);
         }
-
 
         // Update image if provided
         if (imageFile != null && !imageFile.isEmpty()) {

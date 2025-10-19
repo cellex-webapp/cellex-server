@@ -129,7 +129,7 @@ public class CategoryAttributeController {
 
         CategoryAttributeResponse response = categoryAttributeService.createCategoryAttribute(categoryId, request);
         return ResponseEntity.ok(ApiResponse.<CategoryAttributeResponse>builder()
-                .code(1000)
+                .code(200)
                 .message("Tạo thuộc tính danh mục thành công")
                 .result(response)
                 .build());
@@ -186,7 +186,7 @@ public class CategoryAttributeController {
 
         List<CategoryAttributeResponse> responses = categoryAttributeService.getCategoryAttributes(categoryId);
         return ResponseEntity.ok(ApiResponse.<List<CategoryAttributeResponse>>builder()
-                .code(1000)
+                .code(200)
                 .message("Lấy danh sách thuộc tính thành công")
                 .result(responses)
                 .build());
@@ -212,7 +212,7 @@ public class CategoryAttributeController {
 
         List<CategoryAttributeResponse> responses = categoryAttributeService.getHighlightAttributes(categoryId);
         return ResponseEntity.ok(ApiResponse.<List<CategoryAttributeResponse>>builder()
-                .code(1000)
+                .code(200)
                 .message("Lấy danh sách thuộc tính nổi bật thành công")
                 .result(responses)
                 .build());
@@ -241,7 +241,7 @@ public class CategoryAttributeController {
 
         CategoryAttributeResponse response = categoryAttributeService.updateCategoryAttribute(attributeId, request);
         return ResponseEntity.ok(ApiResponse.<CategoryAttributeResponse>builder()
-                .code(1000)
+                .code(200)
                 .message("Cập nhật thuộc tính thành công")
                 .result(response)
                 .build());
@@ -276,7 +276,7 @@ public class CategoryAttributeController {
 
         categoryAttributeService.deleteCategoryAttribute(attributeId);
         return ResponseEntity.ok(ApiResponse.<String>builder()
-                .code(1000)
+                .code(200)
                 .message("Xóa thuộc tính thành công")
                 .result("Thuộc tính đã được xóa")
                 .build());

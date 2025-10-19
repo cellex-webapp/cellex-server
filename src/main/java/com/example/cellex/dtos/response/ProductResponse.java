@@ -49,7 +49,6 @@ public class ProductResponse {
         private String value;
         private String unit;
         private String dataType;
-        private Boolean isComparable;
     }
 
     @Data
