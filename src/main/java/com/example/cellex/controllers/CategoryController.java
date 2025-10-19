@@ -1,6 +1,5 @@
 package com.example.cellex.controllers;
 
-import com.example.cellex.dtos.request.category.CategoryRequest;
 import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.CategoryResponse;
 import com.example.cellex.services.CategoryService;
@@ -10,7 +9,8 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -29,32 +29,34 @@ public class CategoryController {
 
     private final CategoryService categoryService;
 
-    // CREATE - JSON Data
-    @PostMapping
-    @Operation(summary = "Create a new category", description = "Creates a new category using JSON data.")
+    // CREATE - Multipart Form Data
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+        summary = "Create a new category",
+        description = "Creates a new category using multipart form data with optional image upload."
+    )
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<CategoryResponse> createCategory(
-            @Valid @RequestBody CategoryRequest request) throws IOException {
+            @Parameter(description = "Category name", required = true)
+            @RequestPart("name") @NotBlank String name,
 
-        CategoryResponse newCategory = categoryService.createCategory(request, null);
+            @Parameter(description = "Category description")
+            @RequestPart(value = "description", required = false) String description,
+
+            @Parameter(description = "Parent category ID")
+            @RequestPart(value = "parentId", required = false) String parentId,
+
+            @Parameter(description = "Display order")
+            @RequestPart(value = "displayOrder", required = false) Integer displayOrder,
+
+            @Parameter(description = "Category image file")
+            @RequestPart(value = "image", required = false) MultipartFile imageFile) throws IOException {
+
+        CategoryResponse newCategory = categoryService.createCategoryMultipart(
+                name, description, parentId, displayOrder, imageFile);
         return ApiResponse.<CategoryResponse>builder()
                 .result(newCategory)
                 .message("Category created successfully.")
-                .build();
-    }
-
-    // CREATE - Upload Image
-    @PostMapping("/{id}/upload-image")
-    @Operation(summary = "Upload image for category", description = "Uploads an image for an existing category.")
-    public ApiResponse<CategoryResponse> uploadCategoryImage(
-            @PathVariable String id,
-            @Parameter(description = "Category image file", required = true)
-            @RequestParam("image") MultipartFile imageFile) throws IOException {
-
-        CategoryResponse updatedCategory = categoryService.uploadCategoryImage(id, imageFile);
-        return ApiResponse.<CategoryResponse>builder()
-                .result(updatedCategory)
-                .message("Category image uploaded successfully.")
                 .build();
     }
 
@@ -79,7 +81,7 @@ public class CategoryController {
     }
 
     // READ ONE BY SLUG
-    @GetMapping("/{slug}")
+    @GetMapping("/slug/{slug}")
     @Operation(summary = "Get a category by slug", description = "Retrieves a category by its URL-friendly slug")
     public ApiResponse<CategoryResponse> getCategoryBySlug(@PathVariable String slug) {
         CategoryResponse category = categoryService.getCategoryBySlug(slug);
@@ -89,32 +91,35 @@ public class CategoryController {
                 .build();
     }
 
-    // UPDATE - JSON Data
-    @PutMapping("/{id}")
-    @Operation(summary = "Update an existing category", description = "Updates category details using JSON data.")
+    // UPDATE - Multipart Form Data
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+        summary = "Update an existing category",
+        description = "Updates category details using multipart form data with optional image upload."
+    )
     public ApiResponse<CategoryResponse> updateCategory(
             @PathVariable String id,
-            @Valid @RequestBody CategoryRequest request) throws IOException {
 
-        CategoryResponse updatedCategory = categoryService.updateCategory(id, request, null);
+            @Parameter(description = "Category name")
+            @RequestPart(value = "name", required = false) String name,
+
+            @Parameter(description = "Category description")
+            @RequestPart(value = "description", required = false) String description,
+
+            @Parameter(description = "Parent category ID")
+            @RequestPart(value = "parentId", required = false) String parentId,
+
+            @Parameter(description = "Display order")
+            @RequestPart(value = "displayOrder", required = false) Integer displayOrder,
+
+            @Parameter(description = "Category image file")
+            @RequestPart(value = "image", required = false) MultipartFile imageFile) throws IOException {
+
+        CategoryResponse updatedCategory = categoryService.updateCategoryMultipart(
+                id, name, description, parentId, displayOrder, imageFile);
         return ApiResponse.<CategoryResponse>builder()
                 .result(updatedCategory)
                 .message("Category updated successfully.")
-                .build();
-    }
-
-    // UPDATE - Upload Image
-    @PutMapping("/{id}/upload-image")
-    @Operation(summary = "Update category image", description = "Updates the image for an existing category.")
-    public ApiResponse<CategoryResponse> updateCategoryImage(
-            @PathVariable String id,
-            @Parameter(description = "Category image file", required = true)
-            @RequestParam("image") MultipartFile imageFile) throws IOException {
-
-        CategoryResponse updatedCategory = categoryService.uploadCategoryImage(id, imageFile);
-        return ApiResponse.<CategoryResponse>builder()
-                .result(updatedCategory)
-                .message("Category image updated successfully.")
                 .build();
     }
 

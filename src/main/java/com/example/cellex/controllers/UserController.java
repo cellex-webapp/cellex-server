@@ -1,8 +1,5 @@
 package com.example.cellex.controllers;
 
-import com.example.cellex.dtos.request.profile.CreateUserDataRequest;
-import com.example.cellex.dtos.request.profile.UpdateUserRequest;
-import com.example.cellex.dtos.request.profile.UpdateUserDataRequest;
 import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.UserResponse;
 import com.example.cellex.enums.Role;
@@ -11,7 +8,6 @@ import com.example.cellex.services.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -25,6 +21,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;
 import java.util.List;
 
@@ -132,10 +130,10 @@ public class UserController {
                 .build();
     }
 
-    // CREATE - JSON Data
+    // CREATE - Multipart Form Data
     @Operation(
             summary = "Create a new user account",
-            description = "Creates a new user account with role and address information using JSON data."
+            description = "Creates a new user account with role and address information using multipart form data with optional avatar upload."
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -159,40 +157,50 @@ public class UserController {
                     content = @Content
             )
     })
-    @PostMapping("/add-account")
+    @PostMapping(value = "/add-account", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<User> addAccount(@Valid @RequestBody CreateUserDataRequest userData) throws IOException {
-        User createdUser = userService.createAccount(userData, null);
+    public ApiResponse<User> addAccount(
+            @Parameter(description = "Họ và tên", required = true)
+            @RequestPart("fullName") @NotBlank String fullName,
+
+            @Parameter(description = "Email", required = true)
+            @RequestPart("email") @NotBlank @Email String email,
+
+            @Parameter(description = "Mật khẩu", required = true)
+            @RequestPart("password") @NotBlank String password,
+
+            @Parameter(description = "Số điện thoại")
+            @RequestPart(value = "phoneNumber", required = false) String phoneNumber,
+
+            @Parameter(description = "Vai trò", required = true)
+            @RequestPart("role") @NotBlank String role,
+
+            @Parameter(description = "Mã tỉnh/thành phố")
+            @RequestPart(value = "provinceCode", required = false) String provinceCode,
+
+            @Parameter(description = "Mã xã/phường")
+            @RequestPart(value = "communeCode", required = false) String communeCode,
+
+            @Parameter(description = "Địa chỉ chi tiết")
+            @RequestPart(value = "detailAddress", required = false) String detailAddress,
+
+            @Parameter(description = "Ảnh đại diện")
+            @RequestPart(value = "avatar", required = false) MultipartFile avatar) throws IOException {
+
+        User createdUser = userService.createAccountMultipart(
+                fullName, email, password, phoneNumber, role,
+                provinceCode, communeCode, detailAddress, avatar);
         return ApiResponse.<User>builder()
                 .result(createdUser)
                 .message("Account created successfully.")
                 .build();
     }
 
-    // CREATE - Upload Avatar
-    @Operation(
-            summary = "Upload avatar for user",
-            description = "Uploads an avatar for an existing user account."
-    )
-    @PostMapping("/{userId}/upload-avatar")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<UserResponse> uploadUserAvatar(
-            @PathVariable String userId,
-            @Parameter(description = "Avatar image file", required = true)
-            @RequestParam("avatar") MultipartFile avatar) throws IOException {
-
-        UserResponse updatedUser = userService.uploadUserAvatar(userId, avatar);
-        return ApiResponse.<UserResponse>builder()
-                .result(updatedUser)
-                .message("User avatar uploaded successfully.")
-                .build();
-    }
-
-    // UPDATE - JSON Data
+    // UPDATE - Multipart Form Data
     @Operation(
             summary = "Update user profile",
-            description = "Updates the current user's profile information using JSON data."
+            description = "Updates the current user's profile information using multipart form data with optional avatar upload."
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -216,37 +224,36 @@ public class UserController {
                     content = @Content
             )
     })
-    @PutMapping("/me")
+    @PutMapping(value = "/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<UserResponse> updateProfile(
             Authentication authentication,
-            @Valid @RequestBody UpdateUserDataRequest request) throws IOException {
+
+            @Parameter(description = "Họ và tên")
+            @RequestPart(value = "fullName", required = false) String fullName,
+
+            @Parameter(description = "Số điện thoại")
+            @RequestPart(value = "phoneNumber", required = false) String phoneNumber,
+
+            @Parameter(description = "Mã tỉnh/thành phố")
+            @RequestPart(value = "provinceCode", required = false) String provinceCode,
+
+            @Parameter(description = "Mã xã/phường")
+            @RequestPart(value = "communeCode", required = false) String communeCode,
+
+            @Parameter(description = "Địa chỉ chi tiết")
+            @RequestPart(value = "detailAddress", required = false) String detailAddress,
+
+            @Parameter(description = "Ảnh đại diện mới")
+            @RequestPart(value = "avatar", required = false) MultipartFile avatar) throws IOException {
 
         User currentUser = (User) authentication.getPrincipal();
-        UserResponse updatedUser = userService.updateProfile(currentUser.getId(), request);
+        UserResponse updatedUser = userService.updateProfileMultipart(
+                currentUser.getId(), fullName, phoneNumber,
+                provinceCode, communeCode, detailAddress, avatar);
 
         return ApiResponse.<UserResponse>builder()
                 .result(updatedUser)
                 .message("Profile updated successfully.")
-                .build();
-    }
-
-    // UPDATE - Upload Avatar
-    @Operation(
-            summary = "Update user avatar",
-            description = "Updates the current user's avatar image."
-    )
-    @PutMapping("/me/upload-avatar")
-    public ApiResponse<UserResponse> updateUserAvatar(
-            Authentication authentication,
-            @Parameter(description = "Avatar image file", required = true)
-            @RequestParam("avatar") MultipartFile avatar) throws IOException {
-
-        User currentUser = (User) authentication.getPrincipal();
-        UserResponse updatedUser = userService.uploadUserAvatar(currentUser.getId(), avatar);
-
-        return ApiResponse.<UserResponse>builder()
-                .result(updatedUser)
-                .message("Avatar updated successfully.")
                 .build();
     }
 

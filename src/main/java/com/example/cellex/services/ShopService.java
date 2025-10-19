@@ -162,6 +162,100 @@ public class ShopService {
         return mapToShopResponse(savedShop);
     }
 
+    // CREATE MULTIPART - Phương thức mới để hỗ trợ multipart form data
+    public ShopResponse registerVendorShopMultipart(String vendorId, String shopName, String description,
+                                                   String address, String phoneNumber, String email,
+                                                   MultipartFile logoFile) throws IOException {
+        // Kiểm tra user có tồn tại không
+        User vendor = userRepository.findById(vendorId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        // Kiểm tra user đã có shop chưa
+        if (shopRepository.existsByVendorId(vendorId)) {
+            throw new AppException(ErrorCode.SHOP_ALREADY_EXISTS);
+        }
+
+        // Upload logo nếu có
+        String logoUrl = null;
+        if (logoFile != null && !logoFile.isEmpty()) {
+            logoUrl = s3Service.uploadFile(logoFile, "shop-logos");
+        }
+
+        // Tạo shop mới
+        Shop shop = Shop.builder()
+                .vendorId(vendorId)
+                .shopName(shopName)
+                .description(description)
+                .logoUrl(logoUrl)
+                .address(address)
+                .phoneNumber(phoneNumber)
+                .email(email)
+                .isVerified(false)
+                .rating(0.0)
+                .build();
+
+        Shop savedShop = shopRepository.save(shop);
+
+        // Cập nhật role của user thành VENDOR
+        vendor.setRole(Role.VENDOR);
+        userRepository.save(vendor);
+
+        return mapToShopResponse(savedShop);
+    }
+
+    // UPDATE MULTIPART - Phương thức mới để hỗ trợ multipart form data
+    public ShopResponse updateShopMultipart(String shopId, String vendorId, String shopName, String description,
+                                          String address, String phoneNumber, String email,
+                                          MultipartFile logoFile) throws IOException {
+        // Tìm shop
+        Shop shop = shopRepository.findById(shopId)
+                .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
+
+        // Kiểm tra quyền sở hữu
+        if (!shop.getVendorId().equals(vendorId)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        // Update shop name if provided
+        if (shopName != null && !shopName.trim().isEmpty()) {
+            shop.setShopName(shopName);
+        }
+
+        // Update description if provided
+        if (description != null) {
+            shop.setDescription(description);
+        }
+
+        // Update address if provided
+        if (address != null && !address.trim().isEmpty()) {
+            shop.setAddress(address);
+        }
+
+        // Update phone number if provided
+        if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
+            shop.setPhoneNumber(phoneNumber);
+        }
+
+        // Update email if provided
+        if (email != null && !email.trim().isEmpty()) {
+            shop.setEmail(email);
+        }
+
+        // Update logo if provided
+        if (logoFile != null && !logoFile.isEmpty()) {
+            // Xóa logo cũ nếu có
+            if (shop.getLogoUrl() != null && !shop.getLogoUrl().isEmpty()) {
+                s3Service.deleteFile(shop.getLogoUrl());
+            }
+            // Upload logo mới
+            String newLogoUrl = s3Service.uploadFile(logoFile, "shop-logos");
+            shop.setLogoUrl(newLogoUrl);
+        }
+
+        Shop updatedShop = shopRepository.save(shop);
+        return mapToShopResponse(updatedShop);
+    }
+
     private ShopResponse mapToShopResponse(Shop shop) {
         return ShopResponse.builder()
                 .id(shop.getId())

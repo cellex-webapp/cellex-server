@@ -52,6 +52,35 @@ public class CategoryService {
         return mapToCategoryResponse(savedCategory);
     }
 
+    // CREATE MULTIPART - Phương thức mới để hỗ trợ multipart form data
+    public CategoryResponse createCategoryMultipart(String name, String description, String parentId,
+                                                   Integer displayOrder, MultipartFile imageFile) throws IOException {
+        String imageUrl = null;
+        if (imageFile != null && !imageFile.isEmpty()) {
+            imageUrl = s3Service.uploadFile(imageFile, "categories");
+        }
+
+        // Tự động tạo slug từ tên
+        String slug = generateSlugFromName(name);
+
+        // Kiểm tra slug có trùng không
+        if (categoryRepository.existsBySlug(slug)) {
+            slug = generateUniqueSlug(slug);
+        }
+
+        Category category = Category.builder()
+                .name(name)
+                .slug(slug)
+                .parentId(parentId)
+                .imageUrl(imageUrl)
+                .description(description)
+                .isActive(true)
+                .build();
+
+        Category savedCategory = categoryRepository.save(category);
+        return mapToCategoryResponse(savedCategory);
+    }
+
     // READ ALL
     public List<CategoryResponse> getAllActiveCategories() {
         return categoryRepository.findByIsActiveTrue()
@@ -121,6 +150,48 @@ public class CategoryService {
 
         Category savedCategory = categoryRepository.save(category);
         return mapToCategoryResponse(savedCategory);
+    }
+
+    // UPDATE MULTIPART - Phương thức mới để hỗ trợ multipart form data
+    public CategoryResponse updateCategoryMultipart(String id, String name, String description, String parentId,
+                                                   Integer displayOrder, MultipartFile imageFile) throws IOException {
+        Category category = findCategoryByIdInternal(id);
+
+        // Update name if provided
+        if (StringUtils.hasText(name)) {
+            category.setName(name);
+            // Tạo lại slug từ tên mới
+            String newSlug = generateSlugFromName(name);
+            if (!category.getSlug().equals(newSlug) && categoryRepository.existsBySlug(newSlug)) {
+                newSlug = generateUniqueSlug(newSlug);
+            }
+            category.setSlug(newSlug);
+        }
+
+        // Update description if provided
+        if (description != null) {
+            category.setDescription(description);
+        }
+
+        // Update parent ID if provided
+        if (parentId != null) {
+            category.setParentId(parentId);
+        }
+
+
+        // Update image if provided
+        if (imageFile != null && !imageFile.isEmpty()) {
+            // Xóa ảnh cũ nếu có
+            if (StringUtils.hasText(category.getImageUrl())) {
+                s3Service.deleteFile(category.getImageUrl());
+            }
+            // Upload ảnh mới
+            String newImageUrl = s3Service.uploadFile(imageFile, "categories");
+            category.setImageUrl(newImageUrl);
+        }
+
+        Category updatedCategory = categoryRepository.save(category);
+        return mapToCategoryResponse(updatedCategory);
     }
 
     // DELETE (Hard delete)

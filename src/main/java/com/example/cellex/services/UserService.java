@@ -330,6 +330,150 @@ public class UserService {
         return mapToUserResponse(savedUser);
     }
 
+    // CREATE MULTIPART - Phương thức mới để hỗ trợ multipart form data
+    @Transactional
+    public User createAccountMultipart(String fullName, String email, String password, String phoneNumber,
+                                     String role, String provinceCode, String communeCode,
+                                     String detailAddress, MultipartFile avatar) throws IOException {
+        log.info("Creating account for email: {} with role: {}", email, role);
+
+        // Check if email already exists
+        if (userRepository.findByEmail(email).isPresent()) {
+            log.warn("Account creation failed - email already exists: {}", email);
+            throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+
+        // Upload avatar nếu có
+        String avatarUrl = null;
+        if (avatar != null && !avatar.isEmpty()) {
+            avatarUrl = s3Service.uploadFile(avatar, "avatars");
+        }
+
+        // Build address if provided
+        User.Address address = null;
+        if (provinceCode != null || communeCode != null || detailAddress != null) {
+            address = buildAddressFromCodes(provinceCode, communeCode, detailAddress);
+        }
+
+        // Build user
+        User user = User.builder()
+                .fullName(fullName)
+                .email(email)
+                .password(passwordEncoder.encode(password))
+                .phoneNumber(phoneNumber)
+                .role(Role.valueOf(role.toUpperCase()))
+                .avatarUrl(avatarUrl)
+                .address(address)
+                .isActive(true)
+                .build();
+
+        User savedUser = userRepository.save(user);
+        log.info("Account created successfully for email: {}", email);
+        return savedUser;
+    }
+
+    // UPDATE MULTIPART - Phương thức mới để hỗ trợ multipart form data
+    @Transactional
+    public UserResponse updateProfileMultipart(String userId, String fullName, String phoneNumber,
+                                             String provinceCode, String communeCode,
+                                             String detailAddress, MultipartFile avatar) throws IOException {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        // Update full name if provided
+        if (fullName != null && !fullName.trim().isEmpty()) {
+            user.setFullName(fullName);
+        }
+
+        // Update phone number if provided
+        if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
+            user.setPhoneNumber(phoneNumber);
+        }
+
+        // Update address if any address field is provided
+        if (provinceCode != null || communeCode != null || detailAddress != null) {
+            User.Address newAddress = buildAddressFromCodes(provinceCode, communeCode, detailAddress);
+            user.setAddress(newAddress);
+        }
+
+        // Update avatar if provided
+        if (avatar != null && !avatar.isEmpty()) {
+            // Xóa avatar cũ nếu có
+            if (user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
+                s3Service.deleteFile(user.getAvatarUrl());
+            }
+            // Upload avatar mới
+            String newAvatarUrl = s3Service.uploadFile(avatar, "avatars");
+            user.setAvatarUrl(newAvatarUrl);
+        }
+
+        User updatedUser = userRepository.save(user);
+        log.info("Profile updated successfully for user: {}", userId);
+        return mapToUserResponse(updatedUser);
+    }
+
+    // Helper method để xây dựng address từ codes
+    private User.Address buildAddressFromCodes(String provinceCode, String communeCode, String detailAddress) {
+        User.Address.AddressBuilder addressBuilder = User.Address.builder();
+
+        // Lấy thông tin tỉnh/thành phố từ code
+        if (provinceCode != null && !provinceCode.trim().isEmpty()) {
+            addressBuilder.provinceCode(provinceCode.trim());
+            var province = addressService.getProvinceByCode(provinceCode.trim());
+            if (province != null) {
+                addressBuilder.provinceName(province.getName());
+            } else {
+                log.warn("Province not found with code: {}", provinceCode);
+            }
+        }
+
+        // Lấy thông tin xã/phường từ code
+        if (communeCode != null && !communeCode.trim().isEmpty()) {
+            addressBuilder.communeCode(communeCode.trim());
+            var commune = addressService.getCommuneByCode(communeCode.trim());
+            if (commune != null) {
+                addressBuilder.communeName(commune.getName());
+            } else {
+                log.warn("Commune not found with code: {}", communeCode);
+            }
+        }
+
+        // Set detail address
+        if (detailAddress != null && !detailAddress.trim().isEmpty()) {
+            addressBuilder.detailAddress(detailAddress.trim());
+        }
+
+        // Build address để lấy province/commune names
+        User.Address tempAddress = addressBuilder.build();
+
+        // Tạo full address từ các thông tin đã có
+        String fullAddress = buildFullAddressFromNames(
+                tempAddress.getProvinceName(),
+                tempAddress.getCommuneName(),
+                tempAddress.getDetailAddress()
+        );
+        addressBuilder.fullAddress(fullAddress);
+
+        return addressBuilder.build();
+    }
+
+    // Helper method để xây dựng địa chỉ đầy đủ từ tên (không thay đổi)
+    private String buildFullAddressFromNames(String provinceName, String communeName, String detailAddress) {
+        StringBuilder fullAddress = new StringBuilder();
+        if (detailAddress != null && !detailAddress.trim().isEmpty()) {
+            fullAddress.append(detailAddress);
+        }
+        if (communeName != null && !communeName.trim().isEmpty()) {
+            if (fullAddress.length() > 0) fullAddress.append(", ");
+            fullAddress.append(communeName);
+        }
+        if (provinceName != null && !provinceName.trim().isEmpty()) {
+            if (fullAddress.length() > 0) fullAddress.append(", ");
+            fullAddress.append(provinceName);
+        }
+        return fullAddress.toString();
+    }
+
     private UserResponse mapToUserResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
