@@ -1,5 +1,6 @@
 package com.example.cellex.dtos.response;
 
+import com.example.cellex.enums.ShopStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -59,7 +60,7 @@ public class ProductResponse {
         private String id;
         private String shopName;
         private String logoUrl;
-        private Boolean isVerified;
+        private ShopStatus status;
         private Double rating;
     }
 

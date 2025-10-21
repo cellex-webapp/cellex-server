@@ -2,6 +2,7 @@ package com.example.cellex.services;
 
 import com.example.cellex.dtos.request.ProductRequest;
 import com.example.cellex.dtos.response.ProductResponse;
+import com.example.cellex.enums.ShopStatus;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.models.Category;
@@ -48,7 +49,7 @@ public class ProductService {
 
     public ProductResponse createProduct(String vendorId, ProductRequest request) {
         // Kiểm tra shop của vendor có tồn tại và đã được verify chưa
-        Shop shop = shopRepository.findByVendorIdAndIsVerifiedTrue(vendorId)
+        Shop shop = shopRepository.findByVendorIdAndStatus(vendorId, ShopStatus.APPROVED)
                 .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND_OR_NOT_VERIFIED));
 
         // Kiểm tra category có tồn tại không
@@ -117,6 +118,11 @@ public class ProductService {
 
     public Page<ProductResponse> searchProducts(String keyword, Pageable pageable) {
         Page<Product> products = productRepository.findByNameContainingIgnoreCaseAndIsPublishedTrue(keyword, pageable);
+        return products.map(product -> mapToResponse(product, null, null));
+    }
+
+    public Page<ProductResponse> getAllProducts(Pageable pageable) {
+        Page<Product> products = productRepository.findAllBy(pageable);
         return products.map(product -> mapToResponse(product, null, null));
     }
 
@@ -298,11 +304,11 @@ public class ProductService {
         }
 
         Shop shop = shopOptional.get();
-        log.info("Found shop: {} for vendorId: {}, isVerified: {}", shop.getId(), vendorId, shop.getIsVerified());
+        log.info("Found shop: {} for vendorId: {}, status: {}", shop.getId(), vendorId, shop.getStatus());
 
         // Kiểm tra shop đã được verify chưa
-        if (!shop.getIsVerified()) {
-            log.error("Shop {} is not verified for vendorId: {}", shop.getId(), vendorId);
+        if (shop.getStatus() != ShopStatus.APPROVED) {
+            log.error("Shop {} is not approved for vendorId: {}, current status: {}", shop.getId(), vendorId, shop.getStatus());
             throw new AppException(ErrorCode.SHOP_NOT_VERIFIED);
         }
 
@@ -821,7 +827,7 @@ public class ProductService {
                     .id(shop.getId())
                     .shopName(shop.getShopName())
                     .logoUrl(shop.getLogoUrl())
-                    .isVerified(shop.getIsVerified())
+                    .status(shop.getStatus())
                     .rating(shop.getRating())
                     .build());
         }

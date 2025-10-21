@@ -292,6 +292,48 @@ public class ProductController {
                 .build());
     }
 
+    @GetMapping
+    @Operation(
+            summary = "Lấy tất cả sản phẩm",
+            description = "Lấy danh sách tất cả sản phẩm với phân trang"
+    )
+    public ResponseEntity<ApiResponse<Page<ProductResponse>>> getAllProducts(
+            @Parameter(description = "Số trang (bắt đầu từ 1)")
+            @RequestParam(defaultValue = "1") Integer page,
+            
+            @Parameter(description = "Số lượng sản phẩm mỗi trang")
+            @RequestParam(defaultValue = "15") Integer limit,
+            
+            @Parameter(description = "Kiểu sắp xếp (asc/desc)")
+            @RequestParam(defaultValue = "desc") String sortType,
+            
+            @Parameter(description = "Trường để sắp xếp")
+            @RequestParam(defaultValue = "createdAt") String sortBy) {
+
+        // Chuyển đổi page từ 1-based sang 0-based cho Spring Data
+        int pageNumber = page - 1;
+        if (pageNumber < 0) pageNumber = 0;
+        
+        // Tạo Sort direction
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType) 
+            ? Sort.Direction.ASC 
+            : Sort.Direction.DESC;
+        
+        // Tạo Pageable
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(
+            pageNumber, 
+            limit, 
+            Sort.by(direction, sortBy)
+        );
+
+        Page<ProductResponse> response = productService.getAllProducts(pageable);
+        return ResponseEntity.ok(ApiResponse.<Page<ProductResponse>>builder()
+                .code(1000)
+                .message("Lấy danh sách sản phẩm thành công")
+                .result(response)
+                .build());
+    }
+
     // UPDATE - Multipart Form Data
     @PutMapping(value = "/{productId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('VENDOR')")

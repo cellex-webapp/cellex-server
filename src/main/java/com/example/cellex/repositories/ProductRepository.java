@@ -24,4 +24,7 @@ public interface ProductRepository extends MongoRepository<Product, String> {
     // Tìm sản phẩm theo thuộc tính cụ thể (để so sánh)
     @Query("{'categoryId': ?0, 'attributeValues.attributeKey': ?1, 'attributeValues.value': ?2, 'isPublished': true}")
     List<Product> findByCategoryAndAttributeValue(String categoryId, String attributeKey, String attributeValue);
+
+    // Lấy tất cả sản phẩm với phân trang
+    Page<Product> findAllBy(Pageable pageable);
 }

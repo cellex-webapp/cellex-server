@@ -3,6 +3,7 @@ package com.example.cellex.controllers;
 import com.example.cellex.dtos.request.ShopVerificationRequest;
 import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.ShopResponse;
+import com.example.cellex.enums.ShopStatus;
 import com.example.cellex.services.ShopService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -135,20 +136,6 @@ public class ShopController {
                 .build());
     }
 
-    @GetMapping("/pending")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Lấy danh sách cửa hàng chờ duyệt", description = "Admin xem danh sách các cửa hàng chờ duyệt")
-    public ResponseEntity<ApiResponse<List<ShopResponse>>> getPendingShops() {
-
-        List<ShopResponse> pendingShops = shopService.getPendingShops();
-
-        return ResponseEntity.ok(ApiResponse.<List<ShopResponse>>builder()
-                .code(200)
-                .message("Lấy danh sách cửa hàng chờ duyệt thành công")
-                .result(pendingShops)
-                .build());
-    }
-
     @GetMapping("/my-shop")
     @Operation(summary = "Lấy thông tin cửa hàng của vendor", description = "Vendor xem thông tin cửa hàng của mình")
     public ResponseEntity<ApiResponse<ShopResponse>> getMyShop(Authentication authentication) {
@@ -175,6 +162,24 @@ public class ShopController {
                 .code(200)
                 .message("Lấy thông tin cửa hàng thành công")
                 .result(shopResponse)
+                .build());
+    }
+
+    @GetMapping
+    @Operation(
+            summary = "Lấy tất cả cửa hàng",
+            description = "Lấy danh sách tất cả cửa hàng, có thể lọc theo trạng thái (PENDING, APPROVED, REJECTED)"
+    )
+    public ResponseEntity<ApiResponse<List<ShopResponse>>> getAllShops(
+            @Parameter(description = "Lọc theo trạng thái (PENDING/APPROVED/REJECTED). Không truyền để lấy tất cả.")
+            @RequestParam(required = false) ShopStatus status) {
+
+        List<ShopResponse> shops = shopService.getAllShops(status);
+
+        return ResponseEntity.ok(ApiResponse.<List<ShopResponse>>builder()
+                .code(200)
+                .message("Lấy danh sách cửa hàng thành công")
+                .result(shops)
                 .build());
     }
 }

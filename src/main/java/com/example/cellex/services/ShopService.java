@@ -4,6 +4,7 @@ import com.example.cellex.dtos.request.ShopVerificationRequest;
 import com.example.cellex.dtos.request.VendorRegistrationRequest;
 import com.example.cellex.dtos.response.ShopResponse;
 import com.example.cellex.enums.Role;
+import com.example.cellex.enums.ShopStatus;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.models.Shop;
@@ -50,7 +51,7 @@ public class ShopService {
                 .address(request.getAddress())
                 .phoneNumber(request.getPhoneNumber())
                 .email(request.getEmail())
-                .isVerified(false)
+                .status(ShopStatus.PENDING)
                 .rating(0.0)
                 .build();
 
@@ -63,7 +64,7 @@ public class ShopService {
                 .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
 
         if ("APPROVE".equals(request.getStatus())) {
-            shop.setIsVerified(true);
+            shop.setStatus(ShopStatus.APPROVED);
             shop.setRejectionReason(null);
 
             // Chuyển role user thành VENDOR khi approve
@@ -73,19 +74,12 @@ public class ShopService {
             userRepository.save(vendor);
 
         } else if ("REJECT".equals(request.getStatus())) {
-            shop.setIsVerified(false);
+            shop.setStatus(ShopStatus.REJECTED);
             shop.setRejectionReason(request.getRejectionReason());
         }
 
         Shop updatedShop = shopRepository.save(shop);
         return mapToShopResponse(updatedShop);
-    }
-
-    public List<ShopResponse> getPendingShops() {
-        List<Shop> pendingShops = shopRepository.findByIsVerified(false);
-        return pendingShops.stream()
-                .map(this::mapToShopResponse)
-                .toList();
     }
 
     public ShopResponse getShopByVendorId(String vendorId) {
@@ -98,6 +92,20 @@ public class ShopService {
         Shop shop = shopRepository.findById(shopId)
                 .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
         return mapToShopResponse(shop);
+    }
+
+    public List<ShopResponse> getAllShops(ShopStatus status) {
+        List<Shop> shops;
+        if (status != null) {
+            // Lọc theo trạng thái
+            shops = shopRepository.findByStatus(status);
+        } else {
+            // Lấy tất cả shops
+            shops = shopRepository.findAll();
+        }
+        return shops.stream()
+                .map(this::mapToShopResponse)
+                .toList();
     }
 
     // Upload/Update shop logo
@@ -190,7 +198,7 @@ public class ShopService {
                 .address(address)
                 .phoneNumber(phoneNumber)
                 .email(email)
-                .isVerified(false)
+                .status(ShopStatus.PENDING)
                 .rating(0.0)
                 .build();
 
@@ -266,7 +274,7 @@ public class ShopService {
                 .address(shop.getAddress())
                 .phoneNumber(shop.getPhoneNumber())
                 .email(shop.getEmail())
-                .isVerified(shop.getIsVerified())
+                .status(shop.getStatus())
                 .rating(shop.getRating())
                 .rejectionReason(shop.getRejectionReason())
                 .createdAt(shop.getCreatedAt())

@@ -1,5 +1,6 @@
 package com.example.cellex.models;
 
+import com.example.cellex.enums.ShopStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -43,9 +44,9 @@ public class Shop {
     @Field("email")
     private String email;
 
-    @Field("is_verified")
+    @Field("status")
     @Builder.Default
-    private Boolean isVerified = false;
+    private ShopStatus status = ShopStatus.PENDING;
 
     @Field("rating")
     @Builder.Default

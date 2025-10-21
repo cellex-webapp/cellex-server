@@ -1,5 +1,6 @@
 package com.example.cellex.dtos.response;
 
+import com.example.cellex.enums.ShopStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -34,8 +35,7 @@ public class ShopResponse {
 
     private String email;
 
-    @JsonProperty("is_verified")
-    private Boolean isVerified;
+    private ShopStatus status;
 
     private Double rating;
 
