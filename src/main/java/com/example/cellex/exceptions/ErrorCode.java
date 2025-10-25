@@ -81,6 +81,11 @@ public enum ErrorCode {
     COUPON_ALREADY_USED(8003, "Coupon has already been used", HttpStatus.BAD_REQUEST),
     COUPON_NOT_APPLICABLE(8004, "Coupon is not applicable for this order", HttpStatus.BAD_REQUEST),
     
+    // Campaign Errors
+    CAMPAIGN_NOT_FOUND(8100, "Campaign not found", HttpStatus.NOT_FOUND),
+    CAMPAIGN_NOT_ACTIVE(8101, "Campaign is not active", HttpStatus.BAD_REQUEST),
+    CAMPAIGN_ALREADY_DISTRIBUTED(8102, "Campaign already distributed", HttpStatus.BAD_REQUEST),
+    
     // General Errors
     INVALID_REQUEST(9001, "Invalid request", HttpStatus.BAD_REQUEST),
     INTERNAL_SERVER_ERROR(9002, "Internal server error", HttpStatus.INTERNAL_SERVER_ERROR),

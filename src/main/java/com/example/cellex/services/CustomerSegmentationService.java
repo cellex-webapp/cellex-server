@@ -1,5 +1,6 @@
 package com.example.cellex.services;
 
+import com.example.cellex.enums.IssuedVia;
 import com.example.cellex.enums.ScheduleFrequency;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
@@ -98,7 +99,7 @@ public class CustomerSegmentationService {
 
         for (SegmentCoupon coupon : upgradeCoupons) {
             try {
-                userCouponService.issueCouponToUser(user.getId(), coupon.getId(), "UPGRADE");
+                userCouponService.issueCouponToUser(user.getId(), coupon.getId(), IssuedVia.AUTO_ON_UPGRADE, null);
             } catch (Exception e) {
                 log.error("Lỗi khi phát coupon {} cho user {} khi nâng hạng: {}", 
                         coupon.getId(), user.getId(), e.getMessage());
@@ -131,7 +132,7 @@ public class CustomerSegmentationService {
                 int issuedCount = 0;
                 for (User user : eligibleUsers) {
                     try {
-                        userCouponService.issueCouponToUser(user.getId(), coupon.getId(), "SCHEDULED");
+                        userCouponService.issueCouponToUser(user.getId(), coupon.getId(), IssuedVia.SCHEDULED, null);
                         issuedCount++;
                     } catch (Exception e) {
                         log.error("Lỗi khi phát coupon {} cho user {}: {}", 

@@ -45,7 +45,7 @@ public class UserCouponController {
     }
 
     @PostMapping("/redeem")
-    @Operation(summary = "Sử dụng coupon cho đơn hàng")
+    @Operation(summary = "Sử dụng coupon cho đơn hàng (chua làm xong, sau làm order rồi làm tiếp)")
     public ResponseEntity<UserCouponResponse> redeemCoupon(
             @RequestParam String code,
             @RequestParam String orderId,

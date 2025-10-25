@@ -1,7 +1,8 @@
 package com.example.cellex.models;
 
 import com.example.cellex.enums.CouponStatus;
-import com.example.cellex.enums.DiscountType;
+import com.example.cellex.enums.CouponType;
+import com.example.cellex.enums.IssuedVia;
 import lombok.*;
 import org.springframework.data.annotation.*;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
@@ -10,6 +11,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -17,6 +19,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Document(collection = "user_coupons")
 @CompoundIndex(name = "user_segment_coupon_idx", def = "{'user_id': 1, 'segment_coupon_id': 1}")
+@CompoundIndex(name = "user_campaign_idx", def = "{'user_id': 1, 'campaign_id': 1}")
+@CompoundIndex(name = "user_code_idx", def = "{'user_id': 1, 'code': 1}", unique = true) // Unique per user+code combo (cho SHARED_CODE)
 public class UserCoupon {
 
     @Id
@@ -26,11 +30,14 @@ public class UserCoupon {
     private String userId;
 
     @Field("segment_coupon_id")
-    private String segmentCouponId;
+    private String segmentCouponId; // Cho segment coupon (có thể null nếu từ campaign)
 
-    @Indexed(unique = true)
+    @Field("campaign_id")
+    private String campaignId; // Cho campaign coupon (có thể null nếu từ segment)
+
+    @Indexed(name = "code_idx") // Đặt tên khác để tránh conflict với index cũ
     @Field("code")
-    private String code; // Mã coupon unique cho từng user
+    private String code; // Mã coupon (unique per user cho SEGMENT, shared cho CAMPAIGN SHARED_CODE)
 
     @Field("title")
     private String title;
@@ -38,14 +45,21 @@ public class UserCoupon {
     @Field("description")
     private String description;
 
-    @Field("discount_type")
-    private DiscountType discountType;
+    @Field("coupon_type")
+    private CouponType couponType;
 
     @Field("discount_value")
     private Double discountValue;
 
     @Field("min_order_amount")
     private Double minOrderAmount;
+
+    // Áp dụng cho sản phẩm/danh mục cụ thể (từ campaign)
+    @Field("applicable_product_ids")
+    private List<String> applicableProductIds;
+
+    @Field("applicable_category_ids")
+    private List<String> applicableCategoryIds;
 
     @Field("issued_date")
     private LocalDateTime issuedDate; // Ngày phát coupon
@@ -63,8 +77,11 @@ public class UserCoupon {
     @Field("redeemed_at")
     private LocalDateTime redeemedAt; // Thời điểm sử dụng coupon
 
-    @Field("issue_reason")
-    private String issueReason; // Lý do phát: "UPGRADE", "SCHEDULED", "MANUAL"
+    @Field("issued_via")
+    private IssuedVia issuedVia; // ADMIN_MANUAL, SCHEDULED, AUTO_ON_UPGRADE, CAMPAIGN
+
+    @Field("issued_by")
+    private String issuedBy; // Admin ID nếu phát thủ công
 
     @CreatedDate
     @Field("created_at")

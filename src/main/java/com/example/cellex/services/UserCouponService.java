@@ -2,6 +2,8 @@ package com.example.cellex.services;
 
 import com.example.cellex.dtos.response.UserCouponResponse;
 import com.example.cellex.enums.CouponStatus;
+import com.example.cellex.enums.CouponType;
+import com.example.cellex.enums.IssuedVia;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.models.SegmentCoupon;
@@ -28,7 +30,7 @@ public class UserCouponService {
     private final UserRepository userRepository;
     private final SegmentCouponRepository segmentCouponRepository;
 
-    public UserCouponResponse issueCouponToUser(String userId, String segmentCouponId, String issueReason) {
+    public UserCouponResponse issueCouponToUser(String userId, String segmentCouponId, IssuedVia issuedVia, String issuedBy) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
@@ -61,23 +63,27 @@ public class UserCouponService {
             expiresAt = LocalDateTime.now().plusYears(1); // Mặc định 1 năm
         }
 
+        // Convert DiscountType sang CouponType
+        CouponType couponType = convertDiscountTypeToCouponType(segmentCoupon.getDiscountType());
+
         UserCoupon userCoupon = UserCoupon.builder()
                 .userId(userId)
                 .segmentCouponId(segmentCouponId)
                 .code(code)
                 .title(segmentCoupon.getTitle())
                 .description(segmentCoupon.getDescription())
-                .discountType(segmentCoupon.getDiscountType())
+                .couponType(couponType)
                 .discountValue(segmentCoupon.getDiscountValue())
                 .minOrderAmount(segmentCoupon.getMinOrderAmount())
                 .issuedDate(LocalDateTime.now())
                 .expiresAt(expiresAt)
                 .status(CouponStatus.ACTIVE)
-                .issueReason(issueReason)
+                .issuedVia(issuedVia)
+                .issuedBy(issuedBy)
                 .build();
 
         userCoupon = userCouponRepository.save(userCoupon);
-        log.info("Đã phát coupon {} cho user {} (lý do: {})", code, userId, issueReason);
+        log.info("Đã phát coupon {} cho user {} (via: {})", code, userId, issuedVia);
 
         return mapToResponse(userCoupon);
     }
@@ -150,23 +156,38 @@ public class UserCouponService {
         return code;
     }
 
+    private CouponType convertDiscountTypeToCouponType(com.example.cellex.enums.DiscountType discountType) {
+        switch (discountType) {
+            case PERCENTAGE:
+                return CouponType.PERCENTAGE;
+            case FIXED:
+                return CouponType.FIXED;
+            default:
+                return CouponType.FIXED;
+        }
+    }
+
     private UserCouponResponse mapToResponse(UserCoupon coupon) {
         return UserCouponResponse.builder()
                 .id(coupon.getId())
                 .userId(coupon.getUserId())
                 .segmentCouponId(coupon.getSegmentCouponId())
+                .campaignId(coupon.getCampaignId())
                 .code(coupon.getCode())
                 .title(coupon.getTitle())
                 .description(coupon.getDescription())
-                .discountType(coupon.getDiscountType())
+                .couponType(coupon.getCouponType())
                 .discountValue(coupon.getDiscountValue())
                 .minOrderAmount(coupon.getMinOrderAmount())
+                .applicableProductIds(coupon.getApplicableProductIds())
+                .applicableCategoryIds(coupon.getApplicableCategoryIds())
                 .issuedDate(coupon.getIssuedDate())
                 .expiresAt(coupon.getExpiresAt())
                 .status(coupon.getStatus())
                 .redeemedOrderId(coupon.getRedeemedOrderId())
                 .redeemedAt(coupon.getRedeemedAt())
-                .issueReason(coupon.getIssueReason())
+                .issuedVia(coupon.getIssuedVia())
+                .issuedBy(coupon.getIssuedBy())
                 .createdAt(coupon.getCreatedAt())
                 .updatedAt(coupon.getUpdatedAt())
                 .build();

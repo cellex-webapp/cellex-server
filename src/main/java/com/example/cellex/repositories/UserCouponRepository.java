@@ -26,5 +26,11 @@ public interface UserCouponRepository extends MongoRepository<UserCoupon, String
     
     // Tìm các coupon đã hết hạn để cập nhật status
     List<UserCoupon> findByStatusAndExpiresAtBefore(CouponStatus status, LocalDateTime expiresAt);
+    
+    // Đếm số lần user đã nhận coupon từ campaign này
+    long countByUserIdAndCampaignId(String userId, String campaignId);
+    
+    // Kiểm tra user đã nhận coupon từ campaign này chưa
+    boolean existsByUserIdAndCampaignId(String userId, String campaignId);
 }
 
