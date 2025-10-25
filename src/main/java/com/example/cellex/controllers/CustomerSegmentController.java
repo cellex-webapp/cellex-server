@@ -17,7 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/customer-segments")
 @RequiredArgsConstructor
-@Tag(name = "Customer Segments", description = "API quản lý phân khúc khách hàng")
+@Tag(name = "04. Customer Segments", description = "API quản lý phân khúc khách hàng")
 public class CustomerSegmentController {
 
     private final CustomerSegmentService customerSegmentService;

@@ -29,7 +29,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/shops")
 @RequiredArgsConstructor
-@Tag(name = "Shop Management", description = "APIs for shop management")
+@Tag(name = "08. Shop Management", description = "APIs for shop management")
 @SecurityRequirement(name = "bearerAuth")
 public class ShopController {
 

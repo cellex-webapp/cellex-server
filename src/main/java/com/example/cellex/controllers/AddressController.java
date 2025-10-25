@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "Address Management", description = "APIs for managing Vietnam address data")
+@Tag(name = "03. Address Management", description = "APIs for managing Vietnam address data")
 @RestController
 @RequestMapping("/api/v1/address")
 @RequiredArgsConstructor

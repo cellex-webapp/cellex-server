@@ -23,7 +23,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/categories")
 @RequiredArgsConstructor
-@Tag(name = "Category Management", description = "APIs for creating, reading, updating, and deleting product categories.")
+@Tag(name = "09. Category Management", description = "APIs for creating, reading, updating, and deleting product categories.")
 @SecurityRequirement(name = "bearerAuth")
 public class CategoryController {
 

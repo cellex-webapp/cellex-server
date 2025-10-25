@@ -21,7 +21,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/segment-coupons")
 @RequiredArgsConstructor
-@Tag(name = "Segment Coupons")
+@Tag(name = "05. Segment Coupons", description = "API quản lý coupon theo phân khúc khách hàng với cấu hình lịch phát linh hoạt")
 public class SegmentCouponController {
 
     private final SegmentCouponService segmentCouponService;

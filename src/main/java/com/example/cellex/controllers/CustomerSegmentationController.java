@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/customer-segmentation")
 @RequiredArgsConstructor
-@Tag(name = "Customer Segmentation", description = "API quản lý phân khúc và nâng hạng khách hàng")
+@Tag(name = "07. Customer Segmentation Operations", description = "API quản lý phân khúc và nâng hạng khách hàng")
 public class CustomerSegmentationController {
 
     private final CustomerSegmentationService customerSegmentationService;

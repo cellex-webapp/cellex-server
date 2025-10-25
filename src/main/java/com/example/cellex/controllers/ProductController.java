@@ -29,7 +29,7 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
-@Tag(name = "Products", description = "APIs quản lý sản phẩm")
+@Tag(name = "11. Products", description = "APIs quản lý sản phẩm")
 public class ProductController {
 
     private final ProductService productService;

@@ -26,7 +26,7 @@ import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;
 import java.util.List;
 
-@Tag(name = "User Management", description = "APIs for managing user accounts and profiles")
+@Tag(name = "02. User Management", description = "APIs for managing user accounts and profiles")
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor

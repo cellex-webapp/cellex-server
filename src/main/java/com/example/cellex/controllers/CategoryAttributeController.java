@@ -23,7 +23,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/categories/{categoryId}/attributes")
 @RequiredArgsConstructor
-@Tag(name = "Category Attributes", description = "APIs quản lý thuộc tính danh mục sản phẩm - Định nghĩa các thuộc tính riêng cho từng danh mục (VD: RAM, CPU cho laptop)")
+@Tag(name = "10. Category Attributes", description = "APIs quản lý thuộc tính danh mục sản phẩm - Định nghĩa các thuộc tính riêng cho từng danh mục (VD: RAM, CPU cho laptop)")
 public class CategoryAttributeController {
 
     private final CategoryAttributeService categoryAttributeService;
