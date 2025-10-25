@@ -69,7 +69,23 @@ public enum ErrorCode {
     ACCOUNT_ALREADY_BANNED(6002, "Account is already banned", HttpStatus.BAD_REQUEST),
     ACCOUNT_NOT_BANNED(6003, "Account is not banned", HttpStatus.BAD_REQUEST),
     CANNOT_BAN_ADMIN(6004, "Cannot ban admin account", HttpStatus.FORBIDDEN),
-    CANNOT_BAN_SELF(6005, "Cannot ban your own account", HttpStatus.FORBIDDEN);
+    CANNOT_BAN_SELF(6005, "Cannot ban your own account", HttpStatus.FORBIDDEN),
+    
+    // Customer Segment Errors
+    SEGMENT_NOT_FOUND(7001, "Customer segment not found", HttpStatus.NOT_FOUND),
+    SEGMENT_ALREADY_EXISTS(7002, "Customer segment already exists", HttpStatus.BAD_REQUEST),
+    
+    // Coupon Errors
+    COUPON_NOT_FOUND(8001, "Coupon not found", HttpStatus.NOT_FOUND),
+    COUPON_EXPIRED(8002, "Coupon has expired", HttpStatus.BAD_REQUEST),
+    COUPON_ALREADY_USED(8003, "Coupon has already been used", HttpStatus.BAD_REQUEST),
+    COUPON_NOT_APPLICABLE(8004, "Coupon is not applicable for this order", HttpStatus.BAD_REQUEST),
+    
+    // General Errors
+    INVALID_REQUEST(9001, "Invalid request", HttpStatus.BAD_REQUEST),
+    INTERNAL_SERVER_ERROR(9002, "Internal server error", HttpStatus.INTERNAL_SERVER_ERROR),
+    USER_NOT_EXISTED(9003, "User not existed", HttpStatus.NOT_FOUND);
+    
     private final int code;
     private final String message;
     private final HttpStatus httpStatus;

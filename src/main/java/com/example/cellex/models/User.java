@@ -49,6 +49,13 @@ public class User implements UserDetails {
     @Field("customer_segment_id")
     private String customerSegmentId;
 
+    @Field("total_spend")
+    @Builder.Default
+    private Double totalSpend = 0.0; // Tổng chi tiêu của user
+
+    @Field("segment_history")
+    private List<SegmentHistory> segmentHistory; // Lịch sử thay đổi phân khúc
+
     @Field("is_active")
     private boolean isActive;
 
@@ -130,5 +137,26 @@ public class User implements UserDetails {
 
         @Field("full_address")
         private String fullAddress;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SegmentHistory {
+        @Field("segment_id")
+        private String segmentId;
+
+        @Field("segment_name")
+        private String segmentName;
+
+        @Field("from")
+        private LocalDateTime from;
+
+        @Field("to")
+        private LocalDateTime to;
+
+        @Field("note")
+        private String note; // Ghi chú: "Upgraded", "Downgraded", "Initial"
     }
 }
