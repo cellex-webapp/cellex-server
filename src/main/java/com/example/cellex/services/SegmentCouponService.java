@@ -173,7 +173,7 @@ public class SegmentCouponService {
 
             case WEEKLY:
                 if (coupon.getScheduleDayOfWeek() == null) {
-                    throw new AppException(ErrorCode.INVALID_REQUEST, "Thiếu scheduleDayOfWeek cho WEEKLY");
+                    throw new AppException(ErrorCode.INVALID_REQUEST, "Chọn phát theo lịch hàng tuần phải chọn thứ trong tuần phát khuyến mãi");
                 }
                 LocalDateTime nextWeekly = LocalDateTime.of(
                         LocalDate.now().with(TemporalAdjusters.nextOrSame(coupon.getScheduleDayOfWeek())),
@@ -186,7 +186,7 @@ public class SegmentCouponService {
 
             case MONTHLY:
                 if (coupon.getScheduleDayOfMonth() == null) {
-                    throw new AppException(ErrorCode.INVALID_REQUEST, "Thiếu scheduleDayOfMonth cho MONTHLY");
+                    throw new AppException(ErrorCode.INVALID_REQUEST, "Chọn phát theo lịch hàng tháng phải chọn ngày trong tháng phát khuyến mãi");
                 }
                 LocalDateTime nextMonthly = LocalDateTime.of(
                         LocalDate.now().withDayOfMonth(Math.min(coupon.getScheduleDayOfMonth(), LocalDate.now().lengthOfMonth())),
@@ -200,7 +200,7 @@ public class SegmentCouponService {
 
             case YEARLY:
                 if (coupon.getScheduleMonthDay() == null) {
-                    throw new AppException(ErrorCode.INVALID_REQUEST, "Thiếu scheduleMonthDay cho YEARLY");
+                    throw new AppException(ErrorCode.INVALID_REQUEST, "Chọn phát theo lịch hàng năm phải chọn ngày-tháng phát khuyến mãi");
                 }
                 String[] parts = coupon.getScheduleMonthDay().split("-");
                 int month = Integer.parseInt(parts[0]);
@@ -246,4 +246,3 @@ public class SegmentCouponService {
                 .build();
     }
 }
-

@@ -43,7 +43,7 @@ public class GlobalExceptionHandler {
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .findFirst()
                 .map(err -> err.getField() + ": " + err.getDefaultMessage())
-                .orElse("Validation failed");
+                .orElse("Dữ liệu không hợp lệ. Vui lòng kiểm tra lại các trường thông tin.");
 
         ApiResponse apiResponse = ApiResponse.builder()
                 .code(HttpStatus.BAD_REQUEST.value())
@@ -57,7 +57,7 @@ public class GlobalExceptionHandler {
         String message = ex.getConstraintViolations().stream()
                 .findFirst()
                 .map(v -> v.getPropertyPath() + ": " + v.getMessage())
-                .orElse("Invalid request");
+                .orElse("Yêu cầu không hợp lệ. Vui lòng kiểm tra lại thông tin gửi lên.");
 
         ApiResponse apiResponse = ApiResponse.builder()
                 .code(HttpStatus.BAD_REQUEST.value())
@@ -69,18 +69,18 @@ public class GlobalExceptionHandler {
     // Thêm handler cho MediaType không được hỗ trợ
     @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
     ResponseEntity<ApiResponse> handleMediaTypeNotSupported(org.springframework.web.HttpMediaTypeNotSupportedException ex) {
-        log.warn("Unsupported media type: {}", ex.getContentType());
+        log.warn("Content-Type không được hỗ trợ: {}", ex.getContentType());
 
         ApiResponse apiResponse = ApiResponse.builder()
                 .code(HttpStatus.UNSUPPORTED_MEDIA_TYPE.value())
-                .message("Content-Type không được hỗ trợ. Vui lòng sử dụng application/json hoặc multipart/form-data")
+                .message("Content-Type không được hỗ trợ. Vui lòng sử dụng application/json hoặc multipart/form-data.")
                 .build();
         return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(apiResponse);
     }
 
     @ExceptionHandler(AccountBannedException.class)
     ResponseEntity<ApiResponse> handleAccountLockedException(AccountBannedException exception) {
-        String detailedMessage = String.format("Tài khoản đã bị khóa vào lúc %s. Lý do: %s",
+        String detailedMessage = String.format("Tài khoản của bạn đã bị khóa vào lúc %s. Lý do: %s",
                 exception.getBannedAt(), exception.getBanReason());
 
         ApiResponse apiResponse = ApiResponse.builder()

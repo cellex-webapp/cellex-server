@@ -30,8 +30,8 @@ public class EmailService {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
             message.setTo(to);
-            message.setSubject("Your Cellex Verification Code");
-            message.setText("Your OTP code is: " + otp + "\n\nThis code will expire in 5 minutes.\n\nPlease do not share this code with anyone.");
+            message.setSubject("Mã xác thực Cellex của bạn");
+            message.setText("Mã OTP của bạn là: " + otp + "\n\nMã này sẽ hết hạn sau 5 phút.\n\nVui lòng không chia sẻ mã này với bất kỳ ai.");
 
             mailSender.send(message);
             log.info("OTP email sent successfully to: {}", to);

@@ -130,7 +130,7 @@ public class UserService {
 
     public UserResponse updateProfile(String userId, UpdateUserRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
         // Update basic info (removed email)
         if (request.getFullName() != null) {
@@ -143,7 +143,7 @@ public class UserService {
                 String avatarUrl = s3Service.uploadFile(request.getAvatar(), "avatars");
                 user.setAvatarUrl(avatarUrl);
             } catch (IOException e) {
-                throw new RuntimeException("Failed to upload avatar", e);
+                throw new RuntimeException("Tải ảnh đại diện thất bại", e);
             }
         }
 

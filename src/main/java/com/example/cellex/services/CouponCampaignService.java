@@ -85,11 +85,11 @@ public class CouponCampaignService {
 
     public CouponCampaignResponse updateCampaign(String id, UpdateCampaignRequest request) {
         CouponCampaign campaign = campaignRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_FOUND, "Campaign không tìm thấy"));
+                .orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_FOUND, "Chiến dịch khuyến mãi không tìm thấy"));
 
         // Không cho update campaign đã phát
         if (campaign.getStatus() == CampaignStatus.ACTIVE || campaign.getStatus() == CampaignStatus.COMPLETED) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Không thể sửa campaign đã phát hoặc hoàn thành");
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Không thể sửa chiến dịch khuyến mãi đã phát hoặc hoàn thành");
         }
 
         // Update fields
@@ -117,10 +117,10 @@ public class CouponCampaignService {
 
     public void deleteCampaign(String id) {
         CouponCampaign campaign = campaignRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_FOUND, "Campaign không tìm thấy"));
-        
+                .orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_FOUND, "Chiến dịch khuyến mãi không tìm thấy"));
+
         if (campaign.getStatus() == CampaignStatus.ACTIVE) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Không thể xóa campaign đang chạy");
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Không thể xóa chiến dịch khuyến mãi đang chạy");
         }
         
         campaignRepository.delete(campaign);
@@ -128,7 +128,7 @@ public class CouponCampaignService {
 
     public CouponCampaignResponse getCampaignById(String id) {
         CouponCampaign campaign = campaignRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_FOUND, "Campaign không tìm thấy"));
+                .orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_FOUND, "Chiến dịch khuyến mãi không tìm thấy"));
         return mapToResponse(campaign);
     }
 
@@ -149,10 +149,10 @@ public class CouponCampaignService {
         long startTime = System.currentTimeMillis();
 
         CouponCampaign campaign = campaignRepository.findById(campaignId)
-                .orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_FOUND, "Campaign không tìm thấy"));
+                .orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_FOUND, "Chiến dịch khuyến mãi không tìm thấy"));
 
         if (!campaign.getIsActive()) {
-            throw new AppException(ErrorCode.INVALID_REQUEST, "Campaign không active");
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Chiến dịch khuyến mãi chưa được kích hoạt");
         }
 
         // Filter users
@@ -176,7 +176,7 @@ public class CouponCampaignService {
                 // Kiểm tra max total issuance
                 if (campaign.getMaxTotalIssuance() != null && 
                     campaign.getCurrentIssuance() >= campaign.getMaxTotalIssuance()) {
-                    log.warn("Reached max total issuance for campaign {}", campaignId);
+                    log.warn("Đã đạt giới hạn phát phiếu giảm giá tối đa cho chiến dịch khuyến mãi {}", campaignId);
                     break;
                 }
 
@@ -209,7 +209,7 @@ public class CouponCampaignService {
             } catch (Exception e) {
                 failedCount++;
                 errorSummary.append(String.format("User %s: %s; ", user.getId(), e.getMessage()));
-                log.error("Failed to issue coupon to user {}: {}", user.getId(), e.getMessage());
+                log.error("Không thể phát phiếu giảm giá cho người dùng {}: {}", user.getId(), e.getMessage());
             }
         }
 
@@ -321,7 +321,7 @@ public class CouponCampaignService {
         } while (userCouponRepository.findByCode(code).isPresent() && attempts < 10);
 
         if (attempts >= 10) {
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Không thể tạo mã coupon unique");
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Không thể tạo mã phiếu giảm giá unique");
         }
 
         return code;
