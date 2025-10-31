@@ -7,6 +7,8 @@ import com.example.cellex.enums.Role;
 import com.example.cellex.enums.ShopStatus;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
+import com.example.cellex.models.Commune;
+import com.example.cellex.models.Province;
 import com.example.cellex.models.Shop;
 import com.example.cellex.models.User;
 import com.example.cellex.repositories.ShopRepository;
@@ -25,6 +27,7 @@ public class ShopService {
     private final ShopRepository shopRepository;
     private final UserRepository userRepository;
     private final S3Service s3Service;
+    private final AddressService addressService;
 
     public ShopResponse registerVendorShop(String vendorId, VendorRegistrationRequest request, MultipartFile logoFile) throws IOException {
         // Kiểm tra user có tồn tại không
@@ -36,11 +39,33 @@ public class ShopService {
             throw new AppException(ErrorCode.SHOP_ALREADY_EXISTS);
         }
 
+        // Validate và lấy tên địa chỉ từ JSON
+        Province province = addressService.getProvinceByCode(request.getProvinceCode());
+        if (province == null) {
+            throw new AppException(ErrorCode.INVALID_INPUT);
+        }
+
+        Commune commune = addressService.getCommuneByCode(request.getCommuneCode());
+        if (commune == null) {
+            throw new AppException(ErrorCode.INVALID_INPUT);
+        }
+
         // Upload logo nếu có
         String logoUrl = null;
         if (logoFile != null && !logoFile.isEmpty()) {
             logoUrl = s3Service.uploadFile(logoFile, "shop-logos");
         }
+
+        // Tạo địa chỉ
+        String fullAddress = request.getDetailAddress() + ", " + commune.getName() + ", " + province.getName();
+        Shop.Address address = Shop.Address.builder()
+                .provinceCode(request.getProvinceCode())
+                .provinceName(province.getName())
+                .communeCode(request.getCommuneCode())
+                .communeName(commune.getName())
+                .detailAddress(request.getDetailAddress())
+                .fullAddress(fullAddress)
+                .build();
 
         // Tạo shop mới
         Shop shop = Shop.builder()
@@ -48,7 +73,7 @@ public class ShopService {
                 .shopName(request.getShopName())
                 .description(request.getDescription())
                 .logoUrl(logoUrl)
-                .address(request.getAddress())
+                .address(address)
                 .phoneNumber(request.getPhoneNumber())
                 .email(request.getEmail())
                 .status(ShopStatus.PENDING)
@@ -154,8 +179,29 @@ public class ShopService {
             shop.setDescription(request.getDescription().trim());
         }
 
-        if (request.getAddress() != null && !request.getAddress().trim().isEmpty()) {
-            shop.setAddress(request.getAddress().trim());
+        // Update address
+        if (request.getProvinceCode() != null && request.getCommuneCode() != null && request.getDetailAddress() != null) {
+            // Validate và lấy tên địa chỉ từ JSON
+            Province province = addressService.getProvinceByCode(request.getProvinceCode());
+            if (province == null) {
+                throw new AppException(ErrorCode.INVALID_INPUT);
+            }
+
+            Commune commune = addressService.getCommuneByCode(request.getCommuneCode());
+            if (commune == null) {
+                throw new AppException(ErrorCode.INVALID_INPUT);
+            }
+
+            String fullAddress = request.getDetailAddress() + ", " + commune.getName() + ", " + province.getName();
+            Shop.Address address = Shop.Address.builder()
+                    .provinceCode(request.getProvinceCode())
+                    .provinceName(province.getName())
+                    .communeCode(request.getCommuneCode())
+                    .communeName(commune.getName())
+                    .detailAddress(request.getDetailAddress())
+                    .fullAddress(fullAddress)
+                    .build();
+            shop.setAddress(address);
         }
 
         if (request.getPhoneNumber() != null && !request.getPhoneNumber().trim().isEmpty()) {
@@ -172,7 +218,8 @@ public class ShopService {
 
     // CREATE MULTIPART - Phương thức mới để hỗ trợ multipart form data
     public ShopResponse registerVendorShopMultipart(String vendorId, String shopName, String description,
-                                                   String address, String phoneNumber, String email,
+                                                   String provinceCode, String communeCode,
+                                                   String detailAddress, String phoneNumber, String email,
                                                    MultipartFile logoFile) throws IOException {
         // Kiểm tra user có tồn tại không
         User vendor = userRepository.findById(vendorId)
@@ -183,11 +230,33 @@ public class ShopService {
             throw new AppException(ErrorCode.SHOP_ALREADY_EXISTS);
         }
 
+        // Validate và lấy tên địa chỉ từ JSON
+        Province province = addressService.getProvinceByCode(provinceCode);
+        if (province == null) {
+            throw new AppException(ErrorCode.INVALID_INPUT);
+        }
+
+        Commune commune = addressService.getCommuneByCode(communeCode);
+        if (commune == null) {
+            throw new AppException(ErrorCode.INVALID_INPUT);
+        }
+
         // Upload logo nếu có
         String logoUrl = null;
         if (logoFile != null && !logoFile.isEmpty()) {
             logoUrl = s3Service.uploadFile(logoFile, "shop-logos");
         }
+
+        // Tạo địa chỉ
+        String fullAddress = detailAddress + ", " + commune.getName() + ", " + province.getName();
+        Shop.Address address = Shop.Address.builder()
+                .provinceCode(provinceCode)
+                .provinceName(province.getName())
+                .communeCode(communeCode)
+                .communeName(commune.getName())
+                .detailAddress(detailAddress)
+                .fullAddress(fullAddress)
+                .build();
 
         // Tạo shop mới
         Shop shop = Shop.builder()
@@ -213,7 +282,8 @@ public class ShopService {
 
     // UPDATE MULTIPART - Phương thức mới để hỗ trợ multipart form data
     public ShopResponse updateShopMultipart(String shopId, String vendorId, String shopName, String description,
-                                          String address, String phoneNumber, String email,
+                                          String provinceCode, String communeCode,
+                                          String detailAddress, String phoneNumber, String email,
                                           MultipartFile logoFile) throws IOException {
         // Tìm shop
         Shop shop = shopRepository.findById(shopId)
@@ -235,7 +305,27 @@ public class ShopService {
         }
 
         // Update address if provided
-        if (address != null && !address.trim().isEmpty()) {
+        if (provinceCode != null && communeCode != null && detailAddress != null) {
+            // Validate và lấy tên địa chỉ từ JSON
+            Province province = addressService.getProvinceByCode(provinceCode);
+            if (province == null) {
+                throw new AppException(ErrorCode.INVALID_INPUT);
+            }
+
+            Commune commune = addressService.getCommuneByCode(communeCode);
+            if (commune == null) {
+                throw new AppException(ErrorCode.INVALID_INPUT);
+            }
+
+            String fullAddress = detailAddress + ", " + commune.getName() + ", " + province.getName();
+            Shop.Address address = Shop.Address.builder()
+                    .provinceCode(provinceCode)
+                    .provinceName(province.getName())
+                    .communeCode(communeCode)
+                    .communeName(commune.getName())
+                    .detailAddress(detailAddress)
+                    .fullAddress(fullAddress)
+                    .build();
             shop.setAddress(address);
         }
 
@@ -265,13 +355,25 @@ public class ShopService {
     }
 
     private ShopResponse mapToShopResponse(Shop shop) {
+        ShopResponse.AddressInfo addressInfo = null;
+        if (shop.getAddress() != null) {
+            addressInfo = ShopResponse.AddressInfo.builder()
+                    .provinceCode(shop.getAddress().getProvinceCode())
+                    .provinceName(shop.getAddress().getProvinceName())
+                    .communeCode(shop.getAddress().getCommuneCode())
+                    .communeName(shop.getAddress().getCommuneName())
+                    .detailAddress(shop.getAddress().getDetailAddress())
+                    .fullAddress(shop.getAddress().getFullAddress())
+                    .build();
+        }
+
         return ShopResponse.builder()
                 .id(shop.getId())
                 .vendorId(shop.getVendorId())
                 .shopName(shop.getShopName())
                 .description(shop.getDescription())
                 .logoUrl(shop.getLogoUrl())
-                .address(shop.getAddress())
+                .address(addressInfo)
                 .phoneNumber(shop.getPhoneNumber())
                 .email(shop.getEmail())
                 .status(shop.getStatus())

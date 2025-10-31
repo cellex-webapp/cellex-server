@@ -36,7 +36,7 @@ public class Shop {
     private String logoUrl;
 
     @Field("address")
-    private String address;
+    private Address address;
 
     @Field("phone_number")
     private String phoneNumber;
@@ -62,4 +62,28 @@ public class Shop {
     @LastModifiedDate
     @Field("updated_at")
     private LocalDateTime updatedAt;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Address {
+        @Field("province_code")
+        private String provinceCode;
+
+        @Field("province_name")
+        private String provinceName;
+
+        @Field("commune_code")
+        private String communeCode;
+
+        @Field("commune_name")
+        private String communeName;
+
+        @Field("detail_address")
+        private String detailAddress;
+
+        @Field("full_address")
+        private String fullAddress;
+    }
 }

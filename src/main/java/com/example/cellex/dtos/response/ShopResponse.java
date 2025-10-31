@@ -28,7 +28,7 @@ public class ShopResponse {
     @JsonProperty("logo_url")
     private String logoUrl;
 
-    private String address;
+    private AddressInfo address;
 
     @JsonProperty("phone_number")
     private String phoneNumber;
@@ -47,4 +47,28 @@ public class ShopResponse {
 
     @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class AddressInfo {
+        @JsonProperty("province_code")
+        private String provinceCode;
+
+        @JsonProperty("province_name")
+        private String provinceName;
+
+        @JsonProperty("commune_code")
+        private String communeCode;
+
+        @JsonProperty("commune_name")
+        private String communeName;
+
+        @JsonProperty("detail_address")
+        private String detailAddress;
+
+        @JsonProperty("full_address")
+        private String fullAddress;
+    }
 }

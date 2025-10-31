@@ -22,9 +22,15 @@ public class VendorRegistrationRequest {
     @Size(max = 1000, message = "Mô tả không được vượt quá 1000 ký tự")
     private String description;
 
-    @NotBlank(message = "Địa chỉ cửa hàng không được để trống")
-    @Size(max = 200, message = "Địa chỉ không được vượt quá 200 ký tự")
-    private String address;
+    @NotBlank(message = "Mã tỉnh không được để trống")
+    private String provinceCode;
+
+    @NotBlank(message = "Mã xã/phường không được để trống")
+    private String communeCode;
+
+    @NotBlank(message = "Địa chỉ chi tiết không được để trống")
+    @Size(max = 200, message = "Địa chỉ chi tiết không được vượt quá 200 ký tự")
+    private String detailAddress;
 
     @NotBlank(message = "Số điện thoại không được để trống")
     @Size(min = 10, max = 15, message = "Số điện thoại phải từ 10-15 ký tự")

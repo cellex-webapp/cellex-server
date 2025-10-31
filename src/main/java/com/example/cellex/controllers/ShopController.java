@@ -7,8 +7,6 @@ import com.example.cellex.enums.ShopStatus;
 import com.example.cellex.services.ShopService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -39,25 +37,31 @@ public class ShopController {
     @PostMapping(value = "/register-vendor", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
         summary = "Đăng ký trở thành vendor",
-        description = "User đăng ký tạo cửa hàng để trở thành vendor sử dụng multipart form data với optional logo upload"
+        description = "User đăng ký tạo cửa hàng để trở thành vendor. Tên tỉnh/xã sẽ được tự động lấy từ hệ thống dựa trên mã."
     )
     public ResponseEntity<ApiResponse<ShopResponse>> registerVendor(
-            @Parameter(description = "Tên cửa hàng", required = true)
+            @Parameter(description = "Tên cửa hàng", required = true, example = "Shop Công Nghệ ABC")
             @RequestPart("shopName") @NotBlank String shopName,
 
-            @Parameter(description = "Mô tả cửa hàng")
+            @Parameter(description = "Mô tả cửa hàng", example = "Chuyên cung cấp điện thoại, laptop chính hãng")
             @RequestPart(value = "description", required = false) String description,
 
-            @Parameter(description = "Địa chỉ cửa hàng", required = true)
-            @RequestPart("address") @NotBlank String address,
+            @Parameter(description = "Mã tỉnh/thành phố", required = true, example = "01")
+            @RequestPart("provinceCode") @NotBlank String provinceCode,
 
-            @Parameter(description = "Số điện thoại cửa hàng", required = true)
+            @Parameter(description = "Mã xã/phường/thị trấn", required = true, example = "00001")
+            @RequestPart("communeCode") @NotBlank String communeCode,
+
+            @Parameter(description = "Địa chỉ chi tiết (số nhà, ngõ/hẻm, đường)", required = true, example = "Số 123, Ngõ 456, Đường Láng")
+            @RequestPart("detailAddress") @NotBlank String detailAddress,
+
+            @Parameter(description = "Số điện thoại cửa hàng", required = true, example = "0987654321")
             @RequestPart("phoneNumber") @NotBlank String phoneNumber,
 
-            @Parameter(description = "Email cửa hàng", required = true)
+            @Parameter(description = "Email cửa hàng", required = true, example = "shop@example.com")
             @RequestPart("email") @NotBlank @Email String email,
 
-            @Parameter(description = "Logo cửa hàng")
+            @Parameter(description = "Logo cửa hàng (file ảnh)")
             @RequestPart(value = "logo", required = false) MultipartFile logoFile,
 
             Authentication authentication) throws IOException {
@@ -66,7 +70,8 @@ public class ShopController {
         String userId = ((com.example.cellex.models.User) userDetails).getId();
 
         ShopResponse shopResponse = shopService.registerVendorShopMultipart(
-                userId, shopName, description, address, phoneNumber, email, logoFile);
+                userId, shopName, description, provinceCode, communeCode,
+                detailAddress, phoneNumber, email, logoFile);
 
         return ResponseEntity.ok(ApiResponse.<ShopResponse>builder()
                 .code(200)
@@ -79,27 +84,33 @@ public class ShopController {
     @PutMapping(value = "/{shopId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
         summary = "Cập nhật thông tin cửa hàng",
-        description = "Vendor cập nhật thông tin cửa hàng sử dụng multipart form data với optional logo upload"
+        description = "Vendor cập nhật thông tin cửa hàng. Tên tỉnh/xã sẽ được tự động lấy từ hệ thống dựa trên mã."
     )
     public ResponseEntity<ApiResponse<ShopResponse>> updateShop(
             @PathVariable String shopId,
 
-            @Parameter(description = "Tên cửa hàng")
+            @Parameter(description = "Tên cửa hàng", example = "Shop Công Nghệ ABC")
             @RequestPart(value = "shopName", required = false) String shopName,
 
-            @Parameter(description = "Mô tả cửa hàng")
+            @Parameter(description = "Mô tả cửa hàng", example = "Chuyên cung cấp điện thoại, laptop chính hãng")
             @RequestPart(value = "description", required = false) String description,
 
-            @Parameter(description = "Địa chỉ cửa hàng")
-            @RequestPart(value = "address", required = false) String address,
+            @Parameter(description = "Mã tỉnh/thành phố", example = "01")
+            @RequestPart(value = "provinceCode", required = false) String provinceCode,
 
-            @Parameter(description = "Số điện thoại cửa hàng")
+            @Parameter(description = "Mã xã/phường/thị trấn", example = "00001")
+            @RequestPart(value = "communeCode", required = false) String communeCode,
+
+            @Parameter(description = "Địa chỉ chi tiết (số nhà, ngõ/hẻm, đường)", example = "Số 123, Ngõ 456, Đường Láng")
+            @RequestPart(value = "detailAddress", required = false) String detailAddress,
+
+            @Parameter(description = "Số điện thoại cửa hàng", example = "0987654321")
             @RequestPart(value = "phoneNumber", required = false) String phoneNumber,
 
-            @Parameter(description = "Email cửa hàng")
+            @Parameter(description = "Email cửa hàng", example = "shop@example.com")
             @RequestPart(value = "email", required = false) String email,
 
-            @Parameter(description = "Logo cửa hàng mới")
+            @Parameter(description = "Logo cửa hàng mới (file ảnh)")
             @RequestPart(value = "logo", required = false) MultipartFile logoFile,
 
             Authentication authentication) throws IOException {
@@ -108,7 +119,8 @@ public class ShopController {
         String userId = ((com.example.cellex.models.User) userDetails).getId();
 
         ShopResponse shopResponse = shopService.updateShopMultipart(
-                shopId, userId, shopName, description, address, phoneNumber, email, logoFile);
+                shopId, userId, shopName, description, provinceCode, communeCode,
+                detailAddress, phoneNumber, email, logoFile);
 
         return ResponseEntity.ok(ApiResponse.<ShopResponse>builder()
                 .code(200)
