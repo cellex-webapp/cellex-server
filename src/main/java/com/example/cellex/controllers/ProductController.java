@@ -59,7 +59,7 @@ public class ProductController {
                     ```
                     
                     **Ví dụ tạo sản phẩm iPhone:**
-                    - categoryId: "smartphone_category_id"  
+                    - categoryId: "smartphone_category_id"
                     - name: "iPhone 15 Pro Max"
                     - description: "iPhone 15 Pro Max với chip A17 Pro mạnh mẽ"
                     - price: "29990000"
@@ -350,7 +350,7 @@ public class ProductController {
                     
                     **Ví dụ cập nhật sản phẩm:**
                     - Chỉ cập nhật giá: gửi price = "27990000"
-                    - Chỉ c���p nhật mô tả: gửi description = "Mô tả mới"  
+                    - Chỉ cập nhật mô tả: gửi description = "Mô tả mới"
                     - Cập nhật ảnh: upload file mới vào images
                     - Cập nhật thuộc tính: gửi attributeValues với JSON mới
                     """,
@@ -449,7 +449,7 @@ public class ProductController {
                     description = """
                             Thuộc tính sản phẩm mới (JSON format) - sẽ thay thế toàn bộ thuộc tính cũ
                             
-                            **Ví dụ cập nhật bộ nh��� và màu sắc:**
+                            **Ví dụ cập nhật bộ nhớ và màu sắc:**
                             ```json
                             [
                                 {"attributeId": "color_attr_id", "value": "Titan Xanh"},

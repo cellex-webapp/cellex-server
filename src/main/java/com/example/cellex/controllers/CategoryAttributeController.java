@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -233,8 +232,6 @@ public class CategoryAttributeController {
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<CategoryAttributeResponse>> updateCategoryAttribute(
-            @Parameter(description = "ID của danh mục sản phẩm", example = "67112345678901234567890b")
-            @PathVariable String categoryId,
             @Parameter(description = "ID của thuộc tính cần cập nhật", example = "67112345678901234567890a")
             @PathVariable String attributeId,
             @Valid @RequestBody CategoryAttributeRequest request) {
@@ -269,8 +266,6 @@ public class CategoryAttributeController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Không tìm thấy thuộc tính")
     })
     public ResponseEntity<ApiResponse<String>> deleteCategoryAttribute(
-            @Parameter(description = "ID của danh mục sản phẩm", example = "67112345678901234567890b")
-            @PathVariable String categoryId,
             @Parameter(description = "ID của thuộc tính cần xóa", example = "67112345678901234567890a")
             @PathVariable String attributeId) {
 
