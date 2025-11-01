@@ -27,7 +27,7 @@ import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
 
 @RestController
-@RequestMapping("/api/products")
+@RequestMapping("/api/v1/products")
 @RequiredArgsConstructor
 @Tag(name = "11. Products", description = "APIs quản lý sản phẩm")
 public class ProductController {
@@ -348,7 +348,7 @@ public class ProductController {
                     - Nếu upload ảnh mới sẽ thay thế toàn bộ ảnh cũ
                     - finalPrice sẽ được tính lại tự động khi thay đổi price hoặc saleOff
                     
-                    **Ví dụ cập nhật sản ph��m:**
+                    **Ví dụ cập nhật sản phẩm:**
                     - Chỉ cập nhật giá: gửi price = "27990000"
                     - Chỉ c���p nhật mô tả: gửi description = "Mô tả mới"  
                     - Cập nhật ảnh: upload file mới vào images
