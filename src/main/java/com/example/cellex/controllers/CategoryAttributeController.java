@@ -1,9 +1,9 @@
 package com.example.cellex.controllers;
 
-import com.example.cellex.dtos.request.CategoryAttributeRequest;
+import com.example.cellex.dtos.request.category.CategoryAttributeRequest;
 import com.example.cellex.dtos.response.ApiResponse;
-import com.example.cellex.dtos.response.CategoryAttributeResponse;
-import com.example.cellex.services.CategoryAttributeService;
+import com.example.cellex.dtos.response.category.CategoryAttributeResponse;
+import com.example.cellex.services.category.CategoryAttributeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

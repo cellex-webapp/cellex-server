@@ -1,8 +1,28 @@
 package com.example.cellex.services;
 
 import com.example.cellex.enums.*;
-import com.example.cellex.models.*;
-import com.example.cellex.repositories.*;
+import com.example.cellex.models.address.Commune;
+import com.example.cellex.models.address.Province;
+import com.example.cellex.models.category.Category;
+import com.example.cellex.models.category.CategoryAttribute;
+import com.example.cellex.models.coupon.CampaignDistributionLog;
+import com.example.cellex.models.coupon.CouponCampaign;
+import com.example.cellex.models.coupon.SegmentCoupon;
+import com.example.cellex.models.coupon.UserCoupon;
+import com.example.cellex.models.product.Product;
+import com.example.cellex.models.segment.CustomerSegment;
+import com.example.cellex.models.shop.Shop;
+import com.example.cellex.models.user.User;
+import com.example.cellex.repositories.category.CategoryAttributeRepository;
+import com.example.cellex.repositories.category.CategoryRepository;
+import com.example.cellex.repositories.coupon.CampaignDistributionLogRepository;
+import com.example.cellex.repositories.coupon.CouponCampaignRepository;
+import com.example.cellex.repositories.coupon.SegmentCouponRepository;
+import com.example.cellex.repositories.coupon.UserCouponRepository;
+import com.example.cellex.repositories.product.ProductRepository;
+import com.example.cellex.repositories.segment.CustomerSegmentRepository;
+import com.example.cellex.repositories.shop.ShopRepository;
+import com.example.cellex.repositories.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,14 +67,12 @@ public class DummyDataService implements CommandLineRunner {
         // Load địa chỉ từ file JSON
         loadLocations();
 
-        // FORCE DROP DATABASE TO RECREATE WITH NEW STRUCTURE
-        // Comment out the check temporarily to force recreate data
-        // if (hasExistingDummyData()) {
-        //     return;
-        // }
+         if (hasExistingDummyData()) {
+           return;
+         }
 
         // Drop toàn bộ database trước khi seed (khi chưa có dummy data)
-        mongoTemplate.getDb().drop();
+        //mongoTemplate.getDb().drop();
 
         seedUsersAndShop();
         Map<String, String> categoryIdByName = seedCategories();

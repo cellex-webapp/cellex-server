@@ -1,10 +1,11 @@
 package com.example.cellex.controllers;
 
-import com.example.cellex.dtos.request.ShopVerificationRequest;
+import com.example.cellex.dtos.request.shop.ShopVerificationRequest;
 import com.example.cellex.dtos.response.ApiResponse;
-import com.example.cellex.dtos.response.ShopResponse;
+import com.example.cellex.dtos.response.shop.ShopResponse;
 import com.example.cellex.enums.ShopStatus;
-import com.example.cellex.services.ShopService;
+import com.example.cellex.models.user.User;
+import com.example.cellex.services.shop.ShopService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -67,7 +68,7 @@ public class ShopController {
             Authentication authentication) throws IOException {
 
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String userId = ((com.example.cellex.models.User) userDetails).getId();
+        String userId = ((User) userDetails).getId();
 
         ShopResponse shopResponse = shopService.registerVendorShopMultipart(
                 userId, shopName, description, provinceCode, communeCode,
@@ -116,7 +117,7 @@ public class ShopController {
             Authentication authentication) throws IOException {
 
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String userId = ((com.example.cellex.models.User) userDetails).getId();
+        String userId = ((User) userDetails).getId();
 
         ShopResponse shopResponse = shopService.updateShopMultipart(
                 shopId, userId, shopName, description, provinceCode, communeCode,
@@ -153,7 +154,7 @@ public class ShopController {
     public ResponseEntity<ApiResponse<ShopResponse>> getMyShop(Authentication authentication) {
 
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String userId = ((com.example.cellex.models.User) userDetails).getId();
+        String userId = ((User) userDetails).getId();
 
         ShopResponse shopResponse = shopService.getShopByVendorId(userId);
 

@@ -1,10 +1,10 @@
 package com.example.cellex.controllers;
 
+import com.example.cellex.dtos.request.user.BanUserRequest;
 import com.example.cellex.dtos.response.ApiResponse;
-import com.example.cellex.dtos.response.UserResponse;
-import com.example.cellex.enums.Role;
-import com.example.cellex.models.User;
-import com.example.cellex.services.UserService;
+import com.example.cellex.dtos.response.user.UserResponse;
+import com.example.cellex.models.user.User;
+import com.example.cellex.services.user.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -267,7 +267,7 @@ public class UserController {
     )
     public ApiResponse<UserResponse> lockUser(
             @PathVariable String userId,
-            @Valid @RequestBody com.example.cellex.dtos.request.BanUserRequest request,
+            @Valid @RequestBody BanUserRequest request,
             Authentication authentication) {
 
         User admin = (User) authentication.getPrincipal();

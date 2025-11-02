@@ -1,7 +1,7 @@
 package com.example.cellex.controllers;
 
-import com.example.cellex.dtos.request.UpdateUserSpendRequest;
-import com.example.cellex.services.CustomerSegmentationService;
+import com.example.cellex.dtos.request.user.UpdateUserSpendRequest;
+import com.example.cellex.services.segment.CustomerSegmentationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

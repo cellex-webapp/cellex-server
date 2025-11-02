@@ -1,6 +1,6 @@
 package com.example.cellex.config;
 
-import com.example.cellex.services.JwtService;
+import com.example.cellex.services.auth.JwtService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;

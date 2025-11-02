@@ -1,9 +1,9 @@
 package com.example.cellex.controllers;
 
 import com.example.cellex.dtos.response.ApiResponse;
-import com.example.cellex.models.Commune;
-import com.example.cellex.models.Province;
-import com.example.cellex.services.AddressService;
+import com.example.cellex.models.address.Commune;
+import com.example.cellex.models.address.Province;
+import com.example.cellex.services.address.AddressService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

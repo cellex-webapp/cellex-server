@@ -1,13 +1,13 @@
 package com.example.cellex.controllers;
 
-import com.example.cellex.dtos.request.CreateCampaignRequest;
-import com.example.cellex.dtos.request.DistributeCampaignRequest;
-import com.example.cellex.dtos.request.UpdateCampaignRequest;
-import com.example.cellex.dtos.response.CampaignDistributionResponse;
-import com.example.cellex.dtos.response.CouponCampaignResponse;
+import com.example.cellex.dtos.request.coupon.CreateCampaignRequest;
+import com.example.cellex.dtos.request.coupon.DistributeCampaignRequest;
+import com.example.cellex.dtos.request.coupon.UpdateCampaignRequest;
+import com.example.cellex.dtos.response.coupon.CampaignDistributionResponse;
+import com.example.cellex.dtos.response.coupon.CouponCampaignResponse;
 import com.example.cellex.enums.CampaignStatus;
-import com.example.cellex.models.User;
-import com.example.cellex.services.CouponCampaignService;
+import com.example.cellex.models.user.User;
+import com.example.cellex.services.coupon.CouponCampaignService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

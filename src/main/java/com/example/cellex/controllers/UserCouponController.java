@@ -1,8 +1,8 @@
 package com.example.cellex.controllers;
 
-import com.example.cellex.dtos.response.UserCouponResponse;
-import com.example.cellex.models.User;
-import com.example.cellex.services.UserCouponService;
+import com.example.cellex.dtos.response.coupon.UserCouponResponse;
+import com.example.cellex.models.user.User;
+import com.example.cellex.services.coupon.UserCouponService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;

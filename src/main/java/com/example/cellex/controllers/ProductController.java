@@ -1,8 +1,8 @@
 package com.example.cellex.controllers;
 
 import com.example.cellex.dtos.response.ApiResponse;
-import com.example.cellex.dtos.response.ProductResponse;
-import com.example.cellex.services.ProductService;
+import com.example.cellex.dtos.response.product.ProductResponse;
+import com.example.cellex.services.product.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;

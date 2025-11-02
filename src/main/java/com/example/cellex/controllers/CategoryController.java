@@ -1,16 +1,13 @@
 package com.example.cellex.controllers;
 
 import com.example.cellex.dtos.response.ApiResponse;
-import com.example.cellex.dtos.response.CategoryResponse;
-import com.example.cellex.services.CategoryService;
+import com.example.cellex.dtos.response.category.CategoryResponse;
+import com.example.cellex.services.category.CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;

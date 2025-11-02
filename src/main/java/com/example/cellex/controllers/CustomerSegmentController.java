@@ -1,9 +1,9 @@
 package com.example.cellex.controllers;
 
-import com.example.cellex.dtos.request.CreateCustomerSegmentRequest;
-import com.example.cellex.dtos.request.UpdateCustomerSegmentRequest;
-import com.example.cellex.dtos.response.CustomerSegmentResponse;
-import com.example.cellex.services.CustomerSegmentService;
+import com.example.cellex.dtos.request.segment.CreateCustomerSegmentRequest;
+import com.example.cellex.dtos.request.segment.UpdateCustomerSegmentRequest;
+import com.example.cellex.dtos.response.segment.CustomerSegmentResponse;
+import com.example.cellex.services.segment.CustomerSegmentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

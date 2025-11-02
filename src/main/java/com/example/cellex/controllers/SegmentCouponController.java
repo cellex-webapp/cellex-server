@@ -1,9 +1,9 @@
 package com.example.cellex.controllers;
 
-import com.example.cellex.dtos.request.CreateSegmentCouponRequest;
-import com.example.cellex.dtos.request.UpdateSegmentCouponRequest;
-import com.example.cellex.dtos.response.SegmentCouponResponse;
-import com.example.cellex.services.SegmentCouponService;
+import com.example.cellex.dtos.request.coupon.CreateSegmentCouponRequest;
+import com.example.cellex.dtos.request.coupon.UpdateSegmentCouponRequest;
+import com.example.cellex.dtos.response.coupon.SegmentCouponResponse;
+import com.example.cellex.services.segment.SegmentCouponService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
