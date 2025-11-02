@@ -59,12 +59,12 @@ public class ShopService {
         // Tạo địa chỉ
         String fullAddress = request.getDetailAddress() + ", " + commune.getName() + ", " + province.getName();
         Shop.Address address = Shop.Address.builder()
-                .provinceCode(request.getProvinceCode())
-                .provinceName(province.getName())
-                .communeCode(request.getCommuneCode())
-                .communeName(commune.getName())
-                .detailAddress(request.getDetailAddress())
+                .street(request.getDetailAddress())
+                .commune(commune.getName())
+                .province(province.getName())
+                .country("Việt Nam")
                 .fullAddress(fullAddress)
+                .isDefault(false)
                 .build();
 
         // Tạo shop mới
@@ -194,12 +194,12 @@ public class ShopService {
 
             String fullAddress = request.getDetailAddress() + ", " + commune.getName() + ", " + province.getName();
             Shop.Address address = Shop.Address.builder()
-                    .provinceCode(request.getProvinceCode())
-                    .provinceName(province.getName())
-                    .communeCode(request.getCommuneCode())
-                    .communeName(commune.getName())
-                    .detailAddress(request.getDetailAddress())
+                    .street(request.getDetailAddress())
+                    .commune(commune.getName())
+                    .province(province.getName())
+                    .country("Việt Nam")
                     .fullAddress(fullAddress)
+                    .isDefault(false)
                     .build();
             shop.setAddress(address);
         }
@@ -250,12 +250,12 @@ public class ShopService {
         // Tạo địa chỉ
         String fullAddress = detailAddress + ", " + commune.getName() + ", " + province.getName();
         Shop.Address address = Shop.Address.builder()
-                .provinceCode(provinceCode)
-                .provinceName(province.getName())
-                .communeCode(communeCode)
-                .communeName(commune.getName())
-                .detailAddress(detailAddress)
+                .street(detailAddress)
+                .commune(commune.getName())
+                .province(province.getName())
+                .country("Việt Nam")
                 .fullAddress(fullAddress)
+                .isDefault(false)
                 .build();
 
         // Tạo shop mới
@@ -319,12 +319,12 @@ public class ShopService {
 
             String fullAddress = detailAddress + ", " + commune.getName() + ", " + province.getName();
             Shop.Address address = Shop.Address.builder()
-                    .provinceCode(provinceCode)
-                    .provinceName(province.getName())
-                    .communeCode(communeCode)
-                    .communeName(commune.getName())
-                    .detailAddress(detailAddress)
+                    .street(detailAddress)
+                    .commune(commune.getName())
+                    .province(province.getName())
+                    .country("Việt Nam")
                     .fullAddress(fullAddress)
+                    .isDefault(false)
                     .build();
             shop.setAddress(address);
         }
@@ -358,12 +358,12 @@ public class ShopService {
         ShopResponse.AddressInfo addressInfo = null;
         if (shop.getAddress() != null) {
             addressInfo = ShopResponse.AddressInfo.builder()
-                    .provinceCode(shop.getAddress().getProvinceCode())
-                    .provinceName(shop.getAddress().getProvinceName())
-                    .communeCode(shop.getAddress().getCommuneCode())
-                    .communeName(shop.getAddress().getCommuneName())
-                    .detailAddress(shop.getAddress().getDetailAddress())
+                    .street(shop.getAddress().getStreet())
+                    .commune(shop.getAddress().getCommune())
+                    .province(shop.getAddress().getProvince())
+                    .country(shop.getAddress().getCountry())
                     .fullAddress(shop.getAddress().getFullAddress())
+                    .isDefault(shop.getAddress().isDefault())
                     .build();
         }
 

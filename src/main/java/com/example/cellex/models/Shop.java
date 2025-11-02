@@ -68,22 +68,24 @@ public class Shop {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Address {
-        @Field("province_code")
-        private String provinceCode;
+        @Field("street")
+        private String street;
 
-        @Field("province_name")
-        private String provinceName;
+        @Field("commune")
+        private String commune;
 
-        @Field("commune_code")
-        private String communeCode;
+        @Field("province")
+        private String province;
 
-        @Field("commune_name")
-        private String communeName;
-
-        @Field("detail_address")
-        private String detailAddress;
+        @Field("country")
+        @Builder.Default
+        private String country = "Việt Nam";
 
         @Field("full_address")
         private String fullAddress;
+
+        @Field("is_default")
+        @Builder.Default
+        private boolean isDefault = false;
     }
 }

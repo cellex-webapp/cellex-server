@@ -53,22 +53,20 @@ public class ShopResponse {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class AddressInfo {
-        @JsonProperty("province_code")
-        private String provinceCode;
+        private String street;
 
-        @JsonProperty("province_name")
-        private String provinceName;
+        private String commune;
 
-        @JsonProperty("commune_code")
-        private String communeCode;
+        private String province;
 
-        @JsonProperty("commune_name")
-        private String communeName;
-
-        @JsonProperty("detail_address")
-        private String detailAddress;
+        @Builder.Default
+        private String country = "Việt Nam";
 
         @JsonProperty("full_address")
         private String fullAddress;
+
+        @JsonProperty("is_default")
+        @Builder.Default
+        private boolean isDefault = false;
     }
 }

@@ -47,13 +47,14 @@ public class DummyDataService implements CommandLineRunner {
         // Load địa chỉ từ file JSON
         loadLocations();
 
-        // Nếu đã có dữ liệu dummy trước đó thì bỏ qua không seed thêm
-        if (hasExistingDummyData()) {
-            return;
-        }
+        // FORCE DROP DATABASE TO RECREATE WITH NEW STRUCTURE
+        // Comment out the check temporarily to force recreate data
+        // if (hasExistingDummyData()) {
+        //     return;
+        // }
 
         // Drop toàn bộ database trước khi seed (khi chưa có dummy data)
-        //mongoTemplate.getDb().drop();
+        mongoTemplate.getDb().drop();
 
         seedUsersAndShop();
         Map<String, String> categoryIdByName = seedCategories();
@@ -431,12 +432,12 @@ public class DummyDataService implements CommandLineRunner {
         String detail = "Số " + (int) randomBetween(10, 300) + " Đường B";
         String full = detail + ", " + c.getName() + ", " + p.getName();
         return Shop.Address.builder()
-                .provinceCode(p.getCode())
-                .provinceName(p.getName())
-                .communeCode(c.getCode())
-                .communeName(c.getName())
-                .detailAddress(detail)
+                .street(detail)
+                .commune(c.getName())
+                .province(p.getName())
+                .country("Việt Nam")
                 .fullAddress(full)
+                .isDefault(false)
                 .build();
     }
 
@@ -451,5 +452,4 @@ public class DummyDataService implements CommandLineRunner {
         return "N/A";
     }
 }
-
 
