@@ -356,6 +356,138 @@ public class ShopService {
         return mapToShopResponse(updatedShop);
     }
 
+    // UPDATE MY SHOP - Vendor cập nhật shop của mình (lấy shopId từ vendorId)
+    public ShopResponse updateMyShop(String vendorId, String shopName, String description,
+                                     String provinceCode, String communeCode,
+                                     String detailAddress, String phoneNumber, String email,
+                                     MultipartFile logoFile) throws IOException {
+        // Tìm shop của vendor
+        Shop shop = shopRepository.findByVendorId(vendorId)
+                .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
+
+        // Update shop name if provided
+        if (shopName != null && !shopName.trim().isEmpty()) {
+            shop.setShopName(shopName);
+        }
+
+        // Update description if provided
+        if (description != null) {
+            shop.setDescription(description);
+        }
+
+        // Update address if provided
+        if (provinceCode != null && communeCode != null && detailAddress != null) {
+            Province province = addressService.getProvinceByCode(provinceCode);
+            if (province == null) {
+                throw new AppException(ErrorCode.INVALID_INPUT);
+            }
+
+            Commune commune = addressService.getCommuneByCode(communeCode);
+            if (commune == null) {
+                throw new AppException(ErrorCode.INVALID_INPUT);
+            }
+
+            String fullAddress = detailAddress + ", " + commune.getName() + ", " + province.getName();
+            Shop.Address address = Shop.Address.builder()
+                    .street(detailAddress)
+                    .commune(commune.getName())
+                    .province(province.getName())
+                    .country("Việt Nam")
+                    .fullAddress(fullAddress)
+                    .isDefault(false)
+                    .build();
+            shop.setAddress(address);
+        }
+
+        // Update phone number if provided
+        if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
+            shop.setPhoneNumber(phoneNumber);
+        }
+
+        // Update email if provided
+        if (email != null && !email.trim().isEmpty()) {
+            shop.setEmail(email);
+        }
+
+        // Update logo if provided
+        if (logoFile != null && !logoFile.isEmpty()) {
+            if (shop.getLogoUrl() != null && !shop.getLogoUrl().isEmpty()) {
+                s3Service.deleteFile(shop.getLogoUrl());
+            }
+            String newLogoUrl = s3Service.uploadFile(logoFile, "shop-logos");
+            shop.setLogoUrl(newLogoUrl);
+        }
+
+        Shop updatedShop = shopRepository.save(shop);
+        return mapToShopResponse(updatedShop);
+    }
+
+    // UPDATE SHOP BY ADMIN - Admin cập nhật bất kỳ shop nào
+    public ShopResponse updateShopByAdmin(String shopId, String shopName, String description,
+                                          String provinceCode, String communeCode,
+                                          String detailAddress, String phoneNumber, String email,
+                                          MultipartFile logoFile) throws IOException {
+        // Tìm shop
+        Shop shop = shopRepository.findById(shopId)
+                .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
+
+        // Update shop name if provided
+        if (shopName != null && !shopName.trim().isEmpty()) {
+            shop.setShopName(shopName);
+        }
+
+        // Update description if provided
+        if (description != null) {
+            shop.setDescription(description);
+        }
+
+        // Update address if provided
+        if (provinceCode != null && communeCode != null && detailAddress != null) {
+            Province province = addressService.getProvinceByCode(provinceCode);
+            if (province == null) {
+                throw new AppException(ErrorCode.INVALID_INPUT);
+            }
+
+            Commune commune = addressService.getCommuneByCode(communeCode);
+            if (commune == null) {
+                throw new AppException(ErrorCode.INVALID_INPUT);
+            }
+
+            String fullAddress = detailAddress + ", " + commune.getName() + ", " + province.getName();
+            Shop.Address address = Shop.Address.builder()
+                    .street(detailAddress)
+                    .commune(commune.getName())
+                    .province(province.getName())
+                    .country("Việt Nam")
+                    .fullAddress(fullAddress)
+                    .isDefault(false)
+                    .build();
+            shop.setAddress(address);
+        }
+
+        // Update phone number if provided
+        if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
+            shop.setPhoneNumber(phoneNumber);
+        }
+
+        // Update email if provided
+        if (email != null && !email.trim().isEmpty()) {
+            shop.setEmail(email);
+        }
+
+        // Update logo if provided
+        if (logoFile != null && !logoFile.isEmpty()) {
+            if (shop.getLogoUrl() != null && !shop.getLogoUrl().isEmpty()) {
+                s3Service.deleteFile(shop.getLogoUrl());
+            }
+            String newLogoUrl = s3Service.uploadFile(logoFile, "shop-logos");
+            shop.setLogoUrl(newLogoUrl);
+        }
+
+        Shop updatedShop = shopRepository.save(shop);
+        return mapToShopResponse(updatedShop);
+    }
+
     private ShopResponse mapToShopResponse(Shop shop) {
         ShopResponse.AddressInfo addressInfo = null;
         if (shop.getAddress() != null) {

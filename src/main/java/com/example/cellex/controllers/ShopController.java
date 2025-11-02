@@ -82,14 +82,12 @@ public class ShopController {
     }
 
     // UPDATE - Multipart Form Data
-    @PutMapping(value = "/{shopId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/my-shop", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
-        summary = "Cập nhật thông tin cửa hàng",
-        description = "Vendor cập nhật thông tin cửa hàng. Tên tỉnh/xã sẽ được tự động lấy từ hệ thống dựa trên mã."
+        summary = "Vendor cập nhật cửa hàng của mình",
+        description = "Vendor cập nhật thông tin cửa hàng của mình. Shop ID được tự động lấy từ vendor ID trong JWT."
     )
-    public ResponseEntity<ApiResponse<ShopResponse>> updateShop(
-            @PathVariable String shopId,
-
+    public ResponseEntity<ApiResponse<ShopResponse>> updateMyShop(
             @Parameter(description = "Tên cửa hàng", example = "Shop Công Nghệ ABC")
             @RequestPart(value = "shopName", required = false) String shopName,
 
@@ -117,10 +115,54 @@ public class ShopController {
             Authentication authentication) throws IOException {
 
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String userId = ((User) userDetails).getId();
+        String vendorId = ((User) userDetails).getId();
 
-        ShopResponse shopResponse = shopService.updateShopMultipart(
-                shopId, userId, shopName, description, provinceCode, communeCode,
+        ShopResponse shopResponse = shopService.updateMyShop(
+                vendorId, shopName, description, provinceCode, communeCode,
+                detailAddress, phoneNumber, email, logoFile);
+
+        return ResponseEntity.ok(ApiResponse.<ShopResponse>builder()
+                .code(200)
+                .message("Cập nhật thông tin cửa hàng thành công.")
+                .result(shopResponse)
+                .build());
+    }
+
+    @PutMapping(value = "/{shopId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+        summary = "Admin cập nhật bất kỳ cửa hàng nào",
+        description = "Admin có thể cập nhật thông tin của bất kỳ cửa hàng nào dựa trên shop ID."
+    )
+    public ResponseEntity<ApiResponse<ShopResponse>> updateShopByAdmin(
+            @PathVariable String shopId,
+
+            @Parameter(description = "Tên cửa hàng", example = "Shop Công Nghệ ABC")
+            @RequestPart(value = "shopName", required = false) String shopName,
+
+            @Parameter(description = "Mô tả cửa hàng", example = "Chuyên cung cấp điện thoại, laptop chính hãng")
+            @RequestPart(value = "description", required = false) String description,
+
+            @Parameter(description = "Mã tỉnh/thành phố", example = "01")
+            @RequestPart(value = "provinceCode", required = false) String provinceCode,
+
+            @Parameter(description = "Mã xã/phường/thị trấn", example = "00001")
+            @RequestPart(value = "communeCode", required = false) String communeCode,
+
+            @Parameter(description = "Địa chỉ chi tiết (số nhà, ngõ/hẻm, đường)", example = "Số 123, Ngõ 456, Đường Láng")
+            @RequestPart(value = "detailAddress", required = false) String detailAddress,
+
+            @Parameter(description = "Số điện thoại cửa hàng", example = "0987654321")
+            @RequestPart(value = "phoneNumber", required = false) String phoneNumber,
+
+            @Parameter(description = "Email cửa hàng", example = "shop@example.com")
+            @RequestPart(value = "email", required = false) String email,
+
+            @Parameter(description = "Logo cửa hàng mới (file ảnh)")
+            @RequestPart(value = "logo", required = false) MultipartFile logoFile) throws IOException {
+
+        ShopResponse shopResponse = shopService.updateShopByAdmin(
+                shopId, shopName, description, provinceCode, communeCode,
                 detailAddress, phoneNumber, email, logoFile);
 
         return ResponseEntity.ok(ApiResponse.<ShopResponse>builder()
