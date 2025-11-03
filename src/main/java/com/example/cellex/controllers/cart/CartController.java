@@ -2,6 +2,8 @@ package com.example.cellex.controllers.cart;
 
 import com.example.cellex.dtos.request.cart.AddToCartRequest;
 import com.example.cellex.dtos.request.cart.RemoveFromCartRequest;
+import com.example.cellex.dtos.request.cart.SetCartItemQuantityRequest;
+import com.example.cellex.dtos.request.cart.UpdateCartItemQuantityRequest;
 import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.cart.CartResponse;
 import com.example.cellex.services.cart.CartService;
@@ -11,14 +13,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/carts")
@@ -195,31 +196,126 @@ public class CartController {
     @Operation(
             summary = "Lấy tất cả giỏ hàng",
             description = """
-                    **Mục đích:** Admin lấy danh sách tất cả giỏ hàng với phân trang
+                    **Mục đích:** Admin lấy danh sách tất cả giỏ hàng
                     
                     **Lưu ý quan trọng:**
                     - Chỉ ADMIN mới có quyền truy cập
-                    - Hỗ trợ phân trang với page, size
+                    - Trả về toàn bộ danh sách giỏ hàng (không phân trang)
                     - Dùng để quản lý và thống kê
-                    
-                    **Ví dụ:**
-                    - GET /api/v1/carts?page=0&size=10
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ResponseEntity<ApiResponse<Page<CartResponse>>> getAllCarts(
-            @PageableDefault(size = 20) Pageable pageable) {
+    public ResponseEntity<ApiResponse<List<CartResponse>>> getAllCarts() {
 
-        log.info("Admin getting all carts with pagination");
+        log.info("Admin getting all carts (no pagination)");
 
-        Page<CartResponse> carts = cartService.getAllCarts(pageable);
+        List<CartResponse> carts = cartService.getAllCarts();
 
         return ResponseEntity.status(HttpStatus.OK)
-                .body(ApiResponse.<Page<CartResponse>>builder()
+                .body(ApiResponse.<List<CartResponse>>builder()
                         .code(1000)
                         .message("Lấy danh sách giỏ hàng thành công")
                         .result(carts)
                         .build());
     }
-}
 
+    @PatchMapping("/update-quantity")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'VENDOR', 'ADMIN')")
+    @Operation(
+            summary = "Tăng hoặc giảm số lượng sản phẩm trong giỏ hàng",
+            description = """
+                    **Mục đích:** Tăng hoặc giảm số lượng của một sản phẩm trong giỏ hàng lên/xuống 1 đơn vị
+                    
+                    **Lưu ý quan trọng:**
+                    - User ID được lấy tự động từ JWT token
+                    - Action có thể là: INCREASE (tăng 1) hoặc DECREASE (giảm 1)
+                    - Nếu giảm xuống 0 thì sản phẩm sẽ tự động bị xóa khỏi giỏ hàng
+                    - Kiểm tra stock trước khi tăng số lượng
+                    
+                    **Ví dụ request body:**
+                    ```json
+                    {
+                        "productId": "product123",
+                        "action": "INCREASE"
+                    }
+                    ```
+                    
+                    hoặc
+                    
+                    ```json
+                    {
+                        "productId": "product123",
+                        "action": "DECREASE"
+                    }
+                    ```
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<ApiResponse<CartResponse>> updateCartItemQuantity(
+            Authentication authentication,
+            @Valid @RequestBody UpdateCartItemQuantityRequest request) {
+
+        String userEmail = authentication.getName();
+        boolean isIncrease = request.getAction() == UpdateCartItemQuantityRequest.QuantityAction.INCREASE;
+        log.info("User {} updating cart item quantity for product {}, action: {}",
+                userEmail, request.getProductId(), request.getAction());
+
+        CartResponse cartResponse = cartService.updateCartItemQuantity(
+                userEmail,
+                request.getProductId(),
+                isIncrease
+        );
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(ApiResponse.<CartResponse>builder()
+                        .code(1000)
+                        .message("Cập nhật số lượng sản phẩm thành công")
+                        .result(cartResponse)
+                        .build());
+    }
+
+    @PatchMapping("/set-quantity")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'VENDOR', 'ADMIN')")
+    @Operation(
+            summary = "Thiết lập số lượng cụ thể cho sản phẩm trong giỏ hàng",
+            description = """
+                    **Mục đích:** Thay đổi số lượng của một sản phẩm trong giỏ hàng thành một giá trị cụ thể
+                    
+                    **Lưu ý quan trọng:**
+                    - User ID được lấy tự động từ JWT token
+                    - Số lượng phải >= 0
+                    - Nếu quantity = 0 thì sản phẩm sẽ bị xóa khỏi giỏ hàng
+                    - Kiểm tra stock trước khi cập nhật
+                    
+                    **Ví dụ request body:**
+                    ```json
+                    {
+                        "productId": "product123",
+                        "quantity": 5
+                    }
+                    ```
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<ApiResponse<CartResponse>> setCartItemQuantity(
+            Authentication authentication,
+            @Valid @RequestBody SetCartItemQuantityRequest request) {
+
+        String userEmail = authentication.getName();
+        log.info("User {} setting cart item quantity for product {} to {}",
+                userEmail, request.getProductId(), request.getQuantity());
+
+        CartResponse cartResponse = cartService.setCartItemQuantity(
+                userEmail,
+                request.getProductId(),
+                request.getQuantity()
+        );
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(ApiResponse.<CartResponse>builder()
+                        .code(1000)
+                        .message("Cập nhật số lượng sản phẩm thành công")
+                        .result(cartResponse)
+                        .build());
+    }
+}

@@ -12,8 +12,6 @@ import com.example.cellex.repositories.product.ProductRepository;
 import com.example.cellex.repositories.shop.ShopRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -92,7 +90,7 @@ public class CartService {
         // Nếu chưa có thì thêm mới
         if (!itemExists) {
             String productImage = (product.getImages() != null && !product.getImages().isEmpty())
-                    ? product.getImages().getFirst()
+                    ? product.getImages().get(0)
                     : null;
 
             Cart.CartItem newItem = Cart.CartItem.builder()
@@ -214,13 +212,113 @@ public class CartService {
     }
 
     /**
-     * Get tất cả giỏ hàng (dành cho admin)
+     * Get tất cả giỏ hàng (dành cho admin) - without pagination
      */
-    public Page<CartResponse> getAllCarts(Pageable pageable) {
-        log.info("Getting all carts with pagination");
+    public List<CartResponse> getAllCarts() {
+        log.info("Getting all carts without pagination");
 
-        Page<Cart> carts = cartRepository.findAll(pageable);
-        return carts.map(this::mapToCartResponse);
+        List<Cart> carts = cartRepository.findAll();
+        return carts.stream().map(this::mapToCartResponse).collect(Collectors.toList());
+    }
+
+    /**
+     * Cập nhật số lượng sản phẩm trong giỏ hàng (tăng/giảm 1)
+     */
+    @Transactional
+    public CartResponse updateCartItemQuantity(String userId, String productId, boolean isIncrease) {
+        log.info("Updating quantity for product {} in cart for user {}, action: {}",
+                productId, userId, isIncrease ? "INCREASE" : "DECREASE");
+
+        Cart cart = cartRepository.findByUserId(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_FOUND));
+
+        // Tìm sản phẩm trong giỏ hàng
+        Cart.CartItem cartItem = cart.getItems().stream()
+                .filter(item -> item.getProductId().equals(productId))
+                .findFirst()
+                .orElseThrow(() -> new AppException(ErrorCode.CART_ITEM_NOT_FOUND));
+
+        // Kiểm tra sản phẩm còn tồn tại và đủ stock
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        if (isIncrease) {
+            // Tăng số lượng lên 1
+            int newQuantity = cartItem.getQuantity() + 1;
+
+            // Kiểm tra stock
+            if (product.getStockQuantity() < newQuantity) {
+                throw new AppException(ErrorCode.INSUFFICIENT_STOCK);
+            }
+
+            cartItem.setQuantity(newQuantity);
+            log.info("Increased quantity to {}", newQuantity);
+        } else {
+            // Giảm số lượng xuống 1
+            int newQuantity = cartItem.getQuantity() - 1;
+
+            if (newQuantity <= 0) {
+                // Nếu số lượng <= 0 thì xóa sản phẩm khỏi giỏ hàng
+                cart.getItems().remove(cartItem);
+                log.info("Removed product from cart as quantity reached 0");
+            } else {
+                cartItem.setQuantity(newQuantity);
+                log.info("Decreased quantity to {}", newQuantity);
+            }
+        }
+
+        // Cập nhật tổng giá và số lượng
+        recalculateCartTotals(cart);
+        cart.setUpdatedAt(LocalDateTime.now());
+
+        Cart savedCart = cartRepository.save(cart);
+        log.info("Cart updated successfully for user {}", userId);
+
+        return mapToCartResponse(savedCart);
+    }
+
+    /**
+     * Thiết lập số lượng cụ thể cho sản phẩm trong giỏ hàng
+     */
+    @Transactional
+    public CartResponse setCartItemQuantity(String userId, String productId, Integer quantity) {
+        log.info("Setting quantity for product {} in cart for user {} to {}", productId, userId, quantity);
+
+        Cart cart = cartRepository.findByUserId(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_FOUND));
+
+        // Tìm sản phẩm trong giỏ hàng
+        Cart.CartItem cartItem = cart.getItems().stream()
+                .filter(item -> item.getProductId().equals(productId))
+                .findFirst()
+                .orElseThrow(() -> new AppException(ErrorCode.CART_ITEM_NOT_FOUND));
+
+        if (quantity == 0) {
+            // Nếu quantity = 0 thì xóa sản phẩm khỏi giỏ hàng
+            cart.getItems().remove(cartItem);
+            log.info("Removed product from cart as quantity is 0");
+        } else {
+            // Kiểm tra sản phẩm còn tồn tại và đủ stock
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+
+            // Kiểm tra stock
+            if (product.getStockQuantity() < quantity) {
+                throw new AppException(ErrorCode.INSUFFICIENT_STOCK);
+            }
+
+            cartItem.setQuantity(quantity);
+            log.info("Updated quantity to {}", quantity);
+        }
+
+        // Cập nhật tổng giá và số lượng
+        recalculateCartTotals(cart);
+        cart.setUpdatedAt(LocalDateTime.now());
+
+        Cart savedCart = cartRepository.save(cart);
+        log.info("Cart updated successfully for user {}", userId);
+
+        return mapToCartResponse(savedCart);
     }
 
     /**
@@ -249,7 +347,7 @@ public class CartService {
                     Product product = productRepository.findById(item.getProductId()).orElse(null);
 
                     Integer availableStock = null;
-                    Boolean isAvailable = true;
+                    boolean isAvailable;
 
                     if (product != null) {
                         availableStock = product.getStockQuantity();
