@@ -89,7 +89,14 @@ public enum ErrorCode {
     // General Errors
     INVALID_REQUEST(9001, "Yêu cầu không hợp lệ", HttpStatus.BAD_REQUEST),
     INTERNAL_SERVER_ERROR(9002, "Lỗi hệ thống", HttpStatus.INTERNAL_SERVER_ERROR),
-    USER_NOT_EXISTED(9003, "Người dùng không tồn tại", HttpStatus.NOT_FOUND);
+    USER_NOT_EXISTED(9003, "Người dùng không tồn tại", HttpStatus.NOT_FOUND),
+
+    // Cart Errors
+    CART_NOT_FOUND(10001, "Không tìm thấy giỏ hàng", HttpStatus.NOT_FOUND),
+    CART_ITEM_NOT_FOUND(10002, "Không tìm thấy sản phẩm trong giỏ hàng", HttpStatus.NOT_FOUND),
+    PRODUCT_OUT_OF_STOCK(10003, "Sản phẩm đã hết hàng", HttpStatus.BAD_REQUEST),
+    INSUFFICIENT_STOCK(10004, "Số lượng sản phẩm không đủ", HttpStatus.BAD_REQUEST),
+    CART_EMPTY(10005, "Giỏ hàng trống", HttpStatus.BAD_REQUEST);
 
     private final int code;
     private final String message;
