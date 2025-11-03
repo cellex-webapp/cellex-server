@@ -278,11 +278,39 @@ public class ProductController {
     @GetMapping("/search")
     @Operation(
             summary = "Tìm kiếm sản phẩm",
-            description = "Tìm kiếm sản phẩm theo từ khóa trong tên"
+            description = "Tìm kiếm sản phẩm theo từ khóa trong tên với phân trang"
     )
     public ResponseEntity<ApiResponse<Page<ProductResponse>>> searchProducts(
-            @Parameter(description = "Từ khóa tìm kiếm") @RequestParam String keyword,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @Parameter(description = "Từ khóa tìm kiếm")
+            @RequestParam String keyword,
+
+            @Parameter(description = "Số trang (bắt đầu từ 1)")
+            @RequestParam(defaultValue = "1") Integer page,
+
+            @Parameter(description = "Số lượng sản phẩm mỗi trang")
+            @RequestParam(defaultValue = "15") Integer limit,
+
+            @Parameter(description = "Kiểu sắp xếp (asc/desc)")
+            @RequestParam(defaultValue = "desc") String sortType,
+
+            @Parameter(description = "Trường để sắp xếp")
+            @RequestParam(defaultValue = "createdAt") String sortBy) {
+
+        // Chuyển đổi page từ 1-based sang 0-based cho Spring Data
+        int pageNumber = page - 1;
+        if (pageNumber < 0) pageNumber = 0;
+
+        // Tạo Sort direction
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
+            ? Sort.Direction.ASC
+            : Sort.Direction.DESC;
+
+        // Tạo Pageable
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(
+            pageNumber,
+            limit,
+            Sort.by(direction, sortBy)
+        );
 
         Page<ProductResponse> response = productService.searchProducts(keyword, pageable);
         return ResponseEntity.ok(ApiResponse.<Page<ProductResponse>>builder()

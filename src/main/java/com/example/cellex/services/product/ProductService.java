@@ -109,22 +109,22 @@ public class ProductService {
 
     public Page<ProductResponse> getProductsByCategory(String categoryId, Pageable pageable) {
         Page<Product> products = productRepository.findByCategoryIdAndIsPublishedTrue(categoryId, pageable);
-        return products.map(product -> mapToResponse(product, null, null));
+        return products.map(this::mapToResponseWithLookup);
     }
 
     public Page<ProductResponse> getProductsByShop(String shopId, Pageable pageable) {
         Page<Product> products = productRepository.findByShopIdAndIsPublishedTrue(shopId, pageable);
-        return products.map(product -> mapToResponse(product, null, null));
+        return products.map(this::mapToResponseWithLookup);
     }
 
     public Page<ProductResponse> searchProducts(String keyword, Pageable pageable) {
         Page<Product> products = productRepository.findByNameContainingIgnoreCaseAndIsPublishedTrue(keyword, pageable);
-        return products.map(product -> mapToResponse(product, null, null));
+        return products.map(this::mapToResponseWithLookup);
     }
 
     public Page<ProductResponse> getAllProducts(Pageable pageable) {
         Page<Product> products = productRepository.findAllBy(pageable);
-        return products.map(product -> mapToResponse(product, null, null));
+        return products.map(this::mapToResponseWithLookup);
     }
 
     public ProductResponse updateProduct(String vendorId, String productId, ProductRequest request) {
@@ -822,26 +822,59 @@ public class ProductService {
             builder.attributeValues(attributeResponses);
         }
 
-        // Map shop info nếu có
+        // Map shop info nếu có - với tất cả các trường từ ShopResponse
         if (shop != null) {
-            builder.shopInfo(ProductResponse.ShopInfo.builder()
+            ProductResponse.ShopInfo.ShopInfoBuilder shopInfoBuilder = ProductResponse.ShopInfo.builder()
                     .id(shop.getId())
+                    .vendorId(shop.getVendorId())
                     .shopName(shop.getShopName())
+                    .description(shop.getDescription())
                     .logoUrl(shop.getLogoUrl())
+                    .phoneNumber(shop.getPhoneNumber())
+                    .email(shop.getEmail())
                     .status(shop.getStatus())
                     .rating(shop.getRating())
-                    .build());
+                    .rejectionReason(shop.getRejectionReason())
+                    .createdAt(shop.getCreatedAt())
+                    .updatedAt(shop.getUpdatedAt());
+
+            // Map address nếu có
+            if (shop.getAddress() != null) {
+                shopInfoBuilder.address(ProductResponse.AddressInfo.builder()
+                        .street(shop.getAddress().getStreet())
+                        .commune(shop.getAddress().getCommune())
+                        .province(shop.getAddress().getProvince())
+                        .country(shop.getAddress().getCountry())
+                        .fullAddress(shop.getAddress().getFullAddress())
+                        .isDefault(shop.getAddress().isDefault())
+                        .build());
+            }
+
+            builder.shopInfo(shopInfoBuilder.build());
         }
 
-        // Map category info nếu có
+        // Map category info nếu có - với tất cả các trường từ CategoryResponse
         if (category != null) {
             builder.categoryInfo(ProductResponse.CategoryInfo.builder()
                     .id(category.getId())
                     .name(category.getName())
+                    .slug(category.getSlug())
+                    .parentId(category.getParentId())
                     .imageUrl(category.getImageUrl())
+                    .description(category.getDescription())
+                    .isActive(category.getIsActive())
                     .build());
         }
 
         return builder.build();
+    }
+
+    // New method to map Product to ProductResponse with lookup for shop and category
+    private ProductResponse mapToResponseWithLookup(Product product) {
+        // Lấy thông tin shop và category
+        Shop shop = shopRepository.findById(product.getShopId()).orElse(null);
+        Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
+
+        return mapToResponse(product, shop, category);
     }
 }
