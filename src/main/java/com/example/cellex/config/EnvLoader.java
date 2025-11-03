@@ -76,6 +76,8 @@ public class EnvLoader {
                 return "aws.s3.bucketName";
             case "S3_REGION":
                 return "aws.region";
+            case "CLOUDINARY_URL":
+                return "CLOUDINARY_URL";
             case "CLOUDINARY_CLOUD_NAME":
                 return "cloudinary.cloud_name";
             case "CLOUDINARY_API_KEY":
