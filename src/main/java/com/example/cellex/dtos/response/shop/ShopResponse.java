@@ -42,6 +42,9 @@ public class ShopResponse {
     @JsonProperty("rejection_reason")
     private String rejectionReason;
 
+    @JsonProperty("product_count")
+    private Integer productCount;
+
     @JsonProperty("created_at")
     private LocalDateTime createdAt;
 

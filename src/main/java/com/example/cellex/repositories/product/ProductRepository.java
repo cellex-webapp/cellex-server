@@ -27,4 +27,6 @@ public interface ProductRepository extends MongoRepository<Product, String> {
 
     // Lấy tất cả sản phẩm với phân trang
     Page<Product> findAllBy(Pageable pageable);
+
+    int countByShopId(String shopId);
 }

@@ -11,6 +11,7 @@ import com.example.cellex.models.address.Commune;
 import com.example.cellex.models.address.Province;
 import com.example.cellex.models.shop.Shop;
 import com.example.cellex.models.user.User;
+import com.example.cellex.repositories.product.ProductRepository;
 import com.example.cellex.repositories.shop.ShopRepository;
 import com.example.cellex.repositories.user.UserRepository;
 import com.example.cellex.services.S3Service;
@@ -30,6 +31,7 @@ public class ShopService {
     private final UserRepository userRepository;
     private final S3Service s3Service;
     private final AddressService addressService;
+    private final ProductRepository productRepository;
 
     public ShopResponse registerVendorShop(String vendorId, VendorRegistrationRequest request, MultipartFile logoFile) throws IOException {
         // Kiểm tra user có tồn tại không
@@ -118,7 +120,10 @@ public class ShopService {
     public ShopResponse getShopById(String shopId) {
         Shop shop = shopRepository.findById(shopId)
                 .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
-        return mapToShopResponse(shop);
+        int productCount = productRepository.countByShopId(shopId);
+        ShopResponse response = mapToShopResponse(shop);
+        response.setProductCount(productCount);
+        return response;
     }
 
     public List<ShopResponse> getAllShops(ShopStatus status) {
