@@ -55,7 +55,7 @@ public class CategoryService {
 
     // CREATE MULTIPART - Phương thức mới để hỗ trợ multipart form data
     public CategoryResponse createCategoryMultipart(String name, String description, String parentId,
-                                                   MultipartFile imageFile) throws IOException {
+                                                   Boolean isActive, MultipartFile imageFile) throws IOException {
         String imageUrl = null;
         if (imageFile != null && !imageFile.isEmpty()) {
             imageUrl = s3Service.uploadFile(imageFile, "categories");
@@ -75,7 +75,7 @@ public class CategoryService {
                 .parentId(parentId)
                 .imageUrl(imageUrl)
                 .description(description)
-                .isActive(true)
+                .isActive(isActive != null ? isActive : true)
                 .build();
 
         Category savedCategory = categoryRepository.save(category);
@@ -155,7 +155,7 @@ public class CategoryService {
 
     // UPDATE MULTIPART - Phương thức mới để hỗ trợ multipart form data
     public CategoryResponse updateCategoryMultipart(String id, String name, String description, String parentId,
-                                                   MultipartFile imageFile) throws IOException {
+                                                   Boolean isActive, MultipartFile imageFile) throws IOException {
         Category category = findCategoryByIdInternal(id);
 
         // Update name if provided
@@ -177,6 +177,11 @@ public class CategoryService {
         // Update parent ID if provided
         if (parentId != null) {
             category.setParentId(parentId);
+        }
+
+        // Update isActive if provided
+        if (isActive != null) {
+            category.setIsActive(isActive);
         }
 
         // Update image if provided
