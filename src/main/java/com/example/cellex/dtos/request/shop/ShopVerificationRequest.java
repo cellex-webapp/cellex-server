@@ -17,7 +17,7 @@ public class ShopVerificationRequest {
     private String shopId;
 
     @NotBlank(message = "Trạng thái xác thực không được để trống")
-    @Pattern(regexp = "APPROVE|REJECT", message = "Trạng thái phải là APPROVE hoặc REJECT")
+    @Pattern(regexp = "APPROVED|REJECTED", message = "Trạng thái phải là APPROVED hoặc REJECTED")
     private String status;
 
     private String rejectionReason;

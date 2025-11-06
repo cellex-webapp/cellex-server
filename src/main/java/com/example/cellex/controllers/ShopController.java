@@ -180,7 +180,7 @@ public class ShopController {
 
         ShopResponse shopResponse = shopService.verifyShop(request);
 
-        String message = "APPROVE".equals(request.getStatus())
+        String message = "APPROVED".equals(request.getStatus())
             ? "Duyệt cửa hàng thành công"
             : "Từ chối cửa hàng thành công";
 

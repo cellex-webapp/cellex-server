@@ -80,7 +80,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccountBannedException.class)
     ResponseEntity<ApiResponse> handleAccountLockedException(AccountBannedException exception) {
-        String detailedMessage = String.format("Tài khoản của bạn đã bị khóa vào lúc %s. Lý do: %s",
+        String detailedMessage = String.format("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin",
                 exception.getBannedAt(), exception.getBanReason());
 
         ApiResponse apiResponse = ApiResponse.builder()
