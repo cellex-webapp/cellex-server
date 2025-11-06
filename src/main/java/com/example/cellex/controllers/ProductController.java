@@ -2,6 +2,7 @@ package com.example.cellex.controllers;
 
 import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.product.ProductResponse;
+import com.example.cellex.models.user.User;
 import com.example.cellex.services.product.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -213,7 +214,7 @@ public class ProductController {
             )
             @RequestPart(value = "images", required = false) MultipartFile[] images) throws IOException {
 
-        String vendorId = authentication.getName();
+        String vendorId = ((User)authentication.getPrincipal()).getId();
         ProductResponse response = productService.createProductMultipart(
                 vendorId, categoryId, name, description, price, saleOff,
                 stockQuantity, attributeValues, isPublished, images);
@@ -563,7 +564,7 @@ public class ProductController {
             )
             @RequestPart(value = "images", required = false) MultipartFile[] images) throws IOException {
 
-        String vendorId = authentication.getName();
+        String vendorId = ((User)authentication.getPrincipal()).getId();
         ProductResponse response = productService.updateProductMultipart(
                 vendorId, productId, categoryId, name, description, price, saleOff,
                 stockQuantity, attributeValues, isPublished, images);
@@ -586,7 +587,7 @@ public class ProductController {
             Authentication authentication,
             @Parameter(description = "ID của sản phẩm") @PathVariable String productId) {
 
-        String vendorId = authentication.getName();
+        String vendorId = ((User)authentication.getPrincipal()).getId();
         productService.deleteProduct(vendorId, productId);
 
         return ResponseEntity.ok(ApiResponse.<String>builder()

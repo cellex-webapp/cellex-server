@@ -1,11 +1,14 @@
 package com.example.cellex.services.category;
 
 import com.example.cellex.dtos.request.category.CategoryRequest;
+import com.example.cellex.dtos.response.category.CategoryAttributeResponse;
 import com.example.cellex.dtos.response.category.CategoryResponse;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.models.category.Category;
+import com.example.cellex.models.category.CategoryAttribute;
 import com.example.cellex.repositories.category.CategoryRepository;
+import com.example.cellex.repositories.category.CategoryAttributeRepository;
 import com.example.cellex.services.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +24,7 @@ import java.util.stream.Collectors;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final CategoryAttributeRepository categoryAttributeRepository;
     private final S3Service s3Service;
 
     // CREATE
@@ -247,7 +251,6 @@ public class CategoryService {
                 .id(category.getId())
                 .name(category.getName())
                 .slug(category.getSlug())
-                .parentId(category.getParentId())
                 .imageUrl(category.getImageUrl())
                 .description(category.getDescription())
                 .isActive(category.getIsActive());
@@ -258,6 +261,29 @@ public class CategoryService {
                 builder.parent(mapToCategoryResponse(parentEntity));
             });
         }
+
+        // Load and map category attributes
+        List<CategoryAttribute> attributes = categoryAttributeRepository.findByCategoryIdAndIsActiveTrueOrderBySortOrderAsc(category.getId());
+        List<CategoryAttributeResponse> attributeResponses = attributes.stream()
+                .map(attr -> CategoryAttributeResponse.builder()
+                        .id(attr.getId())
+                        .categoryId(attr.getCategoryId())
+                        .attributeName(attr.getAttributeName())
+                        .attributeKey(attr.getAttributeKey())
+                        .dataType(attr.getDataType())
+                        .unit(attr.getUnit())
+                        .isRequired(attr.getIsRequired())
+                        .isHighlight(attr.getIsHighlight())
+                        .selectOptions(attr.getSelectOptions())
+                        .validationPattern(attr.getValidationPattern())
+                        .sortOrder(attr.getSortOrder())
+                        .description(attr.getDescription())
+                        .isActive(attr.getIsActive())
+                        .createdAt(attr.getCreatedAt())
+                        .updatedAt(attr.getUpdatedAt())
+                        .build())
+                .collect(Collectors.toList());
+        builder.attributes(attributeResponses);
 
         return builder.build();
     }
