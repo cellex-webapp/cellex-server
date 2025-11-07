@@ -212,7 +212,7 @@ public class ProductController {
                             mediaType = MediaType.MULTIPART_FORM_DATA_VALUE
                     )
             )
-            @RequestParam(value = "images", required = false) MultipartFile[] images) throws IOException {
+            @RequestPart(value = "images", required = false) MultipartFile[] images) throws IOException {
 
         String vendorId = ((User)authentication.getPrincipal()).getId();
         ProductResponse response = productService.createProductMultipart(
@@ -643,7 +643,7 @@ public class ProductController {
                             mediaType = MediaType.MULTIPART_FORM_DATA_VALUE
                     )
             )
-            @RequestParam(value = "images", required = false) MultipartFile[] images) throws IOException {
+            @RequestPart(value = "images", required = false) MultipartFile[] images) throws IOException {
 
         String vendorId = ((User)authentication.getPrincipal()).getId();
         ProductResponse response = productService.updateProductMultipart(
