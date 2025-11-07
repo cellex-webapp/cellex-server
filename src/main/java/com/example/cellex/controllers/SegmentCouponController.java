@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -71,10 +70,10 @@ public class SegmentCouponController {
             - maxUsesPerUser = null nghĩa là không giới hạn
             """,
         responses = {
-            @ApiResponse(responseCode = "200", description = "Tạo coupon thành công"),
-            @ApiResponse(responseCode = "400", description = "Validation error hoặc dữ liệu không hợp lệ"),
-            @ApiResponse(responseCode = "401", description = "Chưa đăng nhập"),
-            @ApiResponse(responseCode = "403", description = "Không có quyền ADMIN")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tạo coupon thành công"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation error hoặc dữ liệu không hợp lệ"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chưa đăng nhập"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Không có quyền ADMIN")
         }
     )
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -239,9 +238,9 @@ public class SegmentCouponController {
             hệ thống sẽ tự động tính lại nextScheduledDate.
             """,
         responses = {
-            @ApiResponse(responseCode = "200", description = "Cập nhật thành công"),
-            @ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ"),
-            @ApiResponse(responseCode = "404", description = "Không tìm thấy coupon")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Cập nhật thành công"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Không tìm thấy coupon")
         }
     )
     public ResponseEntity<ApiResponse<SegmentCouponResponse>> updateCoupon(
@@ -268,8 +267,8 @@ public class SegmentCouponController {
             ⚠️ Lưu ý: User coupons đã phát từ segment coupon này sẽ không bị xóa.
             """,
         responses = {
-            @ApiResponse(responseCode = "204", description = "Xóa thành công"),
-            @ApiResponse(responseCode = "404", description = "Không tìm thấy coupon")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Xóa thành công"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Không tìm thấy coupon")
         }
     )
     public ResponseEntity<ApiResponse<String>> deleteCoupon(
@@ -290,8 +289,8 @@ public class SegmentCouponController {
         summary = "Lấy thông tin chi tiết coupon",
         description = "Lấy đầy đủ thông tin của một coupon theo ID",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Thành công"),
-            @ApiResponse(responseCode = "404", description = "Không tìm thấy coupon")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Thành công"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Không tìm thấy coupon")
         }
     )
     public ResponseEntity<ApiResponse<SegmentCouponResponse>> getCouponById(
@@ -319,7 +318,7 @@ public class SegmentCouponController {
             - nextScheduledDate (lần phát tiếp theo)
             """,
         responses = {
-            @ApiResponse(responseCode = "200", description = "Thành công")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Thành công")
         }
     )
     public ResponseEntity<ApiResponse<List<SegmentCouponResponse>>> getAllCoupons() {
@@ -343,7 +342,7 @@ public class SegmentCouponController {
             - Admin kiểm tra cấu hình coupon cho từng segment
             """,
         responses = {
-            @ApiResponse(responseCode = "200", description = "Thành công")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Thành công")
         }
     )
     public ResponseEntity<ApiResponse<List<SegmentCouponResponse>>> getCouponsBySegmentId(
@@ -359,4 +358,3 @@ public class SegmentCouponController {
         return ResponseEntity.ok(response);
     }
 }
-

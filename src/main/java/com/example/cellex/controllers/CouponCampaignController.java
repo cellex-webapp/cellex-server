@@ -13,7 +13,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -53,9 +52,9 @@ public class CouponCampaignController {
             - scheduledAt = datetime: Campaign tự động phát vào thời điểm đó
             """,
         responses = {
-            @ApiResponse(responseCode = "200", description = "Tạo thành công"),
-            @ApiResponse(responseCode = "400", description = "Validation error"),
-            @ApiResponse(responseCode = "403", description = "Không có quyền ADMIN")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tạo thành công"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Validation error"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Không có quyền ADMIN")
         }
     )
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -248,8 +247,8 @@ public class CouponCampaignController {
             **Response:** Báo cáo chi tiết số lượng thành công/thất bại
             """,
         responses = {
-            @ApiResponse(responseCode = "200", description = "Phát thành công"),
-            @ApiResponse(responseCode = "400", description = "Campaign không hợp lệ")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Phát thành công"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Campaign không hợp lệ")
         }
     )
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -353,4 +352,3 @@ public class CouponCampaignController {
         return ResponseEntity.ok(response);
     }
 }
-
