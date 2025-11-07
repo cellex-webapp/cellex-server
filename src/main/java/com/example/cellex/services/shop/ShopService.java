@@ -92,7 +92,7 @@ public class ShopService {
         Shop shop = shopRepository.findById(request.getShopId())
                 .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
 
-        if ("APPROVE".equals(request.getStatus())) {
+        if ("APPROVED".equals(request.getStatus())) {
             shop.setStatus(ShopStatus.APPROVED);
             shop.setRejectionReason(null);
 
