@@ -141,40 +141,40 @@ public class ProductController {
                     required = true,
                     example = "smartphone_category_id"
             )
-            @RequestPart("categoryId") @NotBlank String categoryId,
+            @RequestParam("categoryId") @NotBlank String categoryId,
 
             @Parameter(
                     description = "Tên sản phẩm",
                     required = true,
                     example = "iPhone 15 Pro Max 256GB"
             )
-            @RequestPart("name") @NotBlank String name,
+            @RequestParam("name") @NotBlank String name,
 
             @Parameter(
                     description = "Mô tả chi tiết sản phẩm",
                     example = "iPhone 15 Pro Max với chip A17 Pro mạnh mẽ, camera 48MP, màn hình Super Retina XDR 6.7 inch"
             )
-            @RequestPart(value = "description", required = false) String description,
+            @RequestParam(value = "description", required = false) String description,
 
             @Parameter(
                     description = "Giá sản phẩm (VND)",
                     required = true,
                     example = "29990000"
             )
-            @RequestPart("price") @NotNull @DecimalMin("0.0") String price,
+            @RequestParam("price") @NotNull @DecimalMin("0.0") String price,
 
             @Parameter(
                     description = "Phần trăm giảm giá (0-100)",
                     example = "5"
             )
-            @RequestPart(value = "saleOff", required = false) String saleOff,
+            @RequestParam(value = "saleOff", required = false) String saleOff,
 
             @Parameter(
                     description = "Số lượng tồn kho",
                     required = true,
                     example = "50"
             )
-            @RequestPart("stockQuantity") @NotNull @Min(0) String stockQuantity,
+            @RequestParam("stockQuantity") @NotNull @Min(0) String stockQuantity,
 
             @Parameter(
                     description = """
@@ -198,13 +198,13 @@ public class ProductController {
                             ]
                             """
             )
-            @RequestPart(value = "attributeValues", required = false) String attributeValues,
+            @RequestParam(value = "attributeValues", required = false) String attributeValues,
 
             @Parameter(
                     description = "Trạng thái xuất bản (true/false)",
                     example = "true"
             )
-            @RequestPart(value = "isPublished", required = false) String isPublished,
+            @RequestParam(value = "isPublished", required = false) String isPublished,
 
             @Parameter(
                     description = "Ảnh sản phẩm (có thể upload nhiều file)",
@@ -496,37 +496,37 @@ public class ProductController {
                     description = "ID danh mục mới (nếu muốn chuyển danh mục)",
                     example = "laptop_category_id"
             )
-            @RequestPart(value = "categoryId", required = false) String categoryId,
+            @RequestParam(value = "categoryId", required = false) String categoryId,
 
             @Parameter(
                     description = "Tên sản phẩm mới",
                     example = "iPhone 15 Pro Max 512GB - Phiên bản nâng cấp"
             )
-            @RequestPart(value = "name", required = false) String name,
+            @RequestParam(value = "name", required = false) String name,
 
             @Parameter(
                     description = "Mô tả sản phẩm mới",
                     example = "iPhone 15 Pro Max 512GB với nhiều cải tiến về camera và hiệu năng"
             )
-            @RequestPart(value = "description", required = false) String description,
+            @RequestParam(value = "description", required = false) String description,
 
             @Parameter(
                     description = "Giá mới (VND)",
                     example = "34990000"
             )
-            @RequestPart(value = "price", required = false) String price,
+            @RequestParam(value = "price", required = false) String price,
 
             @Parameter(
                     description = "Phần trăm giảm giá mới (0-100)",
                     example = "10"
             )
-            @RequestPart(value = "saleOff", required = false) String saleOff,
+            @RequestParam(value = "saleOff", required = false) String saleOff,
 
             @Parameter(
                     description = "Số lượng tồn kho mới",
                     example = "30"
             )
-            @RequestPart(value = "stockQuantity", required = false) String stockQuantity,
+            @RequestParam(value = "stockQuantity", required = false) String stockQuantity,
 
             @Parameter(
                     description = """
@@ -548,13 +548,13 @@ public class ProductController {
                             ]
                             """
             )
-            @RequestPart(value = "attributeValues", required = false) String attributeValues,
+            @RequestParam(value = "attributeValues", required = false) String attributeValues,
 
             @Parameter(
                     description = "Trạng thái xuất bản mới",
                     example = "false"
             )
-            @RequestPart(value = "isPublished", required = false) String isPublished,
+            @RequestParam(value = "isPublished", required = false) String isPublished,
 
             @Parameter(
                     description = "Ảnh sản phẩm mới (sẽ thay thế toàn bộ ảnh cũ)",

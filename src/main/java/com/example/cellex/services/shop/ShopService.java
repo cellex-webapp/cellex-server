@@ -71,7 +71,7 @@ public class ShopService {
                 .isDefault(false)
                 .build();
 
-        // Tạo shop mới
+        // Tạo shop mới với status PENDING
         Shop shop = Shop.builder()
                 .vendorId(vendorId)
                 .shopName(request.getShopName())
@@ -80,11 +80,16 @@ public class ShopService {
                 .address(address)
                 .phoneNumber(request.getPhoneNumber())
                 .email(request.getEmail())
-                .status(ShopStatus.PENDING)
+                .status(ShopStatus.PENDING) // Shop ở trạng thái PENDING
                 .rating(0.0)
                 .build();
 
         Shop savedShop = shopRepository.save(shop);
+
+        // KHÔNG chuyển role sang VENDOR ngay lập tức
+        // User vẫn giữ role hiện tại (thường là CUSTOMER)
+        // Chỉ chuyển sang VENDOR khi ADMIN approve shop
+
         return mapToShopResponse(savedShop);
     }
 
@@ -92,19 +97,25 @@ public class ShopService {
         Shop shop = shopRepository.findById(request.getShopId())
                 .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
 
+        // Lấy thông tin user
+        User user = userRepository.findById(shop.getVendorId())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
         if ("APPROVED".equals(request.getStatus())) {
             shop.setStatus(ShopStatus.APPROVED);
             shop.setRejectionReason(null);
 
-            // Chuyển role user thành VENDOR khi approve
-            User vendor = userRepository.findById(shop.getVendorId())
-                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-            vendor.setRole(Role.VENDOR);
-            userRepository.save(vendor);
+            // CHỈ chuyển role user thành VENDOR khi ADMIN APPROVE
+            user.setRole(Role.VENDOR);
+            userRepository.save(user);
 
-        } else if ("REJECT".equals(request.getStatus())) {
+        } else if ("REJECTED".equals(request.getStatus())) {
             shop.setStatus(ShopStatus.REJECTED);
             shop.setRejectionReason(request.getRejectionReason());
+
+            // QUAN TRỌNG: Khi REJECT, KHÔNG chuyển user thành VENDOR
+            // User giữ nguyên role hiện tại (thường là CUSTOMER)
+            // KHÔNG save user ở đây để tránh cập nhật role không mong muốn
         }
 
         Shop updatedShop = shopRepository.save(shop);
@@ -233,8 +244,32 @@ public class ShopService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         // Kiểm tra user đã có shop chưa
+        // Cho phép đăng ký lại nếu shop cũ bị REJECTED
         if (shopRepository.existsByVendorId(vendorId)) {
-            throw new AppException(ErrorCode.SHOP_ALREADY_EXISTS);
+            Shop existingShop = shopRepository.findByVendorId(vendorId)
+                    .orElseThrow(() -> new AppException(ErrorCode.SHOP_ALREADY_EXISTS));
+
+            // Nếu shop đang PENDING hoặc APPROVED, không cho đăng ký lại
+            if (existingShop.getStatus() == ShopStatus.PENDING) {
+                throw new AppException(ErrorCode.SHOP_ALREADY_EXISTS);
+            }
+            if (existingShop.getStatus() == ShopStatus.APPROVED) {
+                throw new AppException(ErrorCode.SHOP_ALREADY_EXISTS);
+            }
+
+            // Nếu shop bị REJECTED, cho phép đăng ký lại
+            // Xóa shop cũ trước khi tạo shop mới
+            if (existingShop.getStatus() == ShopStatus.REJECTED) {
+                // Xóa logo cũ nếu có
+                if (existingShop.getLogoUrl() != null && !existingShop.getLogoUrl().isEmpty()) {
+                    try {
+                        s3Service.deleteFile(existingShop.getLogoUrl());
+                    } catch (Exception e) {
+                        // Ignore error khi xóa file
+                    }
+                }
+                shopRepository.delete(existingShop);
+            }
         }
 
         // Validate và lấy tên địa chỉ từ JSON
@@ -265,7 +300,7 @@ public class ShopService {
                 .isDefault(false)
                 .build();
 
-        // Tạo shop mới
+        // Tạo shop mới với status PENDING
         Shop shop = Shop.builder()
                 .vendorId(vendorId)
                 .shopName(shopName)
@@ -274,15 +309,15 @@ public class ShopService {
                 .address(address)
                 .phoneNumber(phoneNumber)
                 .email(email)
-                .status(ShopStatus.PENDING)
+                .status(ShopStatus.PENDING)  // Shop ở trạng thái PENDING
                 .rating(0.0)
                 .build();
 
         Shop savedShop = shopRepository.save(shop);
 
-        // Cập nhật role của user thành VENDOR
-        vendor.setRole(Role.VENDOR);
-        userRepository.save(vendor);
+        // KHÔNG chuyển role sang VENDOR ngay lập tức
+        // User vẫn giữ role hiện tại (thường là CUSTOMER)
+        // CHỈ chuyển sang VENDOR khi ADMIN approve shop trong method verifyShop()
 
         return mapToShopResponse(savedShop);
     }

@@ -35,16 +35,16 @@ public class CategoryController {
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<CategoryResponse> createCategory(
             @Parameter(description = "Category name", required = true)
-            @RequestPart("name") @NotBlank String name,
+            @RequestParam("name") @NotBlank String name,
 
             @Parameter(description = "Category description")
-            @RequestPart(value = "description", required = false) String description,
+            @RequestParam(value = "description", required = false) String description,
 
             @Parameter(description = "Parent category ID")
-            @RequestPart(value = "parentId", required = false) String parentId,
+            @RequestParam(value = "parentId", required = false) String parentId,
 
             @Parameter(description = "Category active status")
-            @RequestPart(value = "isActive", required = false) Boolean isActive,
+            @RequestParam(value = "isActive", required = false) Boolean isActive,
 
             @Parameter(description = "Category image file")
             @RequestPart(value = "image", required = false) MultipartFile imageFile) throws IOException {
@@ -98,16 +98,16 @@ public class CategoryController {
             @PathVariable String id,
 
             @Parameter(description = "Category name")
-            @RequestPart(value = "name", required = false) String name,
+            @RequestParam(value = "name", required = false) String name,
 
             @Parameter(description = "Category description")
-            @RequestPart(value = "description", required = false) String description,
+            @RequestParam(value = "description", required = false) String description,
 
             @Parameter(description = "Parent category ID")
-            @RequestPart(value = "parentId", required = false) String parentId,
+            @RequestParam(value = "parentId", required = false) String parentId,
 
             @Parameter(description = "Category active status")
-            @RequestPart(value = "isActive", required = false) Boolean isActive,
+            @RequestParam(value = "isActive", required = false) Boolean isActive,
 
             @Parameter(description = "Category image file")
             @RequestPart(value = "image", required = false) MultipartFile imageFile) throws IOException {

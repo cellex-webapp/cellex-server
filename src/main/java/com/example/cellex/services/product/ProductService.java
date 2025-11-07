@@ -108,13 +108,35 @@ public class ProductService {
     }
 
     public Page<ProductResponse> getProductsByCategory(String categoryId, Pageable pageable) {
+        // Chỉ lấy sản phẩm đã xuất bản từ các shop đã được APPROVED
         Page<Product> products = productRepository.findByCategoryIdAndIsPublishedTrue(categoryId, pageable);
-        return products.map(this::mapToResponseWithLookup);
+
+        // Filter thêm để chỉ lấy sản phẩm từ shop APPROVED
+        return (Page<ProductResponse>) products.map(product -> {
+            Shop shop = shopRepository.findById(product.getShopId()).orElse(null);
+            // Chỉ trả về sản phẩm nếu shop đã được APPROVED
+            if (shop == null || shop.getStatus() != ShopStatus.APPROVED) {
+                return null;
+            }
+            Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
+            return mapToResponse(product, shop, category);
+        }).filter(response -> response != null); // Lọc bỏ các null
     }
 
     public Page<ProductResponse> getProductsByShop(String shopId, Pageable pageable) {
+        // Kiểm tra shop phải ở trạng thái APPROVED
+        Shop shop = shopRepository.findById(shopId)
+                .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
+
+        if (shop.getStatus() != ShopStatus.APPROVED) {
+            throw new AppException(ErrorCode.SHOP_NOT_VERIFIED);
+        }
+
         Page<Product> products = productRepository.findByShopIdAndIsPublishedTrue(shopId, pageable);
-        return products.map(this::mapToResponseWithLookup);
+        return products.map(product -> {
+            Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
+            return mapToResponse(product, shop, category);
+        });
     }
 
     public Page<ProductResponse> searchProducts(String keyword, Pageable pageable) {
@@ -281,21 +303,11 @@ public class ProductService {
     }
 
     // CREATE MULTIPART - Phương thức mới để hỗ trợ multipart form data
-    public ProductResponse createProductMultipart(String vendorEmail, String categoryId, String name, String description,
+    public ProductResponse createProductMultipart(String vendorId, String categoryId, String name, String description,
                                                  String price, String saleOff, String stockQuantity,
                                                  String attributeValues, String isPublished,
                                                  MultipartFile[] images) throws IOException {
-        log.info("Creating product for vendorEmail: {}, categoryId: {}", vendorEmail, categoryId);
-
-        // Tìm User bằng email trước để lấy userId
-        var user = userRepository.findByEmail(vendorEmail)
-                .orElseThrow(() -> {
-                    log.error("User not found for email: {}", vendorEmail);
-                    return new AppException(ErrorCode.USER_NOT_FOUND);
-                });
-
-        String vendorId = user.getId();
-        log.info("Found user: {} for email: {}", vendorId, vendorEmail);
+        log.info("Creating product for vendorId: {}, categoryId: {}", vendorId, categoryId);
 
         // Kiểm tra shop của vendor có tồn tại không
         Optional<Shop> shopOptional = shopRepository.findByVendorId(vendorId);
