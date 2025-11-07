@@ -1,5 +1,6 @@
 package com.example.cellex.controllers;
 
+import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.coupon.UserCouponResponse;
 import com.example.cellex.models.user.User;
 import com.example.cellex.services.coupon.UserCouponService;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/user-coupons")
+@RequestMapping("/api/v1/user-coupons")
 @RequiredArgsConstructor
 @Tag(name = "06. User Coupons", description = "API quản lý coupon của người dùng")
 public class UserCouponController {
@@ -22,36 +23,59 @@ public class UserCouponController {
 
     @GetMapping("/my-coupons")
     @Operation(summary = "Lấy danh sách coupon của tôi")
-    public ResponseEntity<List<UserCouponResponse>> getMyCoupons(
+    public ResponseEntity<ApiResponse<List<UserCouponResponse>>> getMyCoupons(
             @AuthenticationPrincipal User user
     ) {
-        return ResponseEntity.ok(userCouponService.getUserCoupons(user.getId()));
+        List<UserCouponResponse> coupons = userCouponService.getUserCoupons(user.getId());
+        ApiResponse<List<UserCouponResponse>> response = ApiResponse.<List<UserCouponResponse>>builder()
+                .code(200)
+                .message("Lấy danh sách coupon thành công")
+                .result(coupons)
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/my-active-coupons")
     @Operation(summary = "Lấy danh sách coupon đang hoạt động của tôi")
-    public ResponseEntity<List<UserCouponResponse>> getMyActiveCoupons(
+    public ResponseEntity<ApiResponse<List<UserCouponResponse>>> getMyActiveCoupons(
             @AuthenticationPrincipal User user
     ) {
-        return ResponseEntity.ok(userCouponService.getUserActiveCoupons(user.getId()));
+        List<UserCouponResponse> coupons = userCouponService.getUserActiveCoupons(user.getId());
+        ApiResponse<List<UserCouponResponse>> response = ApiResponse.<List<UserCouponResponse>>builder()
+                .code(200)
+                .message("Lấy danh sách coupon đang hoạt động thành công")
+                .result(coupons)
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/user/{userId}")
     @Operation(summary = "Lấy danh sách coupon của user (ADMIN)")
-    public ResponseEntity<List<UserCouponResponse>> getUserCoupons(
+    public ResponseEntity<ApiResponse<List<UserCouponResponse>>> getUserCoupons(
             @PathVariable String userId
     ) {
-        return ResponseEntity.ok(userCouponService.getUserCoupons(userId));
+        List<UserCouponResponse> coupons = userCouponService.getUserCoupons(userId);
+        ApiResponse<List<UserCouponResponse>> response = ApiResponse.<List<UserCouponResponse>>builder()
+                .code(200)
+                .message("Lấy danh sách coupon của user thành công")
+                .result(coupons)
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/redeem")
     @Operation(summary = "Sử dụng coupon cho đơn hàng (chua làm xong, sau làm order rồi làm tiếp)")
-    public ResponseEntity<UserCouponResponse> redeemCoupon(
+    public ResponseEntity<ApiResponse<UserCouponResponse>> redeemCoupon(
             @RequestParam String code,
             @RequestParam String orderId,
             @AuthenticationPrincipal User user
     ) {
-        return ResponseEntity.ok(userCouponService.redeemCoupon(code, orderId));
+        UserCouponResponse coupon = userCouponService.redeemCoupon(code, orderId);
+        ApiResponse<UserCouponResponse> response = ApiResponse.<UserCouponResponse>builder()
+                .code(200)
+                .message("Sử dụng coupon thành công")
+                .result(coupon)
+                .build();
+        return ResponseEntity.ok(response);
     }
 }
-

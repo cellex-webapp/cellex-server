@@ -2,6 +2,7 @@ package com.example.cellex.controllers;
 
 import com.example.cellex.dtos.request.coupon.CreateSegmentCouponRequest;
 import com.example.cellex.dtos.request.coupon.UpdateSegmentCouponRequest;
+import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.coupon.SegmentCouponResponse;
 import com.example.cellex.services.segment.SegmentCouponService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/segment-coupons")
+@RequestMapping("/api/v1/segment-coupons")
 @RequiredArgsConstructor
 @Tag(name = "05. Segment Coupons", description = "API quản lý coupon theo phân khúc khách hàng với cấu hình lịch phát linh hoạt")
 public class SegmentCouponController {
@@ -213,10 +214,16 @@ public class SegmentCouponController {
             }
         )
     )
-    public ResponseEntity<SegmentCouponResponse> createCoupon(
+    public ResponseEntity<ApiResponse<SegmentCouponResponse>> createCoupon(
             @Valid @RequestBody CreateSegmentCouponRequest request
     ) {
-        return ResponseEntity.ok(segmentCouponService.createCoupon(request));
+        SegmentCouponResponse coupon = segmentCouponService.createCoupon(request);
+        ApiResponse<SegmentCouponResponse> response = ApiResponse.<SegmentCouponResponse>builder()
+                .code(200)
+                .message("Tạo coupon thành công")
+                .result(coupon)
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
@@ -237,12 +244,18 @@ public class SegmentCouponController {
             @ApiResponse(responseCode = "404", description = "Không tìm thấy coupon")
         }
     )
-    public ResponseEntity<SegmentCouponResponse> updateCoupon(
+    public ResponseEntity<ApiResponse<SegmentCouponResponse>> updateCoupon(
             @Parameter(description = "ID của coupon cần cập nhật", required = true)
             @PathVariable String id,
             @Valid @RequestBody UpdateSegmentCouponRequest request
     ) {
-        return ResponseEntity.ok(segmentCouponService.updateCoupon(id, request));
+        SegmentCouponResponse coupon = segmentCouponService.updateCoupon(id, request);
+        ApiResponse<SegmentCouponResponse> response = ApiResponse.<SegmentCouponResponse>builder()
+                .code(200)
+                .message("Cập nhật coupon thành công")
+                .result(coupon)
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
@@ -259,12 +272,17 @@ public class SegmentCouponController {
             @ApiResponse(responseCode = "404", description = "Không tìm thấy coupon")
         }
     )
-    public ResponseEntity<Void> deleteCoupon(
+    public ResponseEntity<ApiResponse<String>> deleteCoupon(
             @Parameter(description = "ID của coupon cần xóa", required = true)
             @PathVariable String id
     ) {
         segmentCouponService.deleteCoupon(id);
-        return ResponseEntity.noContent().build();
+        ApiResponse<String> response = ApiResponse.<String>builder()
+                .code(200)
+                .message("Xóa coupon thành công")
+                .result("Đã xóa")
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
@@ -276,11 +294,17 @@ public class SegmentCouponController {
             @ApiResponse(responseCode = "404", description = "Không tìm thấy coupon")
         }
     )
-    public ResponseEntity<SegmentCouponResponse> getCouponById(
+    public ResponseEntity<ApiResponse<SegmentCouponResponse>> getCouponById(
             @Parameter(description = "ID của coupon", required = true)
             @PathVariable String id
     ) {
-        return ResponseEntity.ok(segmentCouponService.getCouponById(id));
+        SegmentCouponResponse coupon = segmentCouponService.getCouponById(id);
+        ApiResponse<SegmentCouponResponse> response = ApiResponse.<SegmentCouponResponse>builder()
+                .code(200)
+                .message("Lấy thông tin coupon thành công")
+                .result(coupon)
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping
@@ -298,8 +322,14 @@ public class SegmentCouponController {
             @ApiResponse(responseCode = "200", description = "Thành công")
         }
     )
-    public ResponseEntity<List<SegmentCouponResponse>> getAllCoupons() {
-        return ResponseEntity.ok(segmentCouponService.getAllCoupons());
+    public ResponseEntity<ApiResponse<List<SegmentCouponResponse>>> getAllCoupons() {
+        List<SegmentCouponResponse> coupons = segmentCouponService.getAllCoupons();
+        ApiResponse<List<SegmentCouponResponse>> response = ApiResponse.<List<SegmentCouponResponse>>builder()
+                .code(200)
+                .message("Lấy danh sách coupon thành công")
+                .result(coupons)
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/segment/{segmentId}")
@@ -316,11 +346,17 @@ public class SegmentCouponController {
             @ApiResponse(responseCode = "200", description = "Thành công")
         }
     )
-    public ResponseEntity<List<SegmentCouponResponse>> getCouponsBySegmentId(
+    public ResponseEntity<ApiResponse<List<SegmentCouponResponse>>> getCouponsBySegmentId(
             @Parameter(description = "ID của customer segment", required = true)
             @PathVariable String segmentId
     ) {
-        return ResponseEntity.ok(segmentCouponService.getCouponsBySegmentId(segmentId));
+        List<SegmentCouponResponse> coupons = segmentCouponService.getCouponsBySegmentId(segmentId);
+        ApiResponse<List<SegmentCouponResponse>> response = ApiResponse.<List<SegmentCouponResponse>>builder()
+                .code(200)
+                .message("Lấy danh sách coupon theo segment thành công")
+                .result(coupons)
+                .build();
+        return ResponseEntity.ok(response);
     }
 }
 

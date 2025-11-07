@@ -3,6 +3,7 @@ package com.example.cellex.controllers;
 import com.example.cellex.dtos.request.coupon.CreateCampaignRequest;
 import com.example.cellex.dtos.request.coupon.DistributeCampaignRequest;
 import com.example.cellex.dtos.request.coupon.UpdateCampaignRequest;
+import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.coupon.CampaignDistributionResponse;
 import com.example.cellex.dtos.response.coupon.CouponCampaignResponse;
 import com.example.cellex.enums.CampaignStatus;
@@ -24,7 +25,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/coupon-campaigns")
+@RequestMapping("/api/v1/coupon-campaigns")
 @RequiredArgsConstructor
 @Tag(name = "12. Coupon Campaigns")
 public class CouponCampaignController {
@@ -104,11 +105,17 @@ public class CouponCampaignController {
             }
         )
     )
-    public ResponseEntity<CouponCampaignResponse> createCampaign(
+    public ResponseEntity<ApiResponse<CouponCampaignResponse>> createCampaign(
             @Valid @RequestBody CreateCampaignRequest request,
             @AuthenticationPrincipal User admin
     ) {
-        return ResponseEntity.ok(campaignService.createCampaign(request, admin.getId()));
+        CouponCampaignResponse campaign = campaignService.createCampaign(request, admin.getId());
+        ApiResponse<CouponCampaignResponse> response = ApiResponse.<CouponCampaignResponse>builder()
+                .code(200)
+                .message("Tạo campaign thành công")
+                .result(campaign)
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
@@ -123,12 +130,18 @@ public class CouponCampaignController {
             - Tất cả trường đều optional
             """
     )
-    public ResponseEntity<CouponCampaignResponse> updateCampaign(
+    public ResponseEntity<ApiResponse<CouponCampaignResponse>> updateCampaign(
             @Parameter(description = "Campaign ID", required = true)
             @PathVariable String id,
             @Valid @RequestBody UpdateCampaignRequest request
     ) {
-        return ResponseEntity.ok(campaignService.updateCampaign(id, request));
+        CouponCampaignResponse campaign = campaignService.updateCampaign(id, request);
+        ApiResponse<CouponCampaignResponse> response = ApiResponse.<CouponCampaignResponse>builder()
+                .code(200)
+                .message("Cập nhật campaign thành công")
+                .result(campaign)
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
@@ -141,22 +154,33 @@ public class CouponCampaignController {
             ⚠️ Không thể xóa campaign đang chạy (status = ACTIVE)
             """
     )
-    public ResponseEntity<Void> deleteCampaign(
+    public ResponseEntity<ApiResponse<String>> deleteCampaign(
             @Parameter(description = "Campaign ID", required = true)
             @PathVariable String id
     ) {
         campaignService.deleteCampaign(id);
-        return ResponseEntity.noContent().build();
+        ApiResponse<String> response = ApiResponse.<String>builder()
+                .code(200)
+                .message("Xóa campaign thành công")
+                .result("Đã xóa")
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Lấy thông tin campaign theo ID")
-    public ResponseEntity<CouponCampaignResponse> getCampaignById(
+    public ResponseEntity<ApiResponse<CouponCampaignResponse>> getCampaignById(
             @Parameter(description = "Campaign ID", required = true)
             @PathVariable String id
     ) {
-        return ResponseEntity.ok(campaignService.getCampaignById(id));
+        CouponCampaignResponse campaign = campaignService.getCampaignById(id);
+        ApiResponse<CouponCampaignResponse> response = ApiResponse.<CouponCampaignResponse>builder()
+                .code(200)
+                .message("Lấy thông tin campaign thành công")
+                .result(campaign)
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping
@@ -165,8 +189,14 @@ public class CouponCampaignController {
         summary = "Lấy danh sách tất cả campaigns",
         description = "Lấy tất cả campaigns active, sắp xếp theo ngày tạo (mới nhất trước)"
     )
-    public ResponseEntity<List<CouponCampaignResponse>> getAllCampaigns() {
-        return ResponseEntity.ok(campaignService.getAllCampaigns());
+    public ResponseEntity<ApiResponse<List<CouponCampaignResponse>>> getAllCampaigns() {
+        List<CouponCampaignResponse> campaigns = campaignService.getAllCampaigns();
+        ApiResponse<List<CouponCampaignResponse>> response = ApiResponse.<List<CouponCampaignResponse>>builder()
+                .code(200)
+                .message("Lấy danh sách campaign thành công")
+                .result(campaigns)
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/status/{status}")
@@ -182,11 +212,17 @@ public class CouponCampaignController {
             - CANCELLED: Đã hủy
             """
     )
-    public ResponseEntity<List<CouponCampaignResponse>> getCampaignsByStatus(
+    public ResponseEntity<ApiResponse<List<CouponCampaignResponse>>> getCampaignsByStatus(
             @Parameter(description = "Campaign status", required = true)
             @PathVariable CampaignStatus status
     ) {
-        return ResponseEntity.ok(campaignService.getCampaignsByStatus(status));
+        List<CouponCampaignResponse> campaigns = campaignService.getCampaignsByStatus(status);
+        ApiResponse<List<CouponCampaignResponse>> response = ApiResponse.<List<CouponCampaignResponse>>builder()
+                .code(200)
+                .message("Lấy danh sách campaign theo status thành công")
+                .result(campaigns)
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/distribute")
@@ -283,13 +319,19 @@ public class CouponCampaignController {
             }
         )
     )
-    public ResponseEntity<CampaignDistributionResponse> distributeCampaign(
+    public ResponseEntity<ApiResponse<CampaignDistributionResponse>> distributeCampaign(
             @Valid @RequestBody DistributeCampaignRequest request,
             @AuthenticationPrincipal User admin
     ) {
-        return ResponseEntity.ok(
-            campaignService.distributeCampaign(request.getCampaignId(), request.getFilter(), admin.getId())
+        CampaignDistributionResponse distribution = campaignService.distributeCampaign(
+            request.getCampaignId(), request.getFilter(), admin.getId()
         );
+        ApiResponse<CampaignDistributionResponse> response = ApiResponse.<CampaignDistributionResponse>builder()
+                .code(200)
+                .message("Phát campaign thành công")
+                .result(distribution)
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}/distribution-logs")
@@ -298,11 +340,17 @@ public class CouponCampaignController {
         summary = "Xem lịch sử phát coupon của campaign",
         description = "Lấy tất cả distribution logs của campaign để audit và báo cáo"
     )
-    public ResponseEntity<List<CampaignDistributionResponse>> getCampaignDistributionLogs(
+    public ResponseEntity<ApiResponse<List<CampaignDistributionResponse>>> getCampaignDistributionLogs(
             @Parameter(description = "Campaign ID", required = true)
             @PathVariable String id
     ) {
-        return ResponseEntity.ok(campaignService.getCampaignDistributionLogs(id));
+        List<CampaignDistributionResponse> logs = campaignService.getCampaignDistributionLogs(id);
+        ApiResponse<List<CampaignDistributionResponse>> response = ApiResponse.<List<CampaignDistributionResponse>>builder()
+                .code(200)
+                .message("Lấy lịch sử phát campaign thành công")
+                .result(logs)
+                .build();
+        return ResponseEntity.ok(response);
     }
 }
 
