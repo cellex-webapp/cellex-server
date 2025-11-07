@@ -8,9 +8,11 @@ import com.example.cellex.enums.Role;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.models.user.User;
+import com.example.cellex.models.segment.CustomerSegment;
 import com.example.cellex.repositories.user.UserRepository;
 import com.example.cellex.services.S3Service;
 import com.example.cellex.services.address.AddressService;
+import com.example.cellex.services.segment.CustomerSegmentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,6 +34,7 @@ public class UserService {
     private final S3Service s3Service;
     private final AddressService addressService;
     private final PasswordEncoder passwordEncoder;
+    private final CustomerSegmentService customerSegmentService;
 
     @Transactional
     public User createAccount(CreateUserDataRequest request, MultipartFile avatar) {
@@ -196,20 +199,9 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
 
-        return UserResponse.builder()
-                .id(savedUser.getId())
-                .fullName(savedUser.getFullName())
-                .email(savedUser.getEmail())
-                .phoneNumber(savedUser.getPhoneNumber())
-                .avatarUrl(savedUser.getAvatarUrl())
-                .role(savedUser.getRole())
-                .address(mapToAddressResponse(savedUser.getAddress()))
-                .customerSegmentId(savedUser.getCustomerSegmentId())
-                .isActive(savedUser.isEnabled())
-                .createdAt(savedUser.getCreatedAt())
-                .updatedAt(savedUser.getUpdatedAt())
-                .build();
+        return mapToUserResponse(savedUser);
     }
+
     public List<UserResponse> getAllUsers() {
         List<User> users = userRepository.findAll();
         return users.stream()
@@ -477,6 +469,22 @@ public class UserService {
     }
 
     private UserResponse mapToUserResponse(User user) {
+        // Lấy thông tin segment nếu user có customerSegmentId
+        UserResponse.CustomerSegmentInfo segmentInfo = null;
+        if (user.getCustomerSegmentId() != null) {
+            try {
+                CustomerSegment segment = customerSegmentService.getSegmentEntityById(user.getCustomerSegmentId());
+                segmentInfo = UserResponse.CustomerSegmentInfo.builder()
+                        .id(segment.getId())
+                        .name(segment.getName())
+                        .minSpend(segment.getMinSpend())
+                        .level(segment.getLevel())
+                        .build();
+            } catch (Exception e) {
+                log.warn("Không tìm thấy thông tin segment {} cho user {}", user.getCustomerSegmentId(), user.getId());
+            }
+        }
+
         return UserResponse.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())
@@ -485,7 +493,7 @@ public class UserService {
                 .avatarUrl(user.getAvatarUrl())
                 .role(user.getRole())
                 .address(mapToAddressResponse(user.getAddress()))
-                .customerSegmentId(user.getCustomerSegmentId())
+                .customerSegmentInfo(segmentInfo) // Thay đổi từ customerSegmentId
                 .isActive(user.isEnabled())
                 .isBanned(user.isBanned())
                 .banReason(user.getBanReason())

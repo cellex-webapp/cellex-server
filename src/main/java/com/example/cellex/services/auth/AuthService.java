@@ -55,7 +55,7 @@ public class AuthService {
         // Check if user account is locked
         if (user.isBanned()) {
             // Tạo custom exception với thông tin về lý do khóa
-            throw new AccountBannedException(user.getBanReason(), user.getBannedAt());
+            throw new AccountBannedException(user.getBanReason());
         }
 
         // Check if user is active

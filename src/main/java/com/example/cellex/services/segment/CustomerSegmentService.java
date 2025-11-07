@@ -78,6 +78,12 @@ public class CustomerSegmentService {
         return mapToResponse(segment);
     }
 
+    // Thêm method để lấy entity (dùng internal)
+    public CustomerSegment getSegmentEntityById(String id) {
+        return customerSegmentRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.SEGMENT_NOT_FOUND));
+    }
+
     public List<CustomerSegmentResponse> getAllSegments() {
         return customerSegmentRepository.findAll().stream()
                 .map(this::mapToResponse)
@@ -112,4 +118,3 @@ public class CustomerSegmentService {
                 .build();
     }
 }
-

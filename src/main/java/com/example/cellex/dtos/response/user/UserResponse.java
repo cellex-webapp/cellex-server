@@ -1,6 +1,7 @@
 package com.example.cellex.dtos.response.user;
 
 import com.example.cellex.enums.Role;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,7 +21,7 @@ public class UserResponse {
     private String avatarUrl;
     private Role role;
     private AddressResponse address;
-    private String customerSegmentId;
+    private CustomerSegmentInfo customerSegmentInfo; // Thay đổi từ customerSegmentId
     private boolean isActive;
     private boolean isBanned;
     private String banReason;
@@ -28,6 +29,17 @@ public class UserResponse {
     private String bannedBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CustomerSegmentInfo {
+        private String id;
+        private String name;
+        private Double minSpend;
+        private Integer level;
+    }
 
     @Data
     @Builder
@@ -42,6 +54,7 @@ public class UserResponse {
         private String country = "Việt Nam";
 
         private String fullAddress;
+        @JsonProperty("default")
         private boolean isDefault;
     }
 }

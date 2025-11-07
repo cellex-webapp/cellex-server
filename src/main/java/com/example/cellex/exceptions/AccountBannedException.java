@@ -7,11 +7,9 @@ import java.time.LocalDateTime;
 @Getter
 public class AccountBannedException extends RuntimeException {
     private final String banReason;
-    private final LocalDateTime bannedAt;
 
-    public AccountBannedException(String banReason, LocalDateTime bannedAt) {
-        super("Tài khoản đã bị khóa: " + banReason);
+    public AccountBannedException(String banReason) {
+        super("Tài khoản đã bị khóa vì lí do: " + banReason + " vui lòng liên hệ quản trị viên");
         this.banReason = banReason;
-        this.bannedAt = bannedAt;
     }
 }

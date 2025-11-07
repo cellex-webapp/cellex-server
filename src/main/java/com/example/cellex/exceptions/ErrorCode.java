@@ -16,7 +16,7 @@ public enum ErrorCode {
     USERNAME_INVALID(1003, "Tên đăng nhập phải có ít nhất 3 ký tự", HttpStatus.BAD_REQUEST),
     PASSWORD_INVALID(1004, "Mật khẩu phải có ít nhất 8 ký tự", HttpStatus.BAD_REQUEST),
     USER_NOT_FOUND(1005, "Không tìm thấy email hoặc mật khẩu", HttpStatus.NOT_FOUND),
-    UNAUTHENTICATED(1006, "Chưa xác thực người dùng", HttpStatus.UNAUTHORIZED),
+    UNAUTHENTICATED(1006, "Email hoặc mật khẩu không chính xác", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1007, "Bạn không có quyền truy cập chức năng này", HttpStatus.FORBIDDEN),
 
     // Sign Up Errors

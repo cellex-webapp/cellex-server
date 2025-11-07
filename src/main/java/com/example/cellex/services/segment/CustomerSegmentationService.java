@@ -40,21 +40,31 @@ public class CustomerSegmentationService {
 
         user.setTotalSpend(newTotalSpend);
 
-        // Kiểm tra và cập nhật segment
+        // Lấy segment cũ từ user (nếu có)
         CustomerSegment oldSegment = null;
-        if (user.getCustomerSegmentId() != null) {
+        String oldSegmentId = user.getCustomerSegmentId();
+        if (oldSegmentId != null) {
             try {
-                oldSegment = customerSegmentService.findSegmentForSpend(oldTotalSpend);
+                oldSegment = customerSegmentService.getSegmentEntityById(oldSegmentId);
             } catch (Exception e) {
-                log.warn("Không tìm thấy segment cũ cho user {}", userId);
+                log.warn("Không tìm thấy segment cũ {} cho user {}", oldSegmentId, userId);
             }
         }
 
+        // Tìm segment mới dựa trên tổng chi tiêu mới
         CustomerSegment newSegment = customerSegmentService.findSegmentForSpend(newTotalSpend);
 
-        // Nếu segment thay đổi
-        if (newSegment != null && !newSegment.getId().equals(user.getCustomerSegmentId())) {
-            String oldSegmentId = user.getCustomerSegmentId();
+        // Kiểm tra xem segment có thay đổi không
+        boolean segmentChanged = false;
+        if (newSegment != null) {
+            // Nếu user chưa có segment hoặc segment ID khác nhau
+            if (oldSegmentId == null || !newSegment.getId().equals(oldSegmentId)) {
+                segmentChanged = true;
+            }
+        }
+
+        if (segmentChanged) {
+            // CẬP NHẬT SEGMENT MỚI VÀO USER
             user.setCustomerSegmentId(newSegment.getId());
 
             // Lưu vào lịch sử
@@ -62,35 +72,52 @@ public class CustomerSegmentationService {
                 user.setSegmentHistory(new ArrayList<>());
             }
 
-            // Đóng segment cũ
-            if (oldSegmentId != null && oldSegment != null) {
+            // Đóng segment cũ trong lịch sử
+            if (oldSegmentId != null) {
                 user.getSegmentHistory().stream()
                         .filter(h -> h.getSegmentId().equals(oldSegmentId) && h.getTo() == null)
                         .forEach(h -> h.setTo(LocalDateTime.now()));
             }
 
-            // Thêm segment mới
+            // Thêm segment mới vào lịch sử
+            String note = "Initial";
+            if (oldSegment != null && newSegment.getLevel() != null && oldSegment.getLevel() != null) {
+                note = newSegment.getLevel() > oldSegment.getLevel() ? "Upgraded" : "Downgraded";
+            } else if (oldSegmentId != null) {
+                note = "Changed";
+            }
+
             User.SegmentHistory newHistory = User.SegmentHistory.builder()
                     .segmentId(newSegment.getId())
                     .segmentName(newSegment.getName())
                     .from(LocalDateTime.now())
                     .to(null)
-                    .note(oldSegmentId != null ? 
-                            (newSegment.getLevel() > oldSegment.getLevel() ? "Upgraded" : "Downgraded") 
-                            : "Initial")
+                    .note(note)
                     .build();
             user.getSegmentHistory().add(newHistory);
 
+            // Lưu user với segment mới
             userRepository.save(user);
 
-            log.info("User {} đã được nâng hạng lên segment {} ({})", userId, newSegment.getId(), newSegment.getName());
+            log.info("User {} đã thay đổi segment từ {} sang {} ({})",
+                    userId,
+                    oldSegmentId != null ? oldSegmentId : "null",
+                    newSegment.getId(),
+                    newSegment.getName());
 
-            // Phát coupon tự động nếu có
-            if (newSegment.getLevel() != null && (oldSegment == null || newSegment.getLevel() > oldSegment.getLevel())) {
+            // Phát coupon tự động nếu là nâng hạng
+            boolean isUpgrade = oldSegment == null ||
+                (oldSegment != null && newSegment.getLevel() != null && oldSegment.getLevel() != null &&
+                 newSegment.getLevel() > oldSegment.getLevel());
+
+            if (isUpgrade) {
+                log.info("Đang phát coupon nâng hạng cho user {}", userId);
                 issueUpgradeCoupons(user, newSegment);
             }
         } else {
+            // Không có thay đổi segment, chỉ cập nhật totalSpend
             userRepository.save(user);
+            log.info("User {} cập nhật totalSpend thành {} (segment không đổi)", userId, newTotalSpend);
         }
     }
 
@@ -155,4 +182,3 @@ public class CustomerSegmentationService {
         }
     }
 }
-

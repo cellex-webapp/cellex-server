@@ -65,10 +65,9 @@ public class ShopResponse {
         @Builder.Default
         private String country = "Việt Nam";
 
-        @JsonProperty("full_address")
         private String fullAddress;
 
-        @JsonProperty("is_default")
+        @JsonProperty("default")
         @Builder.Default
         private boolean isDefault = false;
     }
