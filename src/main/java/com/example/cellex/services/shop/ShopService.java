@@ -113,9 +113,10 @@ public class ShopService {
             shop.setStatus(ShopStatus.REJECTED);
             shop.setRejectionReason(request.getRejectionReason());
 
-            // QUAN TRỌNG: Khi REJECT, KHÔNG chuyển user thành VENDOR
-            // User giữ nguyên role hiện tại (thường là CUSTOMER)
-            // KHÔNG save user ở đây để tránh cập nhật role không mong muốn
+            // QUAN TRỌNG: Khi REJECT shop thì:
+            // 1. Không chuyển user thành VENDOR (giữ nguyên role hiện tại)
+            // 2. Không cần save user vì không có thay đổi gì
+            // User có thể đăng ký shop mới sau khi bị reject
         }
 
         Shop updatedShop = shopRepository.save(shop);

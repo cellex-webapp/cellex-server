@@ -47,7 +47,7 @@ public class CategoryController {
             @RequestParam(value = "isActive", required = false) Boolean isActive,
 
             @Parameter(description = "Category image file")
-            @RequestPart(value = "image", required = false) MultipartFile imageFile) throws IOException {
+            @RequestParam(value = "image", required = false) MultipartFile imageFile) throws IOException {
 
         CategoryResponse newCategory = categoryService.createCategoryMultipart(
                 name, description, parentId, isActive, imageFile);
@@ -110,7 +110,7 @@ public class CategoryController {
             @RequestParam(value = "isActive", required = false) Boolean isActive,
 
             @Parameter(description = "Category image file")
-            @RequestPart(value = "image", required = false) MultipartFile imageFile) throws IOException {
+            @RequestParam(value = "image", required = false) MultipartFile imageFile) throws IOException {
 
         CategoryResponse updatedCategory = categoryService.updateCategoryMultipart(
                 id, name, description, parentId, isActive, imageFile);

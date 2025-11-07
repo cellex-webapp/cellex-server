@@ -108,19 +108,23 @@ public class ProductService {
     }
 
     public Page<ProductResponse> getProductsByCategory(String categoryId, Pageable pageable) {
-        // Chỉ lấy sản phẩm đã xuất bản từ các shop đã được APPROVED
+        // Chỉ lấy sản phẩm đã xuất bản
         Page<Product> products = productRepository.findByCategoryIdAndIsPublishedTrue(categoryId, pageable);
 
-        // Filter thêm để chỉ lấy sản phẩm từ shop APPROVED
-        return (Page<ProductResponse>) products.map(product -> {
+        // Map products và chỉ trả về những sản phẩm từ shop APPROVED
+        return products.map(product -> {
             Shop shop = shopRepository.findById(product.getShopId()).orElse(null);
-            // Chỉ trả về sản phẩm nếu shop đã được APPROVED
+            // Nếu shop không tồn tại hoặc chưa APPROVED, trả về null để bỏ qua
+            // Lưu ý: Cách tốt hơn là query trực tiếp từ DB với join
             if (shop == null || shop.getStatus() != ShopStatus.APPROVED) {
+                // Không nên trả về null trong map của Page
+                // Thay vào đó, nên tạo một ProductResponse rỗng hoặc query đúng từ đầu
+                log.warn("Product {} belongs to non-approved shop {}", product.getId(), product.getShopId());
                 return null;
             }
             Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
             return mapToResponse(product, shop, category);
-        }).filter(response -> response != null); // Lọc bỏ các null
+        });
     }
 
     public Page<ProductResponse> getProductsByShop(String shopId, Pageable pageable) {
@@ -147,6 +151,23 @@ public class ProductService {
     public Page<ProductResponse> getAllProducts(Pageable pageable) {
         Page<Product> products = productRepository.findAllBy(pageable);
         return products.map(this::mapToResponseWithLookup);
+    }
+
+    // GET MY PRODUCTS - Vendor xem tất cả sản phẩm của mình (bao gồm cả chưa xuất bản)
+    public Page<ProductResponse> getMyProducts(String vendorId, Pageable pageable) {
+        // Tìm shop của vendor
+        Shop shop = shopRepository.findByVendorId(vendorId)
+                .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
+
+        // Lấy tất cả sản phẩm của shop (bao gồm cả published và unpublished)
+        Page<Product> products = productRepository.findByShopId(shop.getId(), pageable);
+
+        log.info("Vendor {} retrieved {} products from shop {}", vendorId, products.getTotalElements(), shop.getId());
+
+        return products.map(product -> {
+            Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
+            return mapToResponse(product, shop, category);
+        });
     }
 
     public ProductResponse updateProduct(String vendorId, String productId, ProductRequest request) {

@@ -212,7 +212,7 @@ public class ProductController {
                             mediaType = MediaType.MULTIPART_FORM_DATA_VALUE
                     )
             )
-            @RequestPart(value = "images", required = false) MultipartFile[] images) throws IOException {
+            @RequestParam(value = "images", required = false) MultipartFile[] images) throws IOException {
 
         String vendorId = ((User)authentication.getPrincipal()).getId();
         ProductResponse response = productService.createProductMultipart(
@@ -417,6 +417,87 @@ public class ProductController {
                 .build());
     }
 
+    // GET MY PRODUCTS - Vendor xem tất cả sản phẩm của mình
+    @GetMapping("/my-products")
+    @PreAuthorize("hasRole('VENDOR')")
+    @Operation(
+            summary = "Lấy tất cả sản phẩm của vendor",
+            description = """
+                    **Mục đích:** Vendor xem tất cả sản phẩm của mình, bao gồm cả đã xuất bản và chưa xuất bản
+                    
+                    **Lưu ý:**
+                    - Chỉ VENDOR mới có quyền truy cập endpoint này
+                    - Trả về tất cả sản phẩm của shop thuộc vendor (published và unpublished)
+                    - Hỗ trợ phân trang và sắp xếp
+                    - Vendor ID được lấy từ JWT token
+                    
+                    **Use case:**
+                    - Vendor quản lý tất cả sản phẩm của mình
+                    - Xem sản phẩm đã xuất bản và chưa xuất bản
+                    - Chỉnh sửa hoặc xóa sản phẩm
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Lấy danh sách sản phẩm thành công"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Chưa đăng nhập"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "Không có quyền - chỉ VENDOR"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Không tìm thấy shop của vendor"
+            )
+    })
+    public ResponseEntity<ApiResponse<Page<ProductResponse>>> getMyProducts(
+            Authentication authentication,
+
+            @Parameter(description = "Số trang (bắt đầu từ 1)")
+            @RequestParam(defaultValue = "1") Integer page,
+
+            @Parameter(description = "Số lượng sản phẩm mỗi trang")
+            @RequestParam(defaultValue = "20") Integer limit,
+
+            @Parameter(description = "Kiểu sắp xếp (asc/desc)")
+            @RequestParam(defaultValue = "desc") String sortType,
+
+            @Parameter(description = "Trường để sắp xếp (createdAt, name, price, stockQuantity, isPublished)")
+            @RequestParam(defaultValue = "createdAt") String sortBy) {
+
+        // Lấy vendor ID từ JWT token
+        String vendorId = ((User) authentication.getPrincipal()).getId();
+
+        // Chuyển đổi page từ 1-based sang 0-based cho Spring Data
+        int pageNumber = page - 1;
+        if (pageNumber < 0) pageNumber = 0;
+
+        // Tạo Sort direction
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
+            ? Sort.Direction.ASC
+            : Sort.Direction.DESC;
+
+        // Tạo Pageable
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(
+            pageNumber,
+            limit,
+            Sort.by(direction, sortBy)
+        );
+
+        Page<ProductResponse> response = productService.getMyProducts(vendorId, pageable);
+        return ResponseEntity.ok(ApiResponse.<Page<ProductResponse>>builder()
+                .code(1000)
+                .message("Lấy danh sách sản phẩm của vendor thành công")
+                .result(response)
+                .build());
+    }
+
     // UPDATE - Multipart Form Data
     @PutMapping(value = "/{productId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('VENDOR')")
@@ -562,7 +643,7 @@ public class ProductController {
                             mediaType = MediaType.MULTIPART_FORM_DATA_VALUE
                     )
             )
-            @RequestPart(value = "images", required = false) MultipartFile[] images) throws IOException {
+            @RequestParam(value = "images", required = false) MultipartFile[] images) throws IOException {
 
         String vendorId = ((User)authentication.getPrincipal()).getId();
         ProductResponse response = productService.updateProductMultipart(
