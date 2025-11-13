@@ -1,0 +1,139 @@
+package com.example.cellex.dtos.response.order;
+
+import com.example.cellex.enums.OrderStatus;
+import com.example.cellex.enums.PaymentMethod;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class OrderResponse {
+
+    private String id;
+
+    @JsonProperty("user_id")
+    private String userId;
+
+    @JsonProperty("shop_id")
+    private String shopId;
+
+    @JsonProperty("shop_name")
+    private String shopName;
+
+    private List<OrderItemResponse> items;
+
+    @JsonProperty("shipping_address")
+    private ShippingAddressResponse shippingAddress;
+
+    private Double subtotal;
+
+    @JsonProperty("shipping_fee")
+    private Double shippingFee;
+
+    @JsonProperty("discount_amount")
+    private Double discountAmount;
+
+    @JsonProperty("total_amount")
+    private Double totalAmount;
+
+    @JsonProperty("coupon_code")
+    private String couponCode;
+
+    @JsonProperty("payment_method")
+    private PaymentMethod paymentMethod;
+
+    @JsonProperty("is_paid")
+    private Boolean isPaid;
+
+    @JsonProperty("paid_at")
+    private LocalDateTime paidAt;
+
+    private OrderStatus status;
+
+    @JsonProperty("status_history")
+    private List<StatusHistoryResponse> statusHistory;
+
+    private String note;
+
+    @JsonProperty("cancel_reason")
+    private String cancelReason;
+
+    @JsonProperty("cancelled_at")
+    private LocalDateTime cancelledAt;
+
+    @JsonProperty("confirmed_at")
+    private LocalDateTime confirmedAt;
+
+    @JsonProperty("shipping_at")
+    private LocalDateTime shippingAt;
+
+    @JsonProperty("delivered_at")
+    private LocalDateTime deliveredAt;
+
+    @JsonProperty("created_at")
+    private LocalDateTime createdAt;
+
+    @JsonProperty("updated_at")
+    private LocalDateTime updatedAt;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OrderItemResponse {
+        @JsonProperty("product_id")
+        private String productId;
+
+        @JsonProperty("product_name")
+        private String productName;
+
+        @JsonProperty("product_image")
+        private String productImage;
+
+        private Double price;
+
+        private Integer quantity;
+
+        private Double subtotal;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ShippingAddressResponse {
+        private String street; // detailAddress
+
+        private String commune; // communeName
+
+        private String province; // provinceName
+
+        @Builder.Default
+        private String country = "Việt Nam";
+
+        private String fullAddress;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class StatusHistoryResponse {
+        private OrderStatus status;
+        private String note;
+
+        @JsonProperty("updated_by")
+        private String updatedBy;
+
+        @JsonProperty("updated_at")
+        private LocalDateTime updatedAt;
+    }
+}

@@ -96,7 +96,26 @@ public enum ErrorCode {
     CART_ITEM_NOT_FOUND(10002, "Không tìm thấy sản phẩm trong giỏ hàng", HttpStatus.NOT_FOUND),
     PRODUCT_OUT_OF_STOCK(10003, "Sản phẩm đã hết hàng", HttpStatus.BAD_REQUEST),
     INSUFFICIENT_STOCK(10004, "Số lượng sản phẩm không đủ", HttpStatus.BAD_REQUEST),
-    CART_EMPTY(10005, "Giỏ hàng trống", HttpStatus.BAD_REQUEST);
+    CART_EMPTY(10005, "Giỏ hàng trống", HttpStatus.BAD_REQUEST),
+
+    // Address Errors
+    ADDRESS_NOT_FOUND(11001, "Không tìm thấy địa chỉ", HttpStatus.NOT_FOUND),
+    ADDRESS_REQUIRED(11002, "Vui lòng thêm địa chỉ giao hàng", HttpStatus.BAD_REQUEST),
+
+    // Order Errors
+    ORDER_NOT_FOUND(12001, "Không tìm thấy đơn hàng", HttpStatus.NOT_FOUND),
+    ORDER_ALREADY_PROCESSED(12002, "Đơn hàng đã được xử lý", HttpStatus.BAD_REQUEST),
+    ORDER_NOT_CONFIRMED(12003, "Đơn hàng chưa được xác nhận", HttpStatus.BAD_REQUEST),
+    ORDER_NOT_SHIPPING(12004, "Đơn hàng chưa ở trạng thái vận chuyển", HttpStatus.BAD_REQUEST),
+    CANNOT_CANCEL_ORDER(12005, "Không thể hủy đơn hàng này", HttpStatus.BAD_REQUEST),
+    CANNOT_APPLY_COUPON_TO_THIS_ORDER(12006, "Không thể áp dụng mã giảm giá cho đơn hàng này", HttpStatus.BAD_REQUEST),
+    CANNOT_MODIFY_THIS_ORDER(12007, "Không thể chỉnh sửa đơn hàng này", HttpStatus.BAD_REQUEST),
+    COUPON_NOT_BELONG_TO_USER(12008, "Mã giảm giá không thuộc về bạn", HttpStatus.BAD_REQUEST),
+    COUPON_NOT_ACTIVE(12009, "Mã giảm giá không còn hiệu lực", HttpStatus.BAD_REQUEST),
+    PRODUCT_NOT_PUBLISHED(12010, "Sản phẩm chưa được xuất bản", HttpStatus.BAD_REQUEST),
+    NO_PRODUCTS_SELECTED(12011, "Vui lòng chọn ít nhất một sản phẩm", HttpStatus.BAD_REQUEST),
+    PRODUCTS_MUST_BE_FROM_SAME_SHOP(12012, "Các sản phẩm phải cùng một cửa hàng", HttpStatus.BAD_REQUEST),
+    CANNOT_DELETE_ORDER(12013, "Không thể xóa đơn hàng này", HttpStatus.BAD_REQUEST);
 
     private final int code;
     private final String message;

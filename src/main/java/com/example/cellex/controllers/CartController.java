@@ -1,4 +1,4 @@
-package com.example.cellex.controllers.cart;
+package com.example.cellex.controllers;
 
 import com.example.cellex.dtos.request.cart.AddToCartRequest;
 import com.example.cellex.dtos.request.cart.RemoveFromCartRequest;

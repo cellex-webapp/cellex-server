@@ -18,6 +18,9 @@ public interface UserCouponRepository extends MongoRepository<UserCoupon, String
     
     Optional<UserCoupon> findByCode(String code);
     
+    // Tìm coupon theo code và userId (để tránh duplicate)
+    Optional<UserCoupon> findByCodeAndUserId(String code, String userId);
+
     // Kiểm tra user đã nhận coupon này chưa
     boolean existsByUserIdAndSegmentCouponId(String userId, String segmentCouponId);
     
@@ -33,4 +36,3 @@ public interface UserCouponRepository extends MongoRepository<UserCoupon, String
     // Kiểm tra user đã nhận coupon từ campaign này chưa
     boolean existsByUserIdAndCampaignId(String userId, String campaignId);
 }
-
