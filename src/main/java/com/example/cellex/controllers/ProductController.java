@@ -1,6 +1,7 @@
 package com.example.cellex.controllers;
 
 import com.example.cellex.dtos.response.ApiResponse;
+import com.example.cellex.dtos.response.PageResponse;
 import com.example.cellex.dtos.response.product.ProductResponse;
 import com.example.cellex.models.user.User;
 import com.example.cellex.services.product.ProductService;
@@ -9,10 +10,9 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -247,7 +247,7 @@ public class ProductController {
             summary = "Lấy sản phẩm theo danh mục",
             description = "Lấy danh sách sản phẩm đã xuất bản trong một danh mục với phân trang"
     )
-    public ResponseEntity<ApiResponse<Page<ProductResponse>>> getProductsByCategory(
+    public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getProductsByCategory(
             @Parameter(description = "ID của danh mục") @PathVariable String categoryId,
 
             @Parameter(description = "Số trang (bắt đầu từ 1)")
@@ -262,24 +262,15 @@ public class ProductController {
             @Parameter(description = "Trường để sắp xếp")
             @RequestParam(defaultValue = "createdAt") String sortBy) {
 
-        // Chuyển đổi page từ 1-based sang 0-based cho Spring Data
-        int pageNumber = page - 1;
-        if (pageNumber < 0) pageNumber = 0;
-
-        // Tạo Sort direction
+        int pageNumber = Math.max(page - 1, 0);
         Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
             ? Sort.Direction.ASC
             : Sort.Direction.DESC;
 
-        // Tạo Pageable
-        Pageable pageable = org.springframework.data.domain.PageRequest.of(
-            pageNumber,
-            limit,
-            Sort.by(direction, sortBy)
-        );
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+        PageResponse<ProductResponse> response = productService.getProductsByCategory(categoryId, pageable);
 
-        Page<ProductResponse> response = productService.getProductsByCategory(categoryId, pageable);
-        return ResponseEntity.ok(ApiResponse.<Page<ProductResponse>>builder()
+        return ResponseEntity.ok(ApiResponse.<PageResponse<ProductResponse>>builder()
                 .code(1000)
                 .message("Lấy sản phẩm theo danh mục thành công")
                 .result(response)
@@ -291,7 +282,7 @@ public class ProductController {
             summary = "Lấy sản phẩm theo cửa hàng",
             description = "Lấy danh sách sản phẩm đã xuất bản của một cửa hàng với phân trang"
     )
-    public ResponseEntity<ApiResponse<Page<ProductResponse>>> getProductsByShop(
+    public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getProductsByShop(
             @Parameter(description = "ID của cửa hàng") @PathVariable String shopId,
 
             @Parameter(description = "Số trang (bắt đầu từ 1)")
@@ -306,24 +297,15 @@ public class ProductController {
             @Parameter(description = "Trường để sắp xếp")
             @RequestParam(defaultValue = "createdAt") String sortBy) {
 
-        // Chuyển đổi page từ 1-based sang 0-based cho Spring Data
-        int pageNumber = page - 1;
-        if (pageNumber < 0) pageNumber = 0;
-
-        // Tạo Sort direction
+        int pageNumber = Math.max(page - 1, 0);
         Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
             ? Sort.Direction.ASC
             : Sort.Direction.DESC;
 
-        // Tạo Pageable
-        Pageable pageable = org.springframework.data.domain.PageRequest.of(
-            pageNumber,
-            limit,
-            Sort.by(direction, sortBy)
-        );
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+        PageResponse<ProductResponse> response = productService.getProductsByShop(shopId, pageable);
 
-        Page<ProductResponse> response = productService.getProductsByShop(shopId, pageable);
-        return ResponseEntity.ok(ApiResponse.<Page<ProductResponse>>builder()
+        return ResponseEntity.ok(ApiResponse.<PageResponse<ProductResponse>>builder()
                 .code(1000)
                 .message("Lấy sản phẩm theo cửa hàng thành công")
                 .result(response)
@@ -335,7 +317,7 @@ public class ProductController {
             summary = "Tìm kiếm sản phẩm",
             description = "Tìm kiếm sản phẩm theo từ khóa trong tên với phân trang"
     )
-    public ResponseEntity<ApiResponse<Page<ProductResponse>>> searchProducts(
+    public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> searchProducts(
             @Parameter(description = "Từ khóa tìm kiếm")
             @RequestParam String keyword,
 
@@ -351,24 +333,15 @@ public class ProductController {
             @Parameter(description = "Trường để sắp xếp")
             @RequestParam(defaultValue = "createdAt") String sortBy) {
 
-        // Chuyển đổi page từ 1-based sang 0-based cho Spring Data
-        int pageNumber = page - 1;
-        if (pageNumber < 0) pageNumber = 0;
-
-        // Tạo Sort direction
+        int pageNumber = Math.max(page - 1, 0);
         Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
             ? Sort.Direction.ASC
             : Sort.Direction.DESC;
 
-        // Tạo Pageable
-        Pageable pageable = org.springframework.data.domain.PageRequest.of(
-            pageNumber,
-            limit,
-            Sort.by(direction, sortBy)
-        );
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+        PageResponse<ProductResponse> response = productService.searchProducts(keyword, pageable);
 
-        Page<ProductResponse> response = productService.searchProducts(keyword, pageable);
-        return ResponseEntity.ok(ApiResponse.<Page<ProductResponse>>builder()
+        return ResponseEntity.ok(ApiResponse.<PageResponse<ProductResponse>>builder()
                 .code(1000)
                 .message("Tìm kiếm sản phẩm thành công")
                 .result(response)
@@ -380,7 +353,7 @@ public class ProductController {
             summary = "Lấy tất cả sản phẩm",
             description = "Lấy danh sách tất cả sản phẩm với phân trang"
     )
-    public ResponseEntity<ApiResponse<Page<ProductResponse>>> getAllProducts(
+    public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getAllProducts(
             @Parameter(description = "Số trang (bắt đầu từ 1)")
             @RequestParam(defaultValue = "1") Integer page,
             
@@ -393,24 +366,15 @@ public class ProductController {
             @Parameter(description = "Trường để sắp xếp")
             @RequestParam(defaultValue = "createdAt") String sortBy) {
 
-        // Chuyển đổi page từ 1-based sang 0-based cho Spring Data
-        int pageNumber = page - 1;
-        if (pageNumber < 0) pageNumber = 0;
-        
-        // Tạo Sort direction
-        Sort.Direction direction = "asc".equalsIgnoreCase(sortType) 
+        int pageNumber = Math.max(page - 1, 0);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
             ? Sort.Direction.ASC 
             : Sort.Direction.DESC;
         
-        // Tạo Pageable
-        Pageable pageable = org.springframework.data.domain.PageRequest.of(
-            pageNumber, 
-            limit, 
-            Sort.by(direction, sortBy)
-        );
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+        PageResponse<ProductResponse> response = productService.getAllProducts(pageable);
 
-        Page<ProductResponse> response = productService.getAllProducts(pageable);
-        return ResponseEntity.ok(ApiResponse.<Page<ProductResponse>>builder()
+        return ResponseEntity.ok(ApiResponse.<PageResponse<ProductResponse>>builder()
                 .code(1000)
                 .message("Lấy danh sách sản phẩm thành công")
                 .result(response)
@@ -456,7 +420,7 @@ public class ProductController {
                     description = "Không tìm thấy shop của vendor"
             )
     })
-    public ResponseEntity<ApiResponse<Page<ProductResponse>>> getMyProducts(
+    public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getMyProducts(
             Authentication authentication,
 
             @Parameter(description = "Số trang (bắt đầu từ 1)")
@@ -471,27 +435,17 @@ public class ProductController {
             @Parameter(description = "Trường để sắp xếp (createdAt, name, price, stockQuantity, isPublished)")
             @RequestParam(defaultValue = "createdAt") String sortBy) {
 
-        // Lấy vendor ID từ JWT token
         String vendorId = ((User) authentication.getPrincipal()).getId();
 
-        // Chuyển đổi page từ 1-based sang 0-based cho Spring Data
-        int pageNumber = page - 1;
-        if (pageNumber < 0) pageNumber = 0;
-
-        // Tạo Sort direction
+        int pageNumber = Math.max(page - 1, 0);
         Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
             ? Sort.Direction.ASC
             : Sort.Direction.DESC;
 
-        // Tạo Pageable
-        Pageable pageable = org.springframework.data.domain.PageRequest.of(
-            pageNumber,
-            limit,
-            Sort.by(direction, sortBy)
-        );
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+        PageResponse<ProductResponse> response = productService.getMyProducts(vendorId, pageable);
 
-        Page<ProductResponse> response = productService.getMyProducts(vendorId, pageable);
-        return ResponseEntity.ok(ApiResponse.<Page<ProductResponse>>builder()
+        return ResponseEntity.ok(ApiResponse.<PageResponse<ProductResponse>>builder()
                 .code(1000)
                 .message("Lấy danh sách sản phẩm của vendor thành công")
                 .result(response)

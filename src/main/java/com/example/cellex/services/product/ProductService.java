@@ -1,6 +1,7 @@
 package com.example.cellex.services.product;
 
 import com.example.cellex.dtos.request.product.ProductRequest;
+import com.example.cellex.dtos.response.PageResponse;
 import com.example.cellex.dtos.response.product.ProductResponse;
 import com.example.cellex.enums.ShopStatus;
 import com.example.cellex.exceptions.AppException;
@@ -107,27 +108,24 @@ public class ProductService {
         return mapToResponse(product, shop, category);
     }
 
-    public Page<ProductResponse> getProductsByCategory(String categoryId, Pageable pageable) {
+    public PageResponse<ProductResponse> getProductsByCategory(String categoryId, Pageable pageable) {
         // Chỉ lấy sản phẩm đã xuất bản
         Page<Product> products = productRepository.findByCategoryIdAndIsPublishedTrue(categoryId, pageable);
 
-        // Map products và chỉ trả về những sản phẩm từ shop APPROVED
-        return products.map(product -> {
+        // Map to ProductResponse
+        Page<ProductResponse> productResponsePage = products.map(product -> {
             Shop shop = shopRepository.findById(product.getShopId()).orElse(null);
-            // Nếu shop không tồn tại hoặc chưa APPROVED, trả về null để bỏ qua
-            // Lưu ý: Cách tốt hơn là query trực tiếp từ DB với join
             if (shop == null || shop.getStatus() != ShopStatus.APPROVED) {
-                // Không nên trả về null trong map của Page
-                // Thay vào đó, nên tạo một ProductResponse rỗng hoặc query đúng từ đầu
-                log.warn("Product {} belongs to non-approved shop {}", product.getId(), product.getShopId());
                 return null;
             }
             Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
             return mapToResponse(product, shop, category);
         });
+
+        return PageResponse.of(productResponsePage);
     }
 
-    public Page<ProductResponse> getProductsByShop(String shopId, Pageable pageable) {
+    public PageResponse<ProductResponse> getProductsByShop(String shopId, Pageable pageable) {
         // Kiểm tra shop phải ở trạng thái APPROVED
         Shop shop = shopRepository.findById(shopId)
                 .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
@@ -137,24 +135,30 @@ public class ProductService {
         }
 
         Page<Product> products = productRepository.findByShopIdAndIsPublishedTrue(shopId, pageable);
-        return products.map(product -> {
+        Page<ProductResponse> productResponsePage = products.map(product -> {
             Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
             return mapToResponse(product, shop, category);
         });
+
+        return PageResponse.of(productResponsePage);
     }
 
-    public Page<ProductResponse> searchProducts(String keyword, Pageable pageable) {
+    public PageResponse<ProductResponse> searchProducts(String keyword, Pageable pageable) {
         Page<Product> products = productRepository.findByNameContainingIgnoreCaseAndIsPublishedTrue(keyword, pageable);
-        return products.map(this::mapToResponseWithLookup);
+        Page<ProductResponse> productResponsePage = products.map(this::mapToResponseWithLookup);
+
+        return PageResponse.of(productResponsePage);
     }
 
-    public Page<ProductResponse> getAllProducts(Pageable pageable) {
+    public PageResponse<ProductResponse> getAllProducts(Pageable pageable) {
         Page<Product> products = productRepository.findAllBy(pageable);
-        return products.map(this::mapToResponseWithLookup);
+        Page<ProductResponse> productResponsePage = products.map(this::mapToResponseWithLookup);
+
+        return PageResponse.of(productResponsePage);
     }
 
     // GET MY PRODUCTS - Vendor xem tất cả sản phẩm của mình (bao gồm cả chưa xuất bản)
-    public Page<ProductResponse> getMyProducts(String vendorId, Pageable pageable) {
+    public PageResponse<ProductResponse> getMyProducts(String vendorId, Pageable pageable) {
         // Tìm shop của vendor
         Shop shop = shopRepository.findByVendorId(vendorId)
                 .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
@@ -164,10 +168,12 @@ public class ProductService {
 
         log.info("Vendor {} retrieved {} products from shop {}", vendorId, products.getTotalElements(), shop.getId());
 
-        return products.map(product -> {
+        Page<ProductResponse> productResponsePage = products.map(product -> {
             Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
             return mapToResponse(product, shop, category);
         });
+
+        return PageResponse.of(productResponsePage);
     }
 
     public ProductResponse updateProduct(String vendorId, String productId, ProductRequest request) {

@@ -2,6 +2,7 @@ package com.example.cellex.controllers;
 
 import com.example.cellex.dtos.request.shop.ShopVerificationRequest;
 import com.example.cellex.dtos.response.ApiResponse;
+import com.example.cellex.dtos.response.PageResponse;
 import com.example.cellex.dtos.response.shop.ShopResponse;
 import com.example.cellex.enums.ShopStatus;
 import com.example.cellex.models.user.User;
@@ -223,15 +224,28 @@ public class ShopController {
     @GetMapping
     @Operation(
             summary = "Lấy tất cả cửa hàng",
-            description = "Lấy danh sách tất cả cửa hàng, có thể lọc theo trạng thái (PENDING, APPROVED, REJECTED)"
+            description = "Lấy danh sách tất cả cửa hàng với phân trang, có thể lọc theo trạng thái (PENDING, APPROVED, REJECTED)"
     )
-    public ResponseEntity<ApiResponse<List<ShopResponse>>> getAllShops(
+    public ResponseEntity<ApiResponse<PageResponse<ShopResponse>>> getAllShops(
             @Parameter(description = "Lọc theo trạng thái (PENDING/APPROVED/REJECTED). Không truyền để lấy tất cả.")
-            @RequestParam(required = false) ShopStatus status) {
+            @RequestParam(required = false) ShopStatus status,
 
-        List<ShopResponse> shops = shopService.getAllShops(status);
+            @Parameter(description = "Số trang (bắt đầu từ 1)")
+            @RequestParam(defaultValue = "1") Integer page,
 
-        return ResponseEntity.ok(ApiResponse.<List<ShopResponse>>builder()
+            @Parameter(description = "Số lượng cửa hàng mỗi trang")
+            @RequestParam(defaultValue = "10") Integer limit,
+
+            @Parameter(description = "Trường sắp xếp")
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+
+            @Parameter(description = "Kiểu sắp xếp (asc/desc)")
+            @RequestParam(defaultValue = "desc") String sortType) {
+
+        Pageable pageable = PaginationUtil.createPageable(page, limit, sortBy, sortType);
+        PageResponse<ShopResponse> shops = shopService.getAllShops(status, pageable);
+
+        return ResponseEntity.ok(ApiResponse.<PageResponse<ShopResponse>>builder()
                 .code(200)
                 .message("Lấy danh sách cửa hàng thành công")
                 .result(shops)
