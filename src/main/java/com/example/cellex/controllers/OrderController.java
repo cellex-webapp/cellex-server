@@ -350,41 +350,6 @@ public class OrderController {
                 .build());
     }
 
-    @GetMapping("/by-status/{status}")
-    @PreAuthorize("hasRole('USER')")
-    @Operation(
-            summary = "Lấy đơn hàng theo trạng thái",
-            description = """
-                    **Mục đích:** User lọc đơn hàng theo trạng thái
-                    
-                    **Các trạng thái:**
-                    - PENDING: Chờ xác nhận
-                    - CONFIRMED: Đã xác nhận
-                    - SHIPPING: Đang vận chuyển
-                    - DELIVERED: Đã giao hàng
-                    - CANCELLED: Đã hủy
-                    """,
-            security = @SecurityRequirement(name = "bearerAuth")
-    )
-    public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> getMyOrdersByStatus(
-            Authentication authentication,
-            @Parameter(description = "Trạng thái đơn hàng") @PathVariable OrderStatus status,
-            @Parameter(description = "Số trang") @RequestParam(defaultValue = "1") Integer page,
-            @Parameter(description = "Số lượng mỗi trang") @RequestParam(defaultValue = "10") Integer limit) {
-
-        String userId = ((User) authentication.getPrincipal()).getId();
-        
-        int pageNumber = Math.max(page - 1, 0);
-        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(Sort.Direction.DESC, "createdAt"));
-        PageResponse<OrderResponse> response = orderService.getMyOrdersByStatus(userId, status, pageable);
-
-        return ResponseEntity.ok(ApiResponse.<PageResponse<OrderResponse>>builder()
-                .code(1000)
-                .message("Lấy đơn hàng theo trạng thái thành công")
-                .result(response)
-                .build());
-    }
-
     @GetMapping("/{orderId}")
     @PreAuthorize("hasRole('USER')")
     @Operation(
@@ -528,12 +493,18 @@ public class OrderController {
             Authentication authentication,
             @Parameter(description = "Trạng thái đơn hàng") @PathVariable OrderStatus status,
             @Parameter(description = "Số trang") @RequestParam(defaultValue = "1") Integer page,
-            @Parameter(description = "Số lượng mỗi trang") @RequestParam(defaultValue = "10") Integer limit) {
+            @Parameter(description = "Số lượng mỗi trang") @RequestParam(defaultValue = "10") Integer limit,
+            @Parameter(description = "Sắp xếp theo") @RequestParam(defaultValue = "createdAt") String sortBy,
+            @Parameter(description = "Kiểu sắp xếp") @RequestParam(defaultValue = "desc") String sortType) {
 
         String vendorId = ((User) authentication.getPrincipal()).getId();
 
         int pageNumber = Math.max(page - 1, 0);
-        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
+            ? Sort.Direction.ASC
+            : Sort.Direction.DESC;
+
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
         PageResponse<OrderResponse> response = orderService.getShopOrdersByStatus(vendorId, status, pageable);
 
         return ResponseEntity.ok(ApiResponse.<PageResponse<OrderResponse>>builder()
@@ -564,14 +535,24 @@ public class OrderController {
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ResponseEntity<ApiResponse<List<OrderResponse>>> getAllOrdersForAdmin(
+    public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> getAllOrdersForAdmin(
             @Parameter(description = "ID người dùng (optional)") @RequestParam(required = false) String userId,
             @Parameter(description = "ID vendor (optional)") @RequestParam(required = false) String vendorId,
-            @Parameter(description = "Trạng thái đơn hàng (optional)") @RequestParam(required = false) OrderStatus status) {
+            @Parameter(description = "Trạng thái đơn hàng (optional)") @RequestParam(required = false) OrderStatus status,
+            @Parameter(description = "Số trang (bắt đầu từ 1)") @RequestParam(defaultValue = "1") Integer page,
+            @Parameter(description = "Số lượng mỗi trang") @RequestParam(defaultValue = "10") Integer limit,
+            @Parameter(description = "Sắp xếp theo (createdAt, totalAmount, status)") @RequestParam(defaultValue = "createdAt") String sortBy,
+            @Parameter(description = "Kiểu sắp xếp (asc/desc)") @RequestParam(defaultValue = "desc") String sortType) {
 
-        List<OrderResponse> response = orderService.getAllOrdersForAdmin(userId, vendorId, status);
+        int pageNumber = Math.max(page - 1, 0);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
+            ? Sort.Direction.ASC
+            : Sort.Direction.DESC;
 
-        return ResponseEntity.ok(ApiResponse.<List<OrderResponse>>builder()
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+        PageResponse<OrderResponse> response = orderService.getAllOrdersForAdmin(userId, vendorId, status, pageable);
+
+        return ResponseEntity.ok(ApiResponse.<PageResponse<OrderResponse>>builder()
                 .code(1000)
                 .message("Lấy danh sách đơn hàng thành công")
                 .result(response)

@@ -27,7 +27,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -672,17 +671,17 @@ public class OrderService {
     }
 
     // ADMIN APIs
-    public List<OrderResponse> getAllOrdersForAdmin(String userId, String vendorId, OrderStatus status) {
+    public PageResponse<OrderResponse> getAllOrdersForAdmin(String userId, String vendorId, OrderStatus status, Pageable pageable) {
         log.info("Admin getting all orders with filters - userId: {}, vendorId: {}, status: {}", userId, vendorId, status);
 
-        List<Order> orders;
+        Page<Order> page;
 
         // Nếu có userId, lọc theo user
         if (userId != null && !userId.isEmpty()) {
             if (status != null) {
-                orders = orderRepository.findByUserIdAndStatus(userId, status, Sort.by(Sort.Direction.DESC, "createdAt"));
+                page = orderRepository.findByUserIdAndStatus(userId, status, pageable);
             } else {
-                orders = orderRepository.findByUserId(userId, Sort.by(Sort.Direction.DESC, "createdAt"));
+                page = orderRepository.findByUserId(userId, pageable);
             }
         }
         // Nếu có vendorId, lọc theo shop của vendor
@@ -691,23 +690,21 @@ public class OrderService {
                     .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
 
             if (status != null) {
-                orders = orderRepository.findByShopIdAndStatus(shop.getId(), status, Sort.by(Sort.Direction.DESC, "createdAt"));
+                page = orderRepository.findByShopIdAndStatus(shop.getId(), status, pageable);
             } else {
-                orders = orderRepository.findByShopId(shop.getId(), Sort.by(Sort.Direction.DESC, "createdAt"));
+                page = orderRepository.findByShopId(shop.getId(), pageable);
             }
         }
         // Nếu chỉ có status, lọc theo status
         else if (status != null) {
-            orders = orderRepository.findByStatus(status, Sort.by(Sort.Direction.DESC, "createdAt"));
+            page = orderRepository.findByStatus(status, pageable);
         }
         // Không có filter nào, lấy tất cả
         else {
-            orders = orderRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+            page = orderRepository.findAll(pageable);
         }
 
-        return orders.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        return PageResponse.of(page, this::mapToResponse);
     }
 
     // Helper methods

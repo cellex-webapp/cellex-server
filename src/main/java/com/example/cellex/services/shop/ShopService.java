@@ -2,6 +2,7 @@ package com.example.cellex.services.shop;
 
 import com.example.cellex.dtos.request.shop.ShopVerificationRequest;
 import com.example.cellex.dtos.request.shop.VendorRegistrationRequest;
+import com.example.cellex.dtos.response.PageResponse;
 import com.example.cellex.dtos.response.shop.ShopResponse;
 import com.example.cellex.enums.Role;
 import com.example.cellex.enums.ShopStatus;
@@ -19,6 +20,8 @@ import com.example.cellex.services.address.AddressService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.io.IOException;
 import java.util.List;
@@ -150,6 +153,19 @@ public class ShopService {
         return shops.stream()
                 .map(this::mapToShopResponse)
                 .toList();
+    }
+
+    /**
+     * Paged version of getAllShops used by controllers that need pagination.
+     */
+    public PageResponse<ShopResponse> getAllShops(ShopStatus status, Pageable pageable) {
+        Page<Shop> page;
+        if (status != null) {
+            page = shopRepository.findByStatus(status, pageable);
+        } else {
+            page = shopRepository.findAll(pageable);
+        }
+        return PageResponse.of(page, this::mapToShopResponse);
     }
 
     // Upload/Update shop logo
