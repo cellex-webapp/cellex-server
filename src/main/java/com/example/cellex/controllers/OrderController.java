@@ -351,7 +351,7 @@ public class OrderController {
     }
 
     @GetMapping("/{orderId}")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasAnyRole('USER','VENDOR','ADMIN')")
     @Operation(
             summary = "Lấy chi tiết đơn hàng",
             description = "Xem thông tin chi tiết một đơn hàng",
@@ -361,8 +361,11 @@ public class OrderController {
             Authentication authentication,
             @Parameter(description = "ID đơn hàng") @PathVariable String orderId) {
 
-        String userId = ((User) authentication.getPrincipal()).getId();
-        OrderResponse response = orderService.getOrderById(userId, orderId);
+        User principal = (User) authentication.getPrincipal();
+        String requesterId = principal.getId();
+        com.example.cellex.enums.Role role = principal.getRole();
+
+        OrderResponse response = orderService.getOrderById(requesterId, role, orderId);
 
         return ResponseEntity.ok(ApiResponse.<OrderResponse>builder()
                 .code(1000)

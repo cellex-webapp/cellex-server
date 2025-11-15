@@ -8,6 +8,7 @@ import com.example.cellex.enums.CouponStatus;
 import com.example.cellex.enums.CouponType;
 import com.example.cellex.enums.OrderStatus;
 import com.example.cellex.enums.PaymentMethod;
+import com.example.cellex.enums.Role;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.models.cart.Cart;
@@ -661,10 +662,33 @@ public class OrderService {
         return PageResponse.of(orders, this::mapToResponse);
     }
 
-    public OrderResponse getOrderById(String userId, String orderId) {
-        log.info("Getting order {} for user: {}", orderId, userId);
-        Order order = orderRepository.findByIdAndUserId(orderId, userId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+    /**
+     * Get an order by id with role-based access control.
+     * - ADMIN: can fetch any order
+     * - VENDOR: can fetch orders that belong to the vendor's shop
+     * - USER: can fetch only their own orders
+     */
+    public OrderResponse getOrderById(String requesterId, Role role, String orderId) {
+        log.info("Getting order {} for requester: {} with role: {}", orderId, requesterId, role);
+
+        Order order;
+
+        if (role == Role.ADMIN) {
+            order = orderRepository.findById(orderId)
+                    .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+        } else if (role == Role.VENDOR) {
+            // Ensure vendor has a shop and the order belongs to that shop
+            Shop shop = shopRepository.findByVendorId(requesterId)
+                    .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
+
+            order = orderRepository.findByIdAndShopId(orderId, shop.getId())
+                    .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+        } else {
+            // Default to USER behavior
+            order = orderRepository.findByIdAndUserId(orderId, requesterId)
+                    .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+        }
+
         return mapToResponse(order);
     }
 
