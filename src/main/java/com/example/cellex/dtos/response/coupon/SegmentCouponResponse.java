@@ -1,5 +1,6 @@
 package com.example.cellex.dtos.response.coupon;
 
+import com.example.cellex.dtos.response.segment.CustomerSegmentResponse;
 import com.example.cellex.enums.DiscountType;
 import com.example.cellex.enums.ScheduleFrequency;
 import lombok.AllArgsConstructor;
@@ -18,7 +19,7 @@ import java.time.LocalTime;
 @AllArgsConstructor
 public class SegmentCouponResponse {
     private String id;
-    private String segmentId;
+    private CustomerSegmentResponse segment;
     private String codePrefix;
     private String title;
     private String description;
@@ -40,4 +41,3 @@ public class SegmentCouponResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
-

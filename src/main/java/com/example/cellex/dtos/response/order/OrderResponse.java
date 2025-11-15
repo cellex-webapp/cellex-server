@@ -1,5 +1,7 @@
 package com.example.cellex.dtos.response.order;
 
+import com.example.cellex.dtos.response.shop.ShopResponse;
+import com.example.cellex.dtos.response.user.UserResponse;
 import com.example.cellex.enums.OrderStatus;
 import com.example.cellex.enums.PaymentMethod;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -19,14 +21,12 @@ public class OrderResponse {
 
     private String id;
 
-    @JsonProperty("user_id")
-    private String userId;
+    // full user and shop objects - prefer objects to ids
+    @JsonProperty("user")
+    private UserResponse user;
 
-    @JsonProperty("shop_id")
-    private String shopId;
-
-    @JsonProperty("shop_name")
-    private String shopName;
+    @JsonProperty("shop")
+    private ShopResponse shop;
 
     private List<OrderItemResponse> items;
 

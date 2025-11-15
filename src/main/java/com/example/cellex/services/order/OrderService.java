@@ -23,6 +23,8 @@ import com.example.cellex.repositories.order.OrderRepository;
 import com.example.cellex.repositories.product.ProductRepository;
 import com.example.cellex.repositories.shop.ShopRepository;
 import com.example.cellex.repositories.user.UserRepository;
+import com.example.cellex.services.user.UserService;
+import com.example.cellex.services.shop.ShopService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -45,6 +47,8 @@ public class OrderService {
     private final UserCouponRepository userCouponRepository;
     private final CartRepository cartRepository;
     private final UserRepository userRepository;
+    private final UserService userService;
+    private final ShopService shopService;
 
     @Transactional
     public OrderResponse createOrderFromProduct(String userId, CreateOrderRequest request) {
@@ -764,11 +768,20 @@ public class OrderService {
     }
 
     private OrderResponse mapToResponse(Order order) {
+        // Fetch full user and shop responses; if not found, fall back to null
+        com.example.cellex.dtos.response.user.UserResponse userResp = null;
+        com.example.cellex.dtos.response.shop.ShopResponse shopResp = null;
+        try {
+            if (order.getUserId() != null) userResp = userService.getUserById(order.getUserId());
+        } catch (Exception ignored) {}
+        try {
+            if (order.getShopId() != null) shopResp = shopService.getShopById(order.getShopId());
+        } catch (Exception ignored) {}
+
         return OrderResponse.builder()
                 .id(order.getId())
-                .userId(order.getUserId())
-                .shopId(order.getShopId())
-                .shopName(order.getShopName())
+                .user(userResp)
+                .shop(shopResp)
                 .items(order.getItems().stream()
                         .map(this::mapItemToResponse)
                         .collect(Collectors.toList()))

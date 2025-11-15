@@ -3,6 +3,7 @@ package com.example.cellex.services.segment;
 import com.example.cellex.dtos.request.coupon.CreateSegmentCouponRequest;
 import com.example.cellex.dtos.request.coupon.UpdateSegmentCouponRequest;
 import com.example.cellex.dtos.response.coupon.SegmentCouponResponse;
+import com.example.cellex.dtos.response.segment.CustomerSegmentResponse;
 import com.example.cellex.enums.ScheduleFrequency;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
@@ -23,6 +24,7 @@ public class SegmentCouponService {
 
     private final SegmentCouponRepository segmentCouponRepository;
     private final CustomerSegmentRepository customerSegmentRepository;
+    private final CustomerSegmentService customerSegmentService;
 
     public SegmentCouponResponse createCoupon(CreateSegmentCouponRequest request) {
         // Validate segment exists
@@ -219,9 +221,16 @@ public class SegmentCouponService {
     }
 
     private SegmentCouponResponse mapToResponse(SegmentCoupon coupon) {
+        // Try to fetch full segment response; fallback to null if not found
+        CustomerSegmentResponse segmentResp = null;
+        try {
+            segmentResp = customerSegmentService.getSegmentById(coupon.getSegmentId());
+        } catch (Exception ignored) {
+        }
+
         return SegmentCouponResponse.builder()
                 .id(coupon.getId())
-                .segmentId(coupon.getSegmentId())
+                .segment(segmentResp)
                 .codePrefix(coupon.getCodePrefix())
                 .title(coupon.getTitle())
                 .description(coupon.getDescription())
