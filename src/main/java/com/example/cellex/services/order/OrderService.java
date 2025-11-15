@@ -58,59 +58,72 @@ public class OrderService {
             throw new AppException(ErrorCode.NO_PRODUCTS_SELECTED);
         }
 
-        // For product page flow we expect a single item (but accept list and take first)
-        CreateOrderRequest.Item single = request.getItems().get(0);
+        // Support multiple items provided from product page flow
+        List<CreateOrderRequest.Item> items = request.getItems();
 
-        // Lấy thông tin sản phẩm
-        Product product = productRepository.findById(single.getProductId())
+        // Validate and build order items
+        if (items == null || items.isEmpty()) {
+            throw new AppException(ErrorCode.NO_PRODUCTS_SELECTED);
+        }
+
+        List<OrderItem> orderItems = new ArrayList<>();
+        double subtotal = 0.0;
+        String shopId = null;
+
+        for (CreateOrderRequest.Item it : items) {
+            Product product = productRepository.findById(it.getProductId())
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
 
-        // Kiểm tra sản phẩm có được xuất bản không
-        if (!product.getIsPublished()) {
+            if (!product.getIsPublished()) {
             throw new AppException(ErrorCode.PRODUCT_NOT_PUBLISHED);
-        }
+            }
 
-        // Kiểm tra số lượng tồn kho
-        if (product.getStockQuantity() < single.getQuantity()) {
+            if (product.getStockQuantity() < it.getQuantity()) {
             throw new AppException(ErrorCode.INSUFFICIENT_STOCK);
-        }
+            }
 
-        // Lấy thông tin shop
-        Shop shop = shopRepository.findById(product.getShopId())
-                .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
+            if (shopId == null) shopId = product.getShopId();
+            else if (!shopId.equals(product.getShopId())) {
+            throw new AppException(ErrorCode.PRODUCTS_MUST_BE_FROM_SAME_SHOP);
+            }
 
-        // Tạo order item
-        OrderItem orderItem = OrderItem.builder()
+            OrderItem orderItem = OrderItem.builder()
                 .productId(product.getId())
                 .productName(product.getName())
                 .productImage(product.getImages() != null && !product.getImages().isEmpty()
-                        ? product.getImages().get(0) : null)
+                    ? product.getImages().get(0) : null)
                 .price(product.getFinalPrice())
-                .quantity(single.getQuantity())
-                .subtotal(product.getFinalPrice() * single.getQuantity())
+                .quantity(it.getQuantity())
+                .subtotal(product.getFinalPrice() * it.getQuantity())
                 .build();
 
-        // Tính toán giá
-        double subtotal = orderItem.getSubtotal();
+            orderItems.add(orderItem);
+            subtotal += orderItem.getSubtotal();
+        }
+
+        // Lấy thông tin shop
+        Shop shop = shopRepository.findById(shopId)
+            .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
+
         double shippingFee = 0.0;
         double totalAmount = subtotal + shippingFee;
 
         // Tạo đơn hàng (không lưu note ở bước tạo)
         Order order = Order.builder()
-                .userId(userId)
-                .shopId(shop.getId())
-                .shopName(shop.getShopName())
-                .items(Collections.singletonList(orderItem))
-                .subtotal(subtotal)
-                .shippingFee(shippingFee)
-                .discountAmount(0.0)
-                .totalAmount(totalAmount)
-                .status(OrderStatus.PENDING)
-                // .note omitted here; note will be set on checkout
-                .statusHistory(new ArrayList<>())
-                .isPaid(false)
-                .isFromCart(false)
-                .build();
+            .userId(userId)
+            .shopId(shop.getId())
+            .shopName(shop.getShopName())
+            .items(orderItems)
+            .subtotal(subtotal)
+            .shippingFee(shippingFee)
+            .discountAmount(0.0)
+            .totalAmount(totalAmount)
+            .status(OrderStatus.PENDING)
+            // .note omitted here; note will be set on checkout
+            .statusHistory(new ArrayList<>())
+            .isPaid(false)
+            .isFromCart(false)
+            .build();
 
         // Thêm lịch sử trạng thái
         addStatusHistory(order, OrderStatus.PENDING, "Đơn hàng được tạo", userId);

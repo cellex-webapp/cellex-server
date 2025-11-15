@@ -490,6 +490,23 @@ public class UserService {
             }
         }
 
+        // Nếu user chưa có customerSegmentId nhưng có totalSpend, cố gắng suy đoán segment
+        if (segmentInfo == null && user.getTotalSpend() != null) {
+            try {
+                CustomerSegment guessed = customerSegmentService.findSegmentForSpend(user.getTotalSpend());
+                if (guessed != null) {
+                    segmentInfo = UserResponse.CustomerSegmentInfo.builder()
+                            .id(guessed.getId())
+                            .name(guessed.getName())
+                            .minSpend(guessed.getMinSpend())
+                            .level(guessed.getLevel())
+                            .build();
+                }
+            } catch (Exception e) {
+                log.debug("Không thể xác định segment từ totalSpend cho user {}", user.getId());
+            }
+        }
+
         return UserResponse.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())
