@@ -12,6 +12,7 @@ import java.util.List;
 public interface CouponCampaignRepository extends MongoRepository<CouponCampaign, String> {
     
     List<CouponCampaign> findByStatus(CampaignStatus status);
+    org.springframework.data.domain.Page<CouponCampaign> findByStatus(CampaignStatus status, org.springframework.data.domain.Pageable pageable);
     
     List<CouponCampaign> findByCreatedBy(String createdBy);
     
@@ -23,5 +24,6 @@ public interface CouponCampaignRepository extends MongoRepository<CouponCampaign
     );
     
     List<CouponCampaign> findByIsActiveOrderByCreatedAtDesc(Boolean isActive);
+    org.springframework.data.domain.Page<CouponCampaign> findByIsActiveOrderByCreatedAtDesc(Boolean isActive, org.springframework.data.domain.Pageable pageable);
 }
 

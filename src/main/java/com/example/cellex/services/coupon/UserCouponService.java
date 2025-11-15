@@ -94,10 +94,20 @@ public class UserCouponService {
                 .collect(Collectors.toList());
     }
 
+    public com.example.cellex.dtos.response.PageResponse<UserCouponResponse> getUserCoupons(String userId, org.springframework.data.domain.Pageable pageable) {
+        org.springframework.data.domain.Page<com.example.cellex.models.coupon.UserCoupon> page = userCouponRepository.findByUserId(userId, pageable);
+        return com.example.cellex.dtos.response.PageResponse.of(page, this::mapToResponse);
+    }
+
     public List<UserCouponResponse> getUserActiveCoupons(String userId) {
         return userCouponRepository.findByUserIdAndStatus(userId, CouponStatus.ACTIVE).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    public com.example.cellex.dtos.response.PageResponse<UserCouponResponse> getUserActiveCoupons(String userId, org.springframework.data.domain.Pageable pageable) {
+        org.springframework.data.domain.Page<com.example.cellex.models.coupon.UserCoupon> page = userCouponRepository.findByUserIdAndStatus(userId, CouponStatus.ACTIVE, pageable);
+        return com.example.cellex.dtos.response.PageResponse.of(page, this::mapToResponse);
     }
 
     public UserCouponResponse redeemCoupon(String code, String orderId) {

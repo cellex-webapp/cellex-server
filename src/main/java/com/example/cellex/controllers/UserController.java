@@ -13,6 +13,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -58,9 +61,28 @@ public class UserController {
     })
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<List<UserResponse>> getAllUsers() {
-        List<UserResponse> users = userService.getAllUsers();
-        return ApiResponse.<List<UserResponse>>builder()
+    public ApiResponse<com.example.cellex.dtos.response.PageResponse<UserResponse>> getAllUsers(
+            @Parameter(description = "Số trang (bắt đầu từ 1)")
+            @RequestParam(defaultValue = "1") Integer page,
+
+            @Parameter(description = "Số lượng user mỗi trang")
+            @RequestParam(defaultValue = "10") Integer limit,
+
+            @Parameter(description = "Sắp xếp theo (createdAt, fullName, email)")
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+
+            @Parameter(description = "Kiểu sắp xếp (asc/desc)")
+            @RequestParam(defaultValue = "desc") String sortType) {
+
+        int pageNumber = Math.max(page - 1, 0);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+        com.example.cellex.dtos.response.PageResponse<UserResponse> users = userService.getAllUsers(pageable);
+
+        return ApiResponse.<com.example.cellex.dtos.response.PageResponse<UserResponse>>builder()
                 .result(users)
                 .message("Users retrieved successfully.")
                 .build();

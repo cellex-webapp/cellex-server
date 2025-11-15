@@ -90,6 +90,11 @@ public class CustomerSegmentService {
                 .collect(Collectors.toList());
     }
 
+    public org.springframework.data.domain.Page<CustomerSegmentResponse> getAllSegments(org.springframework.data.domain.Pageable pageable) {
+        org.springframework.data.domain.Page<com.example.cellex.models.segment.CustomerSegment> page = customerSegmentRepository.findAllByOrderByLevelDesc(pageable);
+        return page.map(this::mapToResponse);
+    }
+
     public CustomerSegment findSegmentForSpend(Double totalSpend) {
         List<CustomerSegment> segments = customerSegmentRepository.findAllByOrderByLevelDesc();
         

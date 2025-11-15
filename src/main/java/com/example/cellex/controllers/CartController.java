@@ -6,6 +6,7 @@ import com.example.cellex.dtos.request.cart.SetCartItemQuantityRequest;
 import com.example.cellex.dtos.request.cart.UpdateCartItemQuantityRequest;
 import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.cart.CartResponse;
+import com.example.cellex.dtos.response.PageResponse;
 import com.example.cellex.services.cart.CartService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -17,9 +18,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/carts")
@@ -200,22 +202,30 @@ public class CartController {
                     
                     **Lưu ý quan trọng:**
                     - Chỉ ADMIN mới có quyền truy cập
-                    - Trả về toàn bộ danh sách giỏ hàng (không phân trang)
+                    - Trả về danh sách giỏ hàng có phân trang
                     - Dùng để quản lý và thống kê
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ResponseEntity<ApiResponse<List<CartResponse>>> getAllCarts() {
+    public ResponseEntity<ApiResponse<PageResponse<CartResponse>>> getAllCarts(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer limit,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortType) {
 
-        log.info("Admin getting all carts (no pagination)");
+        int pageNumber = Math.max(page - 1, 0);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
 
-        List<CartResponse> carts = cartService.getAllCarts();
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+        PageResponse<CartResponse> response = cartService.getAllCarts(pageable);
 
         return ResponseEntity.status(HttpStatus.OK)
-                .body(ApiResponse.<List<CartResponse>>builder()
+                .body(ApiResponse.<PageResponse<CartResponse>>builder()
                         .code(1000)
                         .message("Lấy danh sách giỏ hàng thành công")
-                        .result(carts)
+                        .result(response)
                         .build());
     }
 

@@ -9,6 +9,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -81,12 +85,23 @@ public class CustomerSegmentController {
 
     @GetMapping
     @Operation(summary = "Lấy danh sách tất cả phân khúc khách hàng")
-    public ResponseEntity<ApiResponse<List<CustomerSegmentResponse>>> getAllSegments() {
-        List<CustomerSegmentResponse> segments = customerSegmentService.getAllSegments();
-        ApiResponse<List<CustomerSegmentResponse>> response = ApiResponse.<List<CustomerSegmentResponse>>builder()
+    public ResponseEntity<ApiResponse<com.example.cellex.dtos.response.PageResponse<CustomerSegmentResponse>>> getAllSegments(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer limit,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortType
+    ) {
+        int pageNumber = Math.max(page - 1, 0);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+
+        Page<CustomerSegmentResponse> pageEntity = customerSegmentService.getAllSegments(pageable);
+        com.example.cellex.dtos.response.PageResponse<CustomerSegmentResponse> pageResp = com.example.cellex.dtos.response.PageResponse.of(pageEntity);
+
+        ApiResponse<com.example.cellex.dtos.response.PageResponse<CustomerSegmentResponse>> response = ApiResponse.<com.example.cellex.dtos.response.PageResponse<CustomerSegmentResponse>>builder()
                 .code(200)
                 .message("Lấy danh sách phân khúc khách hàng thành công")
-                .result(segments)
+                .result(pageResp)
                 .build();
         return ResponseEntity.ok(response);
     }

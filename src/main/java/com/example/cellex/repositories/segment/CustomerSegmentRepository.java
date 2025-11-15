@@ -12,6 +12,7 @@ public interface CustomerSegmentRepository extends MongoRepository<CustomerSegme
     
     // Tìm segment phù hợp với tổng chi tiêu (minSpend <= totalSpend < maxSpend hoặc maxSpend = null)
     List<CustomerSegment> findAllByOrderByLevelDesc();
+    org.springframework.data.domain.Page<CustomerSegment> findAllByOrderByLevelDesc(org.springframework.data.domain.Pageable pageable);
     
     Optional<CustomerSegment> findByLevel(Integer level);
 }

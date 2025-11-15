@@ -94,6 +94,11 @@ public class CategoryService {
                 .collect(Collectors.toList());
     }
 
+    public org.springframework.data.domain.Page<CategoryResponse> getAllActiveCategories(org.springframework.data.domain.Pageable pageable) {
+        org.springframework.data.domain.Page<Category> page = categoryRepository.findByIsActiveTrue(pageable);
+        return page.map(this::mapToCategoryResponse);
+    }
+
     // READ ONE
     public CategoryResponse getCategoryById(String id) {
         Category category = findCategoryByIdInternal(id);

@@ -2,6 +2,7 @@ package com.example.cellex.controllers;
 
 import com.example.cellex.dtos.request.category.CategoryAttributeRequest;
 import com.example.cellex.dtos.response.ApiResponse;
+import com.example.cellex.dtos.response.PageResponse;
 import com.example.cellex.dtos.response.category.CategoryAttributeResponse;
 import com.example.cellex.services.category.CategoryAttributeService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,7 +18,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
-import java.util.List;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 @RestController
 @RequestMapping("/api/v1/categories/{categoryId}/attributes")
@@ -153,7 +156,8 @@ public class CategoryAttributeController {
                                     {
                                         "code": 1000,
                                         "message": "Lấy danh sách thuộc tính thành công",
-                                        "result": [
+                                        "result": {
+                                          "content": [
                                             {
                                                 "id": "67112345678901234567890a",
                                                 "attributeName": "Dung lượng RAM",
@@ -164,27 +168,29 @@ public class CategoryAttributeController {
                                                 "isHighlight": true,
                                                 "selectOptions": ["4GB", "8GB", "16GB", "32GB"],
                                                 "sortOrder": 1
-                                            },
-                                            {
-                                                "id": "67112345678901234567890b",
-                                                "attributeName": "Màu sắc",
-                                                "attributeKey": "color",
-                                                "dataType": "SELECT",
-                                                "isRequired": true,
-                                                "isHighlight": false,
-                                                "selectOptions": ["Đen", "Trắng", "Xanh", "Đỏ"],
-                                                "sortOrder": 5
                                             }
-                                        ]
+                                          ],
+                                          "currentPage": 1,
+                                          "pageSize": 10,
+                                          "totalElements": 1,
+                                          "totalPages": 1
+                                        }
                                     }
-                                    """)))
-    })
-    public ResponseEntity<ApiResponse<List<CategoryAttributeResponse>>> getCategoryAttributes(
+                                    """)))} )
+    public ResponseEntity<ApiResponse<PageResponse<CategoryAttributeResponse>>> getCategoryAttributes(
             @Parameter(description = "ID của danh mục sản phẩm", example = "67112345678901234567890b")
-            @PathVariable String categoryId) {
+            @PathVariable String categoryId,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer limit,
+            @RequestParam(defaultValue = "sortOrder") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortType) {
 
-        List<CategoryAttributeResponse> responses = categoryAttributeService.getCategoryAttributes(categoryId);
-        return ResponseEntity.ok(ApiResponse.<List<CategoryAttributeResponse>>builder()
+        int pageNumber = Math.max(page - 1, 0);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+
+        PageResponse<CategoryAttributeResponse> responses = categoryAttributeService.getCategoryAttributes(categoryId, pageable);
+        return ResponseEntity.ok(ApiResponse.<PageResponse<CategoryAttributeResponse>>builder()
                 .code(200)
                 .message("Lấy danh sách thuộc tính thành công")
                 .result(responses)
@@ -196,21 +202,22 @@ public class CategoryAttributeController {
             summary = "Lấy danh sách thuộc tính nổi bật",
             description = """
                     **Mục đích:** Lấy các thuộc tính nổi bật để hiển thị trên card sản phẩm (isHighlight = true)
-                    
-                    **Sử dụng khi:**
-                    - Hiển thị thông số quan trọng trên card sản phẩm trong danh sách
-                    - Tạo preview nhanh về sản phẩm
-                    - Hiển thị specs chính trong kết quả tìm kiếm
-                    
-                    **Ví dụ:** Trong danh mục Laptop hiển thị RAM, CPU, Card đồ họa trên card
                     """
     )
-    public ResponseEntity<ApiResponse<List<CategoryAttributeResponse>>> getHighlightAttributes(
+    public ResponseEntity<ApiResponse<PageResponse<CategoryAttributeResponse>>> getHighlightAttributes(
             @Parameter(description = "ID của danh mục sản phẩm", example = "67112345678901234567890b")
-            @PathVariable String categoryId) {
+            @PathVariable String categoryId,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer limit,
+            @RequestParam(defaultValue = "sortOrder") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortType) {
 
-        List<CategoryAttributeResponse> responses = categoryAttributeService.getHighlightAttributes(categoryId);
-        return ResponseEntity.ok(ApiResponse.<List<CategoryAttributeResponse>>builder()
+        int pageNumber = Math.max(page - 1, 0);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+
+        PageResponse<CategoryAttributeResponse> responses = categoryAttributeService.getHighlightAttributes(categoryId, pageable);
+        return ResponseEntity.ok(ApiResponse.<PageResponse<CategoryAttributeResponse>>builder()
                 .code(200)
                 .message("Lấy danh sách thuộc tính nổi bật thành công")
                 .result(responses)

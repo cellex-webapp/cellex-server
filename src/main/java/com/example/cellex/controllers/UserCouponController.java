@@ -11,6 +11,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
 import java.util.List;
 
 @RestController
@@ -23,42 +27,72 @@ public class UserCouponController {
 
     @GetMapping("/my-coupons")
     @Operation(summary = "Lấy danh sách coupon của tôi")
-    public ResponseEntity<ApiResponse<List<UserCouponResponse>>> getMyCoupons(
-            @AuthenticationPrincipal User user
+    public ResponseEntity<ApiResponse<com.example.cellex.dtos.response.PageResponse<UserCouponResponse>>> getMyCoupons(
+            @AuthenticationPrincipal User user,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer limit,
+            @RequestParam(defaultValue = "issuedDate") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortType
     ) {
-        List<UserCouponResponse> coupons = userCouponService.getUserCoupons(user.getId());
-        ApiResponse<List<UserCouponResponse>> response = ApiResponse.<List<UserCouponResponse>>builder()
+        int pageNumber = Math.max(page - 1, 0);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+
+        com.example.cellex.dtos.response.PageResponse<UserCouponResponse> pageResp = userCouponService.getUserCoupons(user.getId(), pageable);
+        ApiResponse<com.example.cellex.dtos.response.PageResponse<UserCouponResponse>> response = ApiResponse.<com.example.cellex.dtos.response.PageResponse<UserCouponResponse>>builder()
                 .code(200)
                 .message("Lấy danh sách coupon thành công")
-                .result(coupons)
+                .result(pageResp)
                 .build();
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/my-active-coupons")
     @Operation(summary = "Lấy danh sách coupon đang hoạt động của tôi")
-    public ResponseEntity<ApiResponse<List<UserCouponResponse>>> getMyActiveCoupons(
-            @AuthenticationPrincipal User user
+    public ResponseEntity<ApiResponse<com.example.cellex.dtos.response.PageResponse<UserCouponResponse>>> getMyActiveCoupons(
+            @AuthenticationPrincipal User user,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer limit,
+            @RequestParam(defaultValue = "issuedDate") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortType
     ) {
-        List<UserCouponResponse> coupons = userCouponService.getUserActiveCoupons(user.getId());
-        ApiResponse<List<UserCouponResponse>> response = ApiResponse.<List<UserCouponResponse>>builder()
+        int pageNumber = Math.max(page - 1, 0);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+
+        com.example.cellex.dtos.response.PageResponse<UserCouponResponse> pageResp = userCouponService.getUserActiveCoupons(user.getId(), pageable);
+        ApiResponse<com.example.cellex.dtos.response.PageResponse<UserCouponResponse>> response = ApiResponse.<com.example.cellex.dtos.response.PageResponse<UserCouponResponse>>builder()
                 .code(200)
                 .message("Lấy danh sách coupon đang hoạt động thành công")
-                .result(coupons)
+                .result(pageResp)
                 .build();
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/user/{userId}")
     @Operation(summary = "Lấy danh sách coupon của user (ADMIN)")
-    public ResponseEntity<ApiResponse<List<UserCouponResponse>>> getUserCoupons(
-            @PathVariable String userId
+    public ResponseEntity<ApiResponse<com.example.cellex.dtos.response.PageResponse<UserCouponResponse>>> getUserCoupons(
+            @PathVariable String userId,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer limit,
+            @RequestParam(defaultValue = "issuedDate") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortType
     ) {
-        List<UserCouponResponse> coupons = userCouponService.getUserCoupons(userId);
-        ApiResponse<List<UserCouponResponse>> response = ApiResponse.<List<UserCouponResponse>>builder()
+        int pageNumber = Math.max(page - 1, 0);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+
+        com.example.cellex.dtos.response.PageResponse<UserCouponResponse> pageResp = userCouponService.getUserCoupons(userId, pageable);
+        ApiResponse<com.example.cellex.dtos.response.PageResponse<UserCouponResponse>> response = ApiResponse.<com.example.cellex.dtos.response.PageResponse<UserCouponResponse>>builder()
                 .code(200)
                 .message("Lấy danh sách coupon của user thành công")
-                .result(coupons)
+                .result(pageResp)
                 .build();
         return ResponseEntity.ok(response);
     }

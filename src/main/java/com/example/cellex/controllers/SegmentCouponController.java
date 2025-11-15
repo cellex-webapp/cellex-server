@@ -12,10 +12,14 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import java.util.List;
 
 @RestController
@@ -321,15 +325,26 @@ public class SegmentCouponController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Thành công")
         }
     )
-    public ResponseEntity<ApiResponse<List<SegmentCouponResponse>>> getAllCoupons() {
-        List<SegmentCouponResponse> coupons = segmentCouponService.getAllCoupons();
-        ApiResponse<List<SegmentCouponResponse>> response = ApiResponse.<List<SegmentCouponResponse>>builder()
-                .code(200)
-                .message("Lấy danh sách coupon thành công")
-                .result(coupons)
-                .build();
+        public ResponseEntity<ApiResponse<com.example.cellex.dtos.response.PageResponse<SegmentCouponResponse>>> getAllCoupons(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer limit,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortType
+        ) {
+        int pageNumber = Math.max(page - 1, 0);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+
+        Page<SegmentCouponResponse> pageRespEntity = segmentCouponService.getAllCoupons(pageable);
+        com.example.cellex.dtos.response.PageResponse<SegmentCouponResponse> pageResp = com.example.cellex.dtos.response.PageResponse.of(pageRespEntity);
+
+        ApiResponse<com.example.cellex.dtos.response.PageResponse<SegmentCouponResponse>> response = ApiResponse.<com.example.cellex.dtos.response.PageResponse<SegmentCouponResponse>>builder()
+            .code(200)
+            .message("Lấy danh sách coupon thành công")
+            .result(pageResp)
+            .build();
         return ResponseEntity.ok(response);
-    }
+        }
 
     @GetMapping("/segment/{segmentId}")
     @Operation(
@@ -345,16 +360,26 @@ public class SegmentCouponController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Thành công")
         }
     )
-    public ResponseEntity<ApiResponse<List<SegmentCouponResponse>>> getCouponsBySegmentId(
+        public ResponseEntity<ApiResponse<com.example.cellex.dtos.response.PageResponse<SegmentCouponResponse>>> getCouponsBySegmentId(
             @Parameter(description = "ID của customer segment", required = true)
-            @PathVariable String segmentId
-    ) {
-        List<SegmentCouponResponse> coupons = segmentCouponService.getCouponsBySegmentId(segmentId);
-        ApiResponse<List<SegmentCouponResponse>> response = ApiResponse.<List<SegmentCouponResponse>>builder()
-                .code(200)
-                .message("Lấy danh sách coupon theo segment thành công")
-                .result(coupons)
-                .build();
+            @PathVariable String segmentId,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer limit,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortType
+        ) {
+        int pageNumber = Math.max(page - 1, 0);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+
+        Page<SegmentCouponResponse> pageRespEntity = segmentCouponService.getCouponsBySegmentId(segmentId, pageable);
+        com.example.cellex.dtos.response.PageResponse<SegmentCouponResponse> pageResp = com.example.cellex.dtos.response.PageResponse.of(pageRespEntity);
+
+        ApiResponse<com.example.cellex.dtos.response.PageResponse<SegmentCouponResponse>> response = ApiResponse.<com.example.cellex.dtos.response.PageResponse<SegmentCouponResponse>>builder()
+            .code(200)
+            .message("Lấy danh sách coupon theo segment thành công")
+            .result(pageResp)
+            .build();
         return ResponseEntity.ok(response);
-    }
+        }
 }

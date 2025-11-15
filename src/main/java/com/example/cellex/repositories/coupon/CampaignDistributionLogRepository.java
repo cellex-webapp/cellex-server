@@ -10,7 +10,9 @@ import java.util.List;
 public interface CampaignDistributionLogRepository extends MongoRepository<CampaignDistributionLog, String> {
     
     List<CampaignDistributionLog> findByCampaignIdOrderByCreatedAtDesc(String campaignId);
-    
+    org.springframework.data.domain.Page<CampaignDistributionLog> findByCampaignIdOrderByCreatedAtDesc(String campaignId, org.springframework.data.domain.Pageable pageable);
+
     List<CampaignDistributionLog> findByAdminIdOrderByCreatedAtDesc(String adminId);
+    org.springframework.data.domain.Page<CampaignDistributionLog> findByAdminIdOrderByCreatedAtDesc(String adminId, org.springframework.data.domain.Pageable pageable);
 }
 

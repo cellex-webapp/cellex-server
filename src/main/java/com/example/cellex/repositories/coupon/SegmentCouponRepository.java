@@ -12,15 +12,22 @@ import java.util.List;
 public interface SegmentCouponRepository extends MongoRepository<SegmentCoupon, String> {
     
     List<SegmentCoupon> findBySegmentIdAndIsActive(String segmentId, Boolean isActive);
+    org.springframework.data.domain.Page<SegmentCoupon> findBySegmentIdAndIsActive(String segmentId, Boolean isActive, org.springframework.data.domain.Pageable pageable);
     
     // Tìm các coupon cần tự động phát khi nâng hạng
     List<SegmentCoupon> findBySegmentIdAndIsAutoOnUpgradeAndIsActive(String segmentId, Boolean isAutoOnUpgrade, Boolean isActive);
     
     // Tìm các coupon cần phát theo lịch
-    List<SegmentCoupon> findByScheduleFrequencyNotAndNextScheduledDateBeforeAndIsActive(
+        List<SegmentCoupon> findByScheduleFrequencyNotAndNextScheduledDateBeforeAndIsActive(
             ScheduleFrequency scheduleFrequency, 
             LocalDateTime nextScheduledDate, 
             Boolean isActive
     );
+        org.springframework.data.domain.Page<SegmentCoupon> findByScheduleFrequencyNotAndNextScheduledDateBeforeAndIsActive(
+            ScheduleFrequency scheduleFrequency,
+            LocalDateTime nextScheduledDate,
+            Boolean isActive,
+            org.springframework.data.domain.Pageable pageable
+        );
 }
 

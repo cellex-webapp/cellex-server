@@ -160,6 +160,16 @@ public class SegmentCouponService {
                 .collect(Collectors.toList());
     }
 
+    public org.springframework.data.domain.Page<SegmentCouponResponse> getAllCoupons(org.springframework.data.domain.Pageable pageable) {
+        org.springframework.data.domain.Page<SegmentCoupon> page = segmentCouponRepository.findAll(pageable);
+        return page.map(this::mapToResponse);
+    }
+
+    public org.springframework.data.domain.Page<SegmentCouponResponse> getCouponsBySegmentId(String segmentId, org.springframework.data.domain.Pageable pageable) {
+        org.springframework.data.domain.Page<SegmentCoupon> page = segmentCouponRepository.findBySegmentIdAndIsActive(segmentId, true, pageable);
+        return page.map(this::mapToResponse);
+    }
+
     public LocalDateTime calculateNextScheduledDate(SegmentCoupon coupon) {
         LocalDateTime now = LocalDateTime.now();
         LocalTime scheduleTime = coupon.getScheduleTime() != null ? coupon.getScheduleTime() : LocalTime.of(0, 0);

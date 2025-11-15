@@ -1,6 +1,7 @@
 package com.example.cellex.services.category;
 
 import com.example.cellex.dtos.request.category.CategoryAttributeRequest;
+import com.example.cellex.dtos.response.PageResponse;
 import com.example.cellex.dtos.response.category.CategoryAttributeResponse;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
@@ -10,6 +11,8 @@ import com.example.cellex.repositories.category.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,6 +25,22 @@ public class CategoryAttributeService {
 
     private final CategoryAttributeRepository categoryAttributeRepository;
     private final CategoryRepository categoryRepository;
+
+    /**
+     * Get category attributes with pagination
+     */
+    public PageResponse<CategoryAttributeResponse> getCategoryAttributes(String categoryId, Pageable pageable) {
+        Page<CategoryAttribute> page = categoryAttributeRepository.findByCategoryIdAndIsActiveTrue(categoryId, pageable);
+        return PageResponse.of(page, this::mapToResponse);
+    }
+
+    /**
+     * Get highlighted attributes with pagination
+     */
+    public PageResponse<CategoryAttributeResponse> getHighlightAttributes(String categoryId, Pageable pageable) {
+        Page<CategoryAttribute> page = categoryAttributeRepository.findByCategoryIdAndIsHighlightTrueAndIsActiveTrue(categoryId, pageable);
+        return PageResponse.of(page, this::mapToResponse);
+    }
 
     public CategoryAttributeResponse createCategoryAttribute(String categoryId, CategoryAttributeRequest request) {
         // Kiểm tra category có tồn tại không

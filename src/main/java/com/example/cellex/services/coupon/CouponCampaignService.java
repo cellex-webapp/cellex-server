@@ -369,19 +369,45 @@ public class CouponCampaignService {
 
     public List<CampaignDistributionResponse> getCampaignDistributionLogs(String campaignId) {
         return distributionLogRepository.findByCampaignIdOrderByCreatedAtDesc(campaignId).stream()
-                .map(log -> CampaignDistributionResponse.builder()
-                        .id(log.getId())
-                        .campaignId(log.getCampaignId())
-                        .adminId(log.getAdminId())
-                        .filterCriteria(log.getFilterCriteria())
-                        .recipientsCount(log.getRecipientsCount())
-                        .successCount(log.getSuccessCount())
-                        .failedCount(log.getFailedCount())
-                        .errorSummary(log.getErrorSummary())
-                        .executionTimeMs(log.getExecutionTimeMs())
-                        .createdAt(log.getCreatedAt())
-                        .build())
-                .collect(Collectors.toList());
+            .map(log -> CampaignDistributionResponse.builder()
+                .id(log.getId())
+                .campaignId(log.getCampaignId())
+                .adminId(log.getAdminId())
+                .filterCriteria(log.getFilterCriteria())
+                .recipientsCount(log.getRecipientsCount())
+                .successCount(log.getSuccessCount())
+                .failedCount(log.getFailedCount())
+                .errorSummary(log.getErrorSummary())
+                .executionTimeMs(log.getExecutionTimeMs())
+                .createdAt(log.getCreatedAt())
+                .build())
+            .collect(Collectors.toList());
     }
+
+        public org.springframework.data.domain.Page<CampaignDistributionResponse> getCampaignDistributionLogs(String campaignId, org.springframework.data.domain.Pageable pageable) {
+        org.springframework.data.domain.Page<com.example.cellex.models.coupon.CampaignDistributionLog> page = distributionLogRepository.findByCampaignIdOrderByCreatedAtDesc(campaignId, pageable);
+        return page.map(log -> CampaignDistributionResponse.builder()
+            .id(log.getId())
+            .campaignId(log.getCampaignId())
+            .adminId(log.getAdminId())
+            .filterCriteria(log.getFilterCriteria())
+            .recipientsCount(log.getRecipientsCount())
+            .successCount(log.getSuccessCount())
+            .failedCount(log.getFailedCount())
+            .errorSummary(log.getErrorSummary())
+            .executionTimeMs(log.getExecutionTimeMs())
+            .createdAt(log.getCreatedAt())
+            .build());
+        }
+
+        public org.springframework.data.domain.Page<CouponCampaignResponse> getAllCampaigns(org.springframework.data.domain.Pageable pageable) {
+        org.springframework.data.domain.Page<CouponCampaign> page = campaignRepository.findByIsActiveOrderByCreatedAtDesc(true, pageable);
+        return page.map(this::mapToResponse);
+        }
+
+        public org.springframework.data.domain.Page<CouponCampaignResponse> getCampaignsByStatus(CampaignStatus status, org.springframework.data.domain.Pageable pageable) {
+        org.springframework.data.domain.Page<CouponCampaign> page = campaignRepository.findByStatus(status, pageable);
+        return page.map(this::mapToResponse);
+        }
 }
 

@@ -9,6 +9,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -58,14 +62,25 @@ public class CategoryController {
     }
 
     // READ ALL
-    @GetMapping
-    @Operation(summary = "Get all active categories", description = "Retrieves a list of all active categories with nested parent objects.")
-    public ApiResponse<List<CategoryResponse>> getAllActiveCategories() {
-        List<CategoryResponse> categories = categoryService.getAllActiveCategories();
-        return ApiResponse.<List<CategoryResponse>>builder()
-                .result(categories)
-                .build();
-    }
+        @GetMapping
+        @Operation(summary = "Get all active categories", description = "Retrieves a list of all active categories with nested parent objects.")
+        public ApiResponse<com.example.cellex.dtos.response.PageResponse<CategoryResponse>> getAllActiveCategories(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer limit,
+            @RequestParam(defaultValue = "name") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortType
+        ) {
+        int pageNumber = Math.max(page - 1, 0);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+
+        Page<CategoryResponse> pageEntity = categoryService.getAllActiveCategories(pageable);
+        com.example.cellex.dtos.response.PageResponse<CategoryResponse> pageResp = com.example.cellex.dtos.response.PageResponse.of(pageEntity);
+
+        return ApiResponse.<com.example.cellex.dtos.response.PageResponse<CategoryResponse>>builder()
+            .result(pageResp)
+            .build();
+        }
 
     // READ ONE
     @GetMapping("/{id}")

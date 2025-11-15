@@ -16,6 +16,10 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -188,13 +192,24 @@ public class CouponCampaignController {
         summary = "Lấy danh sách tất cả campaigns",
         description = "Lấy tất cả campaigns active, sắp xếp theo ngày tạo (mới nhất trước)"
     )
-    public ResponseEntity<ApiResponse<List<CouponCampaignResponse>>> getAllCampaigns() {
-        List<CouponCampaignResponse> campaigns = campaignService.getAllCampaigns();
-        ApiResponse<List<CouponCampaignResponse>> response = ApiResponse.<List<CouponCampaignResponse>>builder()
-                .code(200)
-                .message("Lấy danh sách campaign thành công")
-                .result(campaigns)
-                .build();
+    public ResponseEntity<ApiResponse<com.example.cellex.dtos.response.PageResponse<CouponCampaignResponse>>> getAllCampaigns(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer limit,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortType
+    ) {
+        int pageNumber = Math.max(page - 1, 0);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+
+        Page<CouponCampaignResponse> pageEntity = campaignService.getAllCampaigns(pageable);
+        com.example.cellex.dtos.response.PageResponse<CouponCampaignResponse> pageResp = com.example.cellex.dtos.response.PageResponse.of(pageEntity);
+
+        ApiResponse<com.example.cellex.dtos.response.PageResponse<CouponCampaignResponse>> response = ApiResponse.<com.example.cellex.dtos.response.PageResponse<CouponCampaignResponse>>builder()
+            .code(200)
+            .message("Lấy danh sách campaign thành công")
+            .result(pageResp)
+            .build();
         return ResponseEntity.ok(response);
     }
 
@@ -211,18 +226,28 @@ public class CouponCampaignController {
             - CANCELLED: Đã hủy
             """
     )
-    public ResponseEntity<ApiResponse<List<CouponCampaignResponse>>> getCampaignsByStatus(
+        public ResponseEntity<ApiResponse<com.example.cellex.dtos.response.PageResponse<CouponCampaignResponse>>> getCampaignsByStatus(
             @Parameter(description = "Campaign status", required = true)
-            @PathVariable CampaignStatus status
-    ) {
-        List<CouponCampaignResponse> campaigns = campaignService.getCampaignsByStatus(status);
-        ApiResponse<List<CouponCampaignResponse>> response = ApiResponse.<List<CouponCampaignResponse>>builder()
-                .code(200)
-                .message("Lấy danh sách campaign theo status thành công")
-                .result(campaigns)
-                .build();
+            @PathVariable CampaignStatus status,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer limit,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortType
+        ) {
+        int pageNumber = Math.max(page - 1, 0);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+
+        Page<CouponCampaignResponse> pageEntity = campaignService.getCampaignsByStatus(status, pageable);
+        com.example.cellex.dtos.response.PageResponse<CouponCampaignResponse> pageResp = com.example.cellex.dtos.response.PageResponse.of(pageEntity);
+
+        ApiResponse<com.example.cellex.dtos.response.PageResponse<CouponCampaignResponse>> response = ApiResponse.<com.example.cellex.dtos.response.PageResponse<CouponCampaignResponse>>builder()
+            .code(200)
+            .message("Lấy danh sách campaign theo status thành công")
+            .result(pageResp)
+            .build();
         return ResponseEntity.ok(response);
-    }
+        }
 
     @PostMapping("/distribute")
     @PreAuthorize("hasRole('ADMIN')")
@@ -339,16 +364,26 @@ public class CouponCampaignController {
         summary = "Xem lịch sử phát coupon của campaign",
         description = "Lấy tất cả distribution logs của campaign để audit và báo cáo"
     )
-    public ResponseEntity<ApiResponse<List<CampaignDistributionResponse>>> getCampaignDistributionLogs(
+        public ResponseEntity<ApiResponse<com.example.cellex.dtos.response.PageResponse<CampaignDistributionResponse>>> getCampaignDistributionLogs(
             @Parameter(description = "Campaign ID", required = true)
-            @PathVariable String id
-    ) {
-        List<CampaignDistributionResponse> logs = campaignService.getCampaignDistributionLogs(id);
-        ApiResponse<List<CampaignDistributionResponse>> response = ApiResponse.<List<CampaignDistributionResponse>>builder()
-                .code(200)
-                .message("Lấy lịch sử phát campaign thành công")
-                .result(logs)
-                .build();
+            @PathVariable String id,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer limit,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortType
+        ) {
+        int pageNumber = Math.max(page - 1, 0);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortType) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
+
+        Page<CampaignDistributionResponse> pageEntity = campaignService.getCampaignDistributionLogs(id, pageable);
+        com.example.cellex.dtos.response.PageResponse<CampaignDistributionResponse> pageResp = com.example.cellex.dtos.response.PageResponse.of(pageEntity);
+
+        ApiResponse<com.example.cellex.dtos.response.PageResponse<CampaignDistributionResponse>> response = ApiResponse.<com.example.cellex.dtos.response.PageResponse<CampaignDistributionResponse>>builder()
+            .code(200)
+            .message("Lấy lịch sử phát campaign thành công")
+            .result(pageResp)
+            .build();
         return ResponseEntity.ok(response);
-    }
+        }
 }

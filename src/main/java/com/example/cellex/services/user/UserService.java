@@ -209,6 +209,11 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+    public com.example.cellex.dtos.response.PageResponse<UserResponse> getAllUsers(org.springframework.data.domain.Pageable pageable) {
+        org.springframework.data.domain.Page<User> page = userRepository.findAll(pageable);
+        return com.example.cellex.dtos.response.PageResponse.of(page, this::mapToUserResponse);
+    }
+
     public UserResponse getUserById(String userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));

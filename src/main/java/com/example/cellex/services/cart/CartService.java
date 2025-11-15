@@ -2,6 +2,9 @@ package com.example.cellex.services.cart;
 
 import com.example.cellex.dtos.request.cart.AddToCartRequest;
 import com.example.cellex.dtos.response.cart.CartResponse;
+import com.example.cellex.dtos.response.PageResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.models.cart.Cart;
@@ -28,6 +31,14 @@ public class CartService {
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
     private final ShopRepository shopRepository;
+
+    /**
+     * Get all carts with pagination (for admin)
+     */
+    public PageResponse<CartResponse> getAllCarts(Pageable pageable) {
+        Page<Cart> page = cartRepository.findAll(pageable);
+        return PageResponse.of(page, this::mapToCartResponse);
+    }
 
     /**
      * Thêm sản phẩm vào giỏ hàng (tự lấy user id qua jwt)
@@ -209,16 +220,6 @@ public class CartService {
                 .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_FOUND));
 
         return mapToCartResponse(cart);
-    }
-
-    /**
-     * Get tất cả giỏ hàng (dành cho admin) - without pagination
-     */
-    public List<CartResponse> getAllCarts() {
-        log.info("Getting all carts without pagination");
-
-        List<Cart> carts = cartRepository.findAll();
-        return carts.stream().map(this::mapToCartResponse).collect(Collectors.toList());
     }
 
     /**
