@@ -4,6 +4,7 @@ import com.example.cellex.dtos.request.order.*;
 import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.PageResponse;
 import com.example.cellex.dtos.response.order.AvailableCouponResponse;
+import com.example.cellex.dtos.response.order.CheckoutResponse;
 import com.example.cellex.dtos.response.order.OrderResponse;
 import com.example.cellex.enums.OrderStatus;
 import com.example.cellex.models.user.User;
@@ -12,6 +13,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -192,22 +194,37 @@ public class OrderController {
                     - User cần cập nhật địa chỉ trong profile trước khi đặt hàng
                     - Kiểm tra lại stock trước khi trừ
                     - Sau bước này không thể thay đổi sản phẩm hoặc coupon
+                    - Nếu chọn thanh toán VNPAY, sẽ trả về paymentUrl để redirect
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ResponseEntity<ApiResponse<OrderResponse>> checkoutOrder(
+    public ResponseEntity<ApiResponse<CheckoutResponse>> checkoutOrder(
             Authentication authentication,
             @Parameter(description = "ID đơn hàng") @PathVariable String orderId,
-            @Valid @RequestBody CheckoutOrderRequest request) {
+            @Valid @RequestBody CheckoutOrderRequest request,
+            HttpServletRequest httpRequest) {
 
         String userId = ((User) authentication.getPrincipal()).getId();
-        OrderResponse response = orderService.checkoutOrder(userId, orderId, request);
+        String ipAddress = getClientIp(httpRequest);
+        
+        CheckoutResponse response = orderService.checkoutOrderWithPayment(userId, orderId, request, ipAddress);
 
-        return ResponseEntity.ok(ApiResponse.<OrderResponse>builder()
+        return ResponseEntity.ok(ApiResponse.<CheckoutResponse>builder()
                 .code(1000)
-                .message("Đặt hàng thành công")
+                .message(response.getMessage())
                 .result(response)
                 .build());
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        return ip;
     }
 
     @PostMapping("/{orderId}/cancel")

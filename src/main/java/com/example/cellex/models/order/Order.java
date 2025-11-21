@@ -77,6 +77,19 @@ public class Order {
     @Field("paid_at")
     private LocalDateTime paidAt;
 
+    // VNPay payment information
+    @Field("vnpay_transaction_id")
+    private String vnpayTransactionId; // VNPay transaction number
+
+    @Field("vnpay_response_code")
+    private String vnpayResponseCode; // VNPay response code
+
+    @Field("vnpay_bank_code")
+    private String vnpayBankCode; // Bank code used for payment
+
+    @Field("vnpay_pay_date")
+    private String vnpayPayDate; // Payment date from VNPay
+
     // Trạng thái đơn hàng
     @Field("status")
     @Builder.Default

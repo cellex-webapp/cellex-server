@@ -3,7 +3,9 @@ package com.example.cellex.services.order;
 import com.example.cellex.dtos.request.order.*;
 import com.example.cellex.dtos.response.PageResponse;
 import com.example.cellex.dtos.response.order.AvailableCouponResponse;
+import com.example.cellex.dtos.response.order.CheckoutResponse;
 import com.example.cellex.dtos.response.order.OrderResponse;
+import com.example.cellex.dtos.response.vnpay.VnpayPaymentResponse;
 import com.example.cellex.enums.CouponStatus;
 import com.example.cellex.enums.CouponType;
 import com.example.cellex.enums.OrderStatus;
@@ -26,6 +28,7 @@ import com.example.cellex.repositories.shop.ShopRepository;
 import com.example.cellex.repositories.user.UserRepository;
 import com.example.cellex.services.user.UserService;
 import com.example.cellex.services.shop.ShopService;
+import com.example.cellex.services.payment.vnpay.VnpayService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -50,6 +53,7 @@ public class OrderService {
     private final UserRepository userRepository;
     private final UserService userService;
     private final ShopService shopService;
+    private final VnpayService vnpayService;
 
     @Transactional
     public OrderResponse createOrderFromProduct(String userId, CreateOrderRequest request) {
@@ -435,6 +439,52 @@ public class OrderService {
         log.info("Order checked out successfully: {}", orderId);
 
         return mapToResponse(updated);
+    }
+
+    @Transactional
+    public CheckoutResponse checkoutOrderWithPayment(
+            String userId, 
+            String orderId, 
+            CheckoutOrderRequest request,
+            String ipAddress
+    ) {
+        log.info("Checking out order with payment: {}", orderId);
+
+        // First perform regular checkout
+        OrderResponse orderResponse = checkoutOrder(userId, orderId, request);
+
+        // If payment method is VNPAY, create payment URL
+        if (request.getPaymentMethod() == PaymentMethod.VNPAY) {
+            Order order = orderRepository.findById(orderId)
+                    .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+
+            String orderInfo = "Thanh toan don hang " + orderId;
+            Long amount = order.getTotalAmount().longValue();
+
+            VnpayPaymentResponse vnpayResponse = vnpayService.createPaymentUrl(
+                    orderId,
+                    amount,
+                    orderInfo,
+                    ipAddress,
+                    "vn"
+            );
+
+            if (!"00".equals(vnpayResponse.getCode())) {
+                throw new AppException(ErrorCode.PAYMENT_ERROR);
+            }
+
+            return CheckoutResponse.builder()
+                    .order(orderResponse)
+                    .paymentUrl(vnpayResponse.getPaymentUrl())
+                    .message("Vui lòng thanh toán qua VNPAY")
+                    .build();
+        }
+
+        // For COD, return order without payment URL
+        return CheckoutResponse.builder()
+                .order(orderResponse)
+                .message("Đặt hàng thành công")
+                .build();
     }
 
     @Transactional

@@ -115,7 +115,12 @@ public enum ErrorCode {
     PRODUCT_NOT_PUBLISHED(12010, "Sản phẩm chưa được xuất bản", HttpStatus.BAD_REQUEST),
     NO_PRODUCTS_SELECTED(12011, "Vui lòng chọn ít nhất một sản phẩm", HttpStatus.BAD_REQUEST),
     PRODUCTS_MUST_BE_FROM_SAME_SHOP(12012, "Các sản phẩm phải cùng một cửa hàng", HttpStatus.BAD_REQUEST),
-    CANNOT_DELETE_ORDER(12013, "Không thể xóa đơn hàng này", HttpStatus.BAD_REQUEST);
+    CANNOT_DELETE_ORDER(12013, "Không thể xóa đơn hàng này", HttpStatus.BAD_REQUEST),
+
+    // Payment Errors
+    PAYMENT_ERROR(13001, "Lỗi thanh toán", HttpStatus.BAD_REQUEST),
+    PAYMENT_FAILED(13002, "Thanh toán thất bại", HttpStatus.BAD_REQUEST),
+    PAYMENT_CANCELLED(13003, "Thanh toán bị hủy", HttpStatus.BAD_REQUEST);
 
     private final int code;
     private final String message;
