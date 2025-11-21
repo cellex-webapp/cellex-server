@@ -293,21 +293,16 @@ public class CategoryService {
         return builder.build();
     }
 
-    // Tạo slug tự động từ name
+    // Tạo slug tự động từ name (hỗ trợ tiếng Việt không dấu)
     private String generateSlugFromName(String name) {
-        String slug = name.toLowerCase().replaceAll("[^a-z0-9]+", "-");
-        slug = slug.replaceAll("^-|-$", ""); // Xóa dấu - ở đầu và cuối
-        return slug;
+        return com.example.cellex.utils.SlugUtil.toSlug(name);
     }
 
     // Chuẩn hóa slug
     private String normalizeSlug(String slug) {
-        // Ví dụ: chuyển đổi về dạng thường, xóa khoảng trắng, ký tự đặc biệt, ...
-        slug = slug.toLowerCase().trim();
-        slug = slug.replaceAll("[^a-z0-9-]", ""); // Giữ chỉ chữ cái, số và dấu -
-        slug = slug.replaceAll("-+", "-"); // Thay thế nhiều dấu - liên tiếp bằng 1 dấu -
-        slug = slug.replaceAll("^-|-$", ""); // Xóa dấu - ở đầu và cuối
-        return slug;
+        if (slug == null) return "";
+        // Convert using SlugUtil to ensure Vietnamese characters are normalized
+        return com.example.cellex.utils.SlugUtil.toSlug(slug);
     }
 
     // Tạo slug duy nhất

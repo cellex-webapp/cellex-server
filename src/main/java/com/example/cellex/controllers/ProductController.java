@@ -245,10 +245,10 @@ public class ProductController {
     @GetMapping("/category/{categoryId}")
     @Operation(
             summary = "Lấy sản phẩm theo danh mục",
-            description = "Lấy danh sách sản phẩm đã xuất bản trong một danh mục với phân trang"
+            description = "Lấy danh sách sản phẩm đã xuất bản trong một danh mục với phân trang. Có thể dùng slug hoặc ID của category"
     )
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getProductsByCategory(
-            @Parameter(description = "ID của danh mục") @PathVariable String categoryId,
+            @Parameter(description = "Slug hoặc ID của danh mục") @PathVariable String categoryId,
 
             @Parameter(description = "Số trang (bắt đầu từ 1)")
             @RequestParam(defaultValue = "1") Integer page,
@@ -268,7 +268,7 @@ public class ProductController {
             : Sort.Direction.DESC;
 
         Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
-        PageResponse<ProductResponse> response = productService.getProductsByCategory(categoryId, pageable);
+        PageResponse<ProductResponse> response = productService.getProductsByCategorySlugOrId(categoryId, pageable);
 
         return ResponseEntity.ok(ApiResponse.<PageResponse<ProductResponse>>builder()
                 .code(1000)

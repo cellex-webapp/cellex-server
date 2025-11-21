@@ -125,6 +125,16 @@ public class ProductService {
         return PageResponse.of(productResponsePage);
     }
 
+    public PageResponse<ProductResponse> getProductsByCategorySlugOrId(String categorySlugOrId, Pageable pageable) {
+        // Tìm category theo slug hoặc ID
+        Category category = categoryRepository.findBySlug(categorySlugOrId)
+                .orElseGet(() -> categoryRepository.findById(categorySlugOrId)
+                        .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND)));
+
+        // Lấy sản phẩm theo categoryId
+        return getProductsByCategory(category.getId(), pageable);
+    }
+
     public PageResponse<ProductResponse> getProductsByShop(String shopId, Pageable pageable) {
         // Kiểm tra shop phải ở trạng thái APPROVED
         Shop shop = shopRepository.findById(shopId)

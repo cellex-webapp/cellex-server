@@ -413,17 +413,7 @@ public class DummyDataService implements CommandLineRunner {
     }
 
     private String slugify(String input) {
-        String s = input.toLowerCase(Locale.ROOT)
-                .replaceAll("[áàảãạăắằẳẵặâấầẩẫậ]", "a")
-                .replaceAll("[éèẻẽẹêếềểễệ]", "e")
-                .replaceAll("[íìỉĩị]", "i")
-                .replaceAll("[óòỏõọôốồổỗộơớờởỡợ]", "o")
-                .replaceAll("[úùủũụưứừửữự]", "u")
-                .replaceAll("[ýỳỷỹỵ]", "y")
-                .replaceAll("đ", "d")
-                .replaceAll("[^a-z0-9]+", "-")
-                .replaceAll("(^-|-$)", "");
-        return s;
+        return com.example.cellex.utils.SlugUtil.toSlug(input);
     }
 
     private User.Address sampleUserAddress() {
