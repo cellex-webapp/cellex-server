@@ -1,12 +1,14 @@
 package com.example.cellex.dtos.request;
 
 import com.example.cellex.enums.NotificationType;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 
@@ -17,19 +19,26 @@ import java.time.LocalDateTime;
 public class BroadcastNotificationRequest {
     
     @NotBlank(message = "Title is required")
+    @Schema(description = "Notification title", example = "string", required = true)
     private String title;
     
     @NotBlank(message = "Message is required")
+    @Schema(description = "Notification message", example = "string", required = true)
     private String message;
     
     @NotNull(message = "Type is required")
+    @Schema(description = "Notification type", example = "SYSTEM", required = true)
     private NotificationType type;
     
+    @Schema(description = "Additional metadata", example = "string")
     private String metadata;
     
+    @Schema(description = "Action URL", example = "string")
     private String actionUrl;
     
-    private String imageUrl;
-    
+    @Schema(description = "Image file for notification", type = "string", format = "binary")
+    private MultipartFile imageFile;
+
+    @Schema(description = "Expiration date and time", example = "2025-11-30T05:14:23.151Z")
     private LocalDateTime expiresAt;
 }

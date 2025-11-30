@@ -8,8 +8,13 @@ import com.example.cellex.dtos.response.NotificationResponse;
 import com.example.cellex.models.notification.Notification;
 import com.example.cellex.models.notification.UserDevice;
 import com.example.cellex.models.user.User;
+import com.example.cellex.services.S3Service;
 import com.example.cellex.services.notification.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Encoding;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -17,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -35,20 +41,39 @@ import java.util.stream.Collectors;
 public class NotificationController {
 
     private final NotificationService notificationService;
+    private final S3Service s3Service;
 
-    @PostMapping("/broadcast")
+    @PostMapping(value = "/broadcast", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Send broadcast notification to all users (Admin only)")
+    @RequestBody(
+        content = @Content(
+            mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+            schema = @Schema(implementation = BroadcastNotificationRequest.class),
+            encoding = @Encoding(name = "imageFile", contentType = "application/octet-stream")
+        )
+    )
     public ResponseEntity<ApiResponse<Void>> sendBroadcastNotification(
-            @Valid @RequestBody BroadcastNotificationRequest request
+            @Valid @ModelAttribute BroadcastNotificationRequest request
     ) {
+        // Chỉ upload file (không còn truyền trực tiếp imageUrl)
+        String finalImageUrl = null;
+        try {
+            if (request.getImageFile() != null && !request.getImageFile().isEmpty()) {
+                finalImageUrl = s3Service.uploadFile(request.getImageFile(), "notifications");
+            }
+        } catch (Exception e) {
+            // Nếu upload thất bại, log và tiếp tục (không throw)
+            e.printStackTrace();
+        }
+
         notificationService.sendBroadcastNotification(
                 request.getTitle(),
                 request.getMessage(),
                 request.getType(),
                 request.getMetadata(),
                 request.getActionUrl(),
-                request.getImageUrl(),
+                finalImageUrl,
                 request.getExpiresAt()
         );
 
