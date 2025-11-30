@@ -40,6 +40,20 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<ApiResponse> handleValidationException(MethodArgumentNotValidException ex) {
+        // Debug log chi tiết
+        log.error("========================================");
+        log.error("❌ Validation Error Occurred");
+        log.error("Object being validated: {}", ex.getObjectName());
+        log.error("Field errors:");
+        ex.getBindingResult().getFieldErrors().forEach(err -> {
+            log.error("  - Field: {}, Rejected Value: {}, Message: {}", 
+                err.getField(), 
+                err.getRejectedValue(), 
+                err.getDefaultMessage()
+            );
+        });
+        log.error("========================================");
+        
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .findFirst()
                 .map(err -> err.getField() + ": " + err.getDefaultMessage())

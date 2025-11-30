@@ -89,8 +89,18 @@ public class NotificationController {
     @Operation(summary = "Register device FCM token")
     public ResponseEntity<ApiResponse<Map<String, String>>> registerDeviceToken(
             @AuthenticationPrincipal User user,
-            @Valid @RequestBody DeviceTokenRequest request
+            @Valid @org.springframework.web.bind.annotation.RequestBody DeviceTokenRequest request
     ) {
+        // Debug log
+        System.out.println("========================================");
+        System.out.println("📱 Register Device Token Request");
+        System.out.println("User: " + (user != null ? user.getEmail() : "null"));
+        System.out.println("Request object: " + request);
+        System.out.println("FCM Token: " + request.getFcmToken());
+        System.out.println("Device Type: " + request.getDeviceType());
+        System.out.println("Device Name: " + request.getDeviceName());
+        System.out.println("========================================");
+        
         UserDevice device = notificationService.registerDeviceToken(
                 user,
                 request.getFcmToken(),
