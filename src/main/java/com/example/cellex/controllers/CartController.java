@@ -17,7 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.example.cellex.models.user.User;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -56,13 +57,14 @@ public class CartController {
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<CartResponse>> addToCart(
-            Authentication authentication,
+            @AuthenticationPrincipal User user,
             @Valid @RequestBody AddToCartRequest request) {
 
-        String userEmail = authentication.getName();
-        log.info("User {} adding product to cart", userEmail);
+        String userId = user != null ? user.getId() : null;
+        String userEmail = user != null ? user.getEmail() : "unknown";
+        log.info("User {} (id={}) adding product to cart", userEmail, userId);
 
-        CartResponse cartResponse = cartService.addToCart(userEmail, request);
+        CartResponse cartResponse = cartService.addToCart(userId, request);
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(ApiResponse.<CartResponse>builder()
@@ -94,13 +96,14 @@ public class CartController {
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<CartResponse>> removeFromCart(
-            Authentication authentication,
+            @AuthenticationPrincipal User user,
             @Valid @RequestBody RemoveFromCartRequest request) {
 
-        String userEmail = authentication.getName();
-        log.info("User {} removing {} products from cart", userEmail, request.getProductIds().size());
+        String userId = user != null ? user.getId() : null;
+        String userEmail = user != null ? user.getEmail() : "unknown";
+        log.info("User {} (id={}) removing {} products from cart", userEmail, userId, request.getProductIds().size());
 
-        CartResponse cartResponse = cartService.removeFromCart(userEmail, request.getProductIds());
+        CartResponse cartResponse = cartService.removeFromCart(userId, request.getProductIds());
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(ApiResponse.<CartResponse>builder()
@@ -124,11 +127,12 @@ public class CartController {
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ResponseEntity<ApiResponse<CartResponse>> clearCart(Authentication authentication) {
-        String userEmail = authentication.getName();
-        log.info("User {} clearing cart", userEmail);
+    public ResponseEntity<ApiResponse<CartResponse>> clearCart(@AuthenticationPrincipal User user) {
+        String userId = user != null ? user.getId() : null;
+        String userEmail = user != null ? user.getEmail() : "unknown";
+        log.info("User {} (id={}) clearing cart", userEmail, userId);
 
-        CartResponse cartResponse = cartService.clearCart(userEmail);
+        CartResponse cartResponse = cartService.clearCart(userId);
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(ApiResponse.<CartResponse>builder()
@@ -153,11 +157,12 @@ public class CartController {
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ResponseEntity<ApiResponse<CartResponse>> getMyCart(Authentication authentication) {
-        String userEmail = authentication.getName();
-        log.info("User {} getting cart", userEmail);
+    public ResponseEntity<ApiResponse<CartResponse>> getMyCart(@AuthenticationPrincipal User user) {
+        String userId = user != null ? user.getId() : null;
+        String userEmail = user != null ? user.getEmail() : "unknown";
+        log.info("User {} (id={}) getting cart", userEmail, userId);
 
-        CartResponse cartResponse = cartService.getMyCart(userEmail);
+        CartResponse cartResponse = cartService.getMyCart(userId);
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(ApiResponse.<CartResponse>builder()
@@ -262,16 +267,17 @@ public class CartController {
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<CartResponse>> updateCartItemQuantity(
-            Authentication authentication,
+            @AuthenticationPrincipal User user,
             @Valid @RequestBody UpdateCartItemQuantityRequest request) {
 
-        String userEmail = authentication.getName();
+        String userId = user != null ? user.getId() : null;
+        String userEmail = user != null ? user.getEmail() : "unknown";
         boolean isIncrease = request.getAction() == UpdateCartItemQuantityRequest.QuantityAction.INCREASE;
-        log.info("User {} updating cart item quantity for product {}, action: {}",
-                userEmail, request.getProductId(), request.getAction());
+        log.info("User {} (id={}) updating cart item quantity for product {}, action: {}",
+                userEmail, userId, request.getProductId(), request.getAction());
 
         CartResponse cartResponse = cartService.updateCartItemQuantity(
-                userEmail,
+                userId,
                 request.getProductId(),
                 isIncrease
         );
@@ -308,15 +314,16 @@ public class CartController {
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<CartResponse>> setCartItemQuantity(
-            Authentication authentication,
+            @AuthenticationPrincipal User user,
             @Valid @RequestBody SetCartItemQuantityRequest request) {
 
-        String userEmail = authentication.getName();
-        log.info("User {} setting cart item quantity for product {} to {}",
-                userEmail, request.getProductId(), request.getQuantity());
+        String userId = user != null ? user.getId() : null;
+        String userEmail = user != null ? user.getEmail() : "unknown";
+        log.info("User {} (id={}) setting cart item quantity for product {} to {}",
+                userEmail, userId, request.getProductId(), request.getQuantity());
 
         CartResponse cartResponse = cartService.setCartItemQuantity(
-                userEmail,
+                userId,
                 request.getProductId(),
                 request.getQuantity()
         );
