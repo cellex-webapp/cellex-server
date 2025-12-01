@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,10 +33,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 
 @RestController
 @RequestMapping("/api/v1/notifications")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "14. Notification", description = "Push notification APIs")
 @SecurityRequirement(name = "bearerAuth")
 public class NotificationController {
@@ -64,7 +71,35 @@ public class NotificationController {
             }
         } catch (Exception e) {
             // Nếu upload thất bại, log và tiếp tục (không throw)
-            e.printStackTrace();
+            log.error("Failed to upload notification image", e);
+        }
+
+        // Parse expiresAt (string) to LocalDateTime. Support formats like:
+        // - 2025-12-03T20:03:00.000Z
+        // - 2025-12-03T20:03:00+07:00
+        // - 2025-12-03T20:03:00
+        LocalDateTime expiresAtParsed = null;
+        String expiresAtStr = request.getExpiresAt();
+        if (expiresAtStr != null && !expiresAtStr.isBlank()) {
+            try {
+                // Try parse as Instant (handles Z)
+                Instant instant = Instant.parse(expiresAtStr);
+                expiresAtParsed = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
+            } catch (DateTimeParseException e1) {
+                try {
+                    // Try parse as OffsetDateTime (handles offsets like +07:00)
+                    OffsetDateTime odt = OffsetDateTime.parse(expiresAtStr);
+                    expiresAtParsed = odt.toLocalDateTime();
+                } catch (DateTimeParseException e2) {
+                    try {
+                        // Fallback to LocalDateTime (no offset)
+                        expiresAtParsed = LocalDateTime.parse(expiresAtStr);
+                    } catch (DateTimeParseException e3) {
+                        // If parsing fails, throw a clear exception
+                        throw new IllegalArgumentException("Invalid expiresAt format: " + expiresAtStr);
+                    }
+                }
+            }
         }
 
         notificationService.sendBroadcastNotification(
@@ -74,7 +109,7 @@ public class NotificationController {
                 request.getMetadata(),
                 request.getActionUrl(),
                 finalImageUrl,
-                request.getExpiresAt()
+                expiresAtParsed
         );
 
         return ResponseEntity.ok(
