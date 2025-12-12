@@ -40,4 +40,27 @@ public interface UserRepository extends MongoRepository<User, String> {
      * Đếm số user không bị banned
      */
     long countByIsBannedFalse();
+
+    /**
+     * Đếm số user theo role và khoảng thời gian tạo
+     */
+    @Query(value = "{'role': ?0, 'created_at': {$gte: ?1, $lte: ?2}}", count = true)
+    long countByRoleAndCreatedAtBetween(Role role, LocalDateTime startDate, LocalDateTime endDate);
+
+    /**
+     * Đếm số user theo role và tạo trước thời điểm
+     */
+    @Query(value = "{'role': ?0, 'created_at': {$lte: ?1}}", count = true)
+    long countByRoleAndCreatedAtBefore(Role role, LocalDateTime beforeDate);
+
+    /**
+     * Tìm users theo role và khoảng thời gian tạo
+     */
+    @Query("{'role': ?0, 'created_at': {$gte: ?1, $lte: ?2}}")
+    List<User> findByRoleAndCreatedAtBetween(Role role, LocalDateTime startDate, LocalDateTime endDate);
+
+    /**
+     * Tìm users theo role với phân trang
+     */
+    List<User> findByRole(Role role, org.springframework.data.domain.Pageable pageable);
 }

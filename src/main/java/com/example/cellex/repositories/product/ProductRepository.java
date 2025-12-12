@@ -41,4 +41,28 @@ public interface ProductRepository extends MongoRepository<Product, String> {
      * Đếm tổng số sản phẩm đã publish (toàn hệ thống)
      */
     long countByIsPublishedTrue();
+
+    /**
+     * Đếm sản phẩm đã publish tạo trong khoảng thời gian
+     */
+    @Query(value = "{'isPublished': true, 'createdAt': {$gte: ?0, $lte: ?1}}", count = true)
+    long countByIsPublishedTrueAndCreatedAtBetween(java.time.LocalDateTime startDate, java.time.LocalDateTime endDate);
+
+    /**
+     * Đếm sản phẩm đã publish tạo trước thời điểm
+     */
+    @Query(value = "{'isPublished': true, 'createdAt': {$lte: ?0}}", count = true)
+    long countByIsPublishedTrueAndCreatedAtBefore(java.time.LocalDateTime beforeDate);
+
+    /**
+     * Tìm tất cả sản phẩm đã publish
+     */
+    @Query("{'isPublished': true}")
+    List<Product> findAllByIsPublishedTrue();
+
+    /**
+     * Tìm tất cả sản phẩm đã publish với phân trang
+     */
+    @Query("{'isPublished': true}")
+    List<Product> findAllByIsPublishedTrue(org.springframework.data.domain.Pageable pageable);
 }

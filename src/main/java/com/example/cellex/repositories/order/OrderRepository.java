@@ -99,4 +99,22 @@ public interface OrderRepository extends MongoRepository<Order, String> {
      * Tìm các đơn hàng gần đây nhất của shop
      */
     List<Order> findTop5ByShopIdOrderByCreatedAtDesc(String shopId);
+
+    /**
+     * Đếm đơn hàng theo status và khoảng thời gian
+     */
+    @Query(value = "{'status': ?0, 'created_at': {$gte: ?1, $lte: ?2}}", count = true)
+    long countByStatusAndCreatedAtBetween(OrderStatus status, LocalDateTime startDate, LocalDateTime endDate);
+
+    /**
+     * Đếm đơn hàng hoàn thành và đã thanh toán trong khoảng thời gian
+     */
+    @Query(value = "{'status': 'DELIVERED', 'is_paid': true, 'created_at': {$gte: ?0, $lte: ?1}}", count = true)
+    long countCompletedPaidOrdersByDateRange(LocalDateTime startDate, LocalDateTime endDate);
+
+    /**
+     * Tìm tất cả đơn hàng trong khoảng thời gian
+     */
+    @Query("{'created_at': {$gte: ?0, $lte: ?1}}")
+    List<Order> findOrdersByDateRange(LocalDateTime startDate, LocalDateTime endDate);
 }

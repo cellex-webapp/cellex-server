@@ -1,12 +1,10 @@
 package com.example.cellex.controllers;
 
 import com.example.cellex.dtos.response.ApiResponse;
-import com.example.cellex.dtos.response.analytics.AdminDashboardResponse;
-import com.example.cellex.dtos.response.analytics.AdminDashboardResponse.*;
+import com.example.cellex.dtos.response.analytics.*;
 import com.example.cellex.dtos.response.analytics.VendorDashboardResponse;
-import com.example.cellex.dtos.response.analytics.VendorDashboardResponse.*;
 import com.example.cellex.models.user.User;
-import com.example.cellex.services.analytics.AnalyticsService;
+import com.example.cellex.services.analytics.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,22 +17,20 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.List;
 
 /**
  * Controller xử lý các API Business Analytics & Reporting
  * 
- * Vendor APIs:
- * - GET /api/v1/analytics/vendor/dashboard: Dashboard đầy đủ của vendor
- * - GET /api/v1/analytics/vendor/revenue: Thống kê doanh thu
- * - GET /api/v1/analytics/vendor/orders: Thống kê đơn hàng
- * - GET /api/v1/analytics/vendor/best-selling: Sản phẩm bán chạy
+ * ADMIN ENDPOINTS:
+ * - GET /api/v1/analytics/admin/dashboard          : Dashboard tổng quan hệ thống
+ * - GET /api/v1/analytics/admin/customers          : Analytics chi tiết về khách hàng
+ * - GET /api/v1/analytics/admin/products           : Analytics chi tiết về sản phẩm
+ * - GET /api/v1/analytics/admin/shops              : Analytics chi tiết về cửa hàng
  * 
- * Admin APIs:
- * - GET /api/v1/analytics/admin/dashboard: Dashboard đầy đủ của admin
- * - GET /api/v1/analytics/admin/overview: Tổng quan hệ thống
- * - GET /api/v1/analytics/admin/recent-orders: Đơn hàng gần đây
- * - GET /api/v1/analytics/admin/top-shops: Top cửa hàng
+ * VENDOR ENDPOINTS:
+ * - GET /api/v1/analytics/vendor/dashboard         : Dashboard của vendor (shop)
+ * 
+ * Tất cả endpoints đều hỗ trợ filter theo khoảng thời gian (startDate, endDate)
  * 
  * @author Cellex Team
  */
@@ -45,244 +41,204 @@ import java.util.List;
 @Tag(name = "Analytics", description = "APIs cho Business Analytics & Reporting")
 public class AnalyticsController {
 
-    private final AnalyticsService analyticsService;
+    private final AdminAnalyticsService adminAnalyticsService;
+    private final CustomerAnalyticsService customerAnalyticsService;
+    private final ProductAnalyticsService productAnalyticsService;
+    private final ShopAnalyticsService shopAnalyticsService;
+    private final AnalyticsService vendorAnalyticsService;
 
-    // ==================== VENDOR ENDPOINTS ====================
+    // ==================== ADMIN DASHBOARD ====================
 
     /**
-     * Lấy dashboard đầy đủ cho Vendor
+     * Admin Dashboard - Tổng quan hệ thống
+     * 
+     * Hiển thị:
+     * - 3 Summary Cards: Tổng doanh thu, Tổng đơn hàng, Khách hàng mới
+     * - Secondary KPIs: AOV, Conversion Rate, Cancellation Rate, etc.
+     * - Charts: Revenue, Orders, Status Distribution, Revenue by Category
+     * - Top Performers: Top Shops, Top Products, Top Customers
+     * - Recent Activities: Recent Orders, New Shops, New Users
+     */
+    @GetMapping("/admin/dashboard")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+        summary = "Admin Dashboard - Tổng quan hệ thống",
+        description = "Lấy toàn bộ số liệu tổng quan cho Admin Dashboard. " +
+                      "Bao gồm summary cards, KPIs, charts, top performers và recent activities."
+    )
+    public ResponseEntity<ApiResponse<AdminMainDashboardResponse>> getAdminDashboard(
+            @AuthenticationPrincipal User currentUser,
+            @Parameter(description = "Ngày bắt đầu (YYYY-MM-DD). Mặc định: đầu tháng hiện tại")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @Parameter(description = "Ngày kết thúc (YYYY-MM-DD). Mặc định: hôm nay")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        log.info("Admin {} requesting main dashboard - date range: {} to {}", 
+                currentUser.getId(), startDate, endDate);
+        
+        AdminMainDashboardResponse dashboard = adminAnalyticsService.getAdminDashboard(startDate, endDate);
+
+        return ResponseEntity.ok(ApiResponse.<AdminMainDashboardResponse>builder()
+                .code(200)
+                .message("Lấy Admin Dashboard thành công")
+                .result(dashboard)
+                .build());
+    }
+
+    // ==================== CUSTOMER ANALYTICS ====================
+
+    /**
+     * Customer Analytics - Số liệu chi tiết về khách hàng
+     * 
+     * Hiển thị:
+     * - 3 Summary Cards: Tổng khách hàng, Khách hàng mới, Khách hàng hoạt động
+     * - Overview: Chi tiết về return rate, ACV, orders per customer
+     * - Charts: New customers, Active customers, Segments, Spending trends
+     * - Customer Segments: VIP, Regular, New, Inactive
+     * - Top Customers & Recent Customers
+     */
+    @GetMapping("/admin/customers")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+        summary = "Customer Analytics - Số liệu khách hàng",
+        description = "Lấy số liệu chi tiết về khách hàng. " +
+                      "Bao gồm segments, behavior, spending patterns."
+    )
+    public ResponseEntity<ApiResponse<CustomerAnalyticsResponse>> getCustomerAnalytics(
+            @AuthenticationPrincipal User currentUser,
+            @Parameter(description = "Ngày bắt đầu (YYYY-MM-DD). Mặc định: đầu tháng hiện tại")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @Parameter(description = "Ngày kết thúc (YYYY-MM-DD). Mặc định: hôm nay")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        log.info("Admin {} requesting customer analytics - date range: {} to {}", 
+                currentUser.getId(), startDate, endDate);
+        
+        CustomerAnalyticsResponse analytics = customerAnalyticsService.getCustomerAnalytics(startDate, endDate);
+
+        return ResponseEntity.ok(ApiResponse.<CustomerAnalyticsResponse>builder()
+                .code(200)
+                .message("Lấy Customer Analytics thành công")
+                .result(analytics)
+                .build());
+    }
+
+    // ==================== PRODUCT ANALYTICS ====================
+
+    /**
+     * Product Analytics - Số liệu chi tiết về sản phẩm
+     * 
+     * Hiển thị:
+     * - 3 Summary Cards: Sản phẩm đang bán, Sản phẩm mới, Số lượng đã bán
+     * - Overview: Stock status, ratings, revenue
+     * - Charts: Sales quantity, Revenue, Category distribution
+     * - Category Performance
+     * - Top Products (by quantity, revenue, rating)
+     * - Recent Products
+     */
+    @GetMapping("/admin/products")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+        summary = "Product Analytics - Số liệu sản phẩm",
+        description = "Lấy số liệu chi tiết về sản phẩm. " +
+                      "Bao gồm sales, inventory, category performance."
+    )
+    public ResponseEntity<ApiResponse<ProductAnalyticsResponse>> getProductAnalytics(
+            @AuthenticationPrincipal User currentUser,
+            @Parameter(description = "Ngày bắt đầu (YYYY-MM-DD). Mặc định: đầu tháng hiện tại")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @Parameter(description = "Ngày kết thúc (YYYY-MM-DD). Mặc định: hôm nay")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        log.info("Admin {} requesting product analytics - date range: {} to {}", 
+                currentUser.getId(), startDate, endDate);
+        
+        ProductAnalyticsResponse analytics = productAnalyticsService.getProductAnalytics(startDate, endDate);
+
+        return ResponseEntity.ok(ApiResponse.<ProductAnalyticsResponse>builder()
+                .code(200)
+                .message("Lấy Product Analytics thành công")
+                .result(analytics)
+                .build());
+    }
+
+    // ==================== SHOP ANALYTICS ====================
+
+    /**
+     * Shop Analytics - Số liệu chi tiết về cửa hàng
+     * 
+     * Hiển thị:
+     * - 3 Summary Cards: Shop đang hoạt động, Shop mới, Tổng doanh thu
+     * - Overview: Average metrics per shop
+     * - Charts: New shops, Revenue, Status distribution, Rating distribution
+     * - Status Distribution
+     * - Top Shops (by revenue, orders, rating, products)
+     * - Pending Shops (chờ duyệt)
+     */
+    @GetMapping("/admin/shops")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+        summary = "Shop Analytics - Số liệu cửa hàng",
+        description = "Lấy số liệu chi tiết về cửa hàng. " +
+                      "Bao gồm performance, status, top shops."
+    )
+    public ResponseEntity<ApiResponse<ShopAnalyticsResponse>> getShopAnalytics(
+            @AuthenticationPrincipal User currentUser,
+            @Parameter(description = "Ngày bắt đầu (YYYY-MM-DD). Mặc định: đầu tháng hiện tại")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @Parameter(description = "Ngày kết thúc (YYYY-MM-DD). Mặc định: hôm nay")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        log.info("Admin {} requesting shop analytics - date range: {} to {}", 
+                currentUser.getId(), startDate, endDate);
+        
+        ShopAnalyticsResponse analytics = shopAnalyticsService.getShopAnalytics(startDate, endDate);
+
+        return ResponseEntity.ok(ApiResponse.<ShopAnalyticsResponse>builder()
+                .code(200)
+                .message("Lấy Shop Analytics thành công")
+                .result(analytics)
+                .build());
+    }
+
+    // ==================== VENDOR DASHBOARD ====================
+
+    /**
+     * Vendor Dashboard - Thống kê cho cửa hàng
+     * 
+     * Hiển thị:
+     * - Shop Info
+     * - Revenue Stats
+     * - Order Statistics
+     * - Best Selling Products
+     * - Recent Orders
      */
     @GetMapping("/vendor/dashboard")
     @PreAuthorize("hasAnyRole('VENDOR', 'ADMIN')")
-    @Operation(summary = "Lấy Vendor Dashboard", 
-               description = "Lấy toàn bộ thông tin thống kê của cửa hàng. Vendor chỉ được xem shop của mình.")
+    @Operation(
+        summary = "Vendor Dashboard - Thống kê cửa hàng",
+        description = "Lấy toàn bộ thông tin thống kê của cửa hàng. " +
+                      "Vendor chỉ được xem shop của mình, Admin có thể xem tất cả."
+    )
     public ResponseEntity<ApiResponse<VendorDashboardResponse>> getVendorDashboard(
             @AuthenticationPrincipal User currentUser,
-            @Parameter(description = "ID của shop") @RequestParam String shopId,
-            @Parameter(description = "Ngày bắt đầu (YYYY-MM-DD)") 
+            @Parameter(description = "ID của shop", required = true)
+            @RequestParam String shopId,
+            @Parameter(description = "Ngày bắt đầu (YYYY-MM-DD). Mặc định: đầu tháng hiện tại")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @Parameter(description = "Ngày kết thúc (YYYY-MM-DD)") 
+            @Parameter(description = "Ngày kết thúc (YYYY-MM-DD). Mặc định: hôm nay")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
-        log.info("Getting vendor dashboard for shop: {} by user: {}", shopId, currentUser.getId());
+        log.info("User {} requesting vendor dashboard for shop {} - date range: {} to {}", 
+                currentUser.getId(), shopId, startDate, endDate);
         
-        VendorDashboardResponse dashboard = analyticsService.getVendorDashboard(
+        VendorDashboardResponse dashboard = vendorAnalyticsService.getVendorDashboard(
                 shopId, currentUser, startDate, endDate);
 
         return ResponseEntity.ok(ApiResponse.<VendorDashboardResponse>builder()
                 .code(200)
-                .message("Lấy thống kê cửa hàng thành công")
+                .message("Lấy Vendor Dashboard thành công")
                 .result(dashboard)
-                .build());
-    }
-
-    /**
-     * Lấy thống kê doanh thu của shop
-     */
-    @GetMapping("/vendor/revenue")
-    @PreAuthorize("hasAnyRole('VENDOR', 'ADMIN')")
-    @Operation(summary = "Lấy thống kê doanh thu", 
-               description = "Lấy thống kê doanh thu của cửa hàng trong khoảng thời gian")
-    public ResponseEntity<ApiResponse<RevenueStats>> getVendorRevenue(
-            @AuthenticationPrincipal User currentUser,
-            @Parameter(description = "ID của shop") @RequestParam String shopId,
-            @Parameter(description = "Ngày bắt đầu (YYYY-MM-DD)", required = true) 
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @Parameter(description = "Ngày kết thúc (YYYY-MM-DD)", required = true) 
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
-    ) {
-        // Validate access
-        analyticsService.getVendorDashboard(shopId, currentUser, null, null); // Just for validation
-        
-        RevenueStats revenueStats = analyticsService.getVendorRevenue(shopId, startDate, endDate);
-
-        return ResponseEntity.ok(ApiResponse.<RevenueStats>builder()
-                .code(200)
-                .message("Lấy thống kê doanh thu thành công")
-                .result(revenueStats)
-                .build());
-    }
-
-    /**
-     * Lấy thống kê đơn hàng theo trạng thái
-     */
-    @GetMapping("/vendor/orders")
-    @PreAuthorize("hasAnyRole('VENDOR', 'ADMIN')")
-    @Operation(summary = "Lấy thống kê đơn hàng", 
-               description = "Lấy thống kê số đơn hàng theo từng trạng thái")
-    public ResponseEntity<ApiResponse<OrderStatistics>> getOrderStatistics(
-            @AuthenticationPrincipal User currentUser,
-            @Parameter(description = "ID của shop") @RequestParam String shopId
-    ) {
-        // Validate access
-        analyticsService.getVendorDashboard(shopId, currentUser, null, null); // Just for validation
-        
-        OrderStatistics statistics = analyticsService.getOrderStatistics(shopId);
-
-        return ResponseEntity.ok(ApiResponse.<OrderStatistics>builder()
-                .code(200)
-                .message("Lấy thống kê đơn hàng thành công")
-                .result(statistics)
-                .build());
-    }
-
-    /**
-     * Lấy top sản phẩm bán chạy
-     */
-    @GetMapping("/vendor/best-selling")
-    @PreAuthorize("hasAnyRole('VENDOR', 'ADMIN')")
-    @Operation(summary = "Lấy sản phẩm bán chạy", 
-               description = "Lấy top 5 sản phẩm bán chạy nhất của cửa hàng")
-    public ResponseEntity<ApiResponse<List<BestSellingProduct>>> getBestSellingProducts(
-            @AuthenticationPrincipal User currentUser,
-            @Parameter(description = "ID của shop") @RequestParam String shopId
-    ) {
-        // Validate access
-        analyticsService.getVendorDashboard(shopId, currentUser, null, null); // Just for validation
-        
-        List<BestSellingProduct> products = analyticsService.getBestSellingProducts(shopId);
-
-        return ResponseEntity.ok(ApiResponse.<List<BestSellingProduct>>builder()
-                .code(200)
-                .message("Lấy danh sách sản phẩm bán chạy thành công")
-                .result(products)
-                .build());
-    }
-
-    // ==================== ADMIN ENDPOINTS ====================
-
-    /**
-     * Lấy dashboard đầy đủ cho Admin
-     */
-    @GetMapping("/admin/dashboard")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Lấy Admin Dashboard", 
-               description = "Lấy toàn bộ thông tin thống kê hệ thống. Chỉ Admin mới có quyền.")
-    public ResponseEntity<ApiResponse<AdminDashboardResponse>> getAdminDashboard(
-            @AuthenticationPrincipal User currentUser
-    ) {
-        log.info("Getting admin dashboard by user: {}", currentUser.getId());
-        
-        AdminDashboardResponse dashboard = analyticsService.getAdminDashboard();
-
-        return ResponseEntity.ok(ApiResponse.<AdminDashboardResponse>builder()
-                .code(200)
-                .message("Lấy thống kê hệ thống thành công")
-                .result(dashboard)
-                .build());
-    }
-
-    /**
-     * Lấy tổng quan hệ thống
-     */
-    @GetMapping("/admin/overview")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Lấy tổng quan hệ thống", 
-               description = "Lấy các thông số tổng quan của hệ thống")
-    public ResponseEntity<ApiResponse<SystemOverview>> getSystemOverview(
-            @AuthenticationPrincipal User currentUser
-    ) {
-        SystemOverview overview = analyticsService.getSystemOverview();
-
-        return ResponseEntity.ok(ApiResponse.<SystemOverview>builder()
-                .code(200)
-                .message("Lấy tổng quan hệ thống thành công")
-                .result(overview)
-                .build());
-    }
-
-    /**
-     * Lấy đơn hàng gần đây nhất
-     */
-    @GetMapping("/admin/recent-orders")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Lấy đơn hàng gần đây", 
-               description = "Lấy 5 đơn hàng mới nhất của toàn hệ thống")
-    public ResponseEntity<ApiResponse<List<RecentOrder>>> getRecentOrders(
-            @AuthenticationPrincipal User currentUser
-    ) {
-        List<RecentOrder> orders = analyticsService.getRecentOrders();
-
-        return ResponseEntity.ok(ApiResponse.<List<RecentOrder>>builder()
-                .code(200)
-                .message("Lấy danh sách đơn hàng gần đây thành công")
-                .result(orders)
-                .build());
-    }
-
-    /**
-     * Lấy top cửa hàng có doanh thu cao nhất
-     */
-    @GetMapping("/admin/top-shops")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Lấy top cửa hàng", 
-               description = "Lấy top 5 cửa hàng có doanh thu cao nhất")
-    public ResponseEntity<ApiResponse<List<TopShop>>> getTopShops(
-            @AuthenticationPrincipal User currentUser
-    ) {
-        List<TopShop> shops = analyticsService.getTopShops();
-
-        return ResponseEntity.ok(ApiResponse.<List<TopShop>>builder()
-                .code(200)
-                .message("Lấy danh sách top cửa hàng thành công")
-                .result(shops)
-                .build());
-    }
-
-    /**
-     * Lấy thống kê doanh thu hệ thống
-     */
-    @GetMapping("/admin/revenue")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Lấy thống kê doanh thu hệ thống", 
-               description = "Lấy thống kê doanh thu theo ngày/tuần/tháng/năm")
-    public ResponseEntity<ApiResponse<SystemRevenueStats>> getSystemRevenueStats(
-            @AuthenticationPrincipal User currentUser
-    ) {
-        SystemRevenueStats stats = analyticsService.getSystemRevenueStats();
-
-        return ResponseEntity.ok(ApiResponse.<SystemRevenueStats>builder()
-                .code(200)
-                .message("Lấy thống kê doanh thu hệ thống thành công")
-                .result(stats)
-                .build());
-    }
-
-    /**
-     * Lấy thống kê đơn hàng hệ thống
-     */
-    @GetMapping("/admin/orders")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Lấy thống kê đơn hàng hệ thống", 
-               description = "Lấy thống kê đơn hàng toàn hệ thống")
-    public ResponseEntity<ApiResponse<SystemOrderStats>> getSystemOrderStats(
-            @AuthenticationPrincipal User currentUser
-    ) {
-        SystemOrderStats stats = analyticsService.getSystemOrderStats();
-
-        return ResponseEntity.ok(ApiResponse.<SystemOrderStats>builder()
-                .code(200)
-                .message("Lấy thống kê đơn hàng hệ thống thành công")
-                .result(stats)
-                .build());
-    }
-
-    /**
-     * Lấy thống kê người dùng
-     */
-    @GetMapping("/admin/users")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Lấy thống kê người dùng", 
-               description = "Lấy thống kê người dùng theo role")
-    public ResponseEntity<ApiResponse<UserStats>> getUserStats(
-            @AuthenticationPrincipal User currentUser
-    ) {
-        UserStats stats = analyticsService.getUserStats();
-
-        return ResponseEntity.ok(ApiResponse.<UserStats>builder()
-                .code(200)
-                .message("Lấy thống kê người dùng thành công")
-                .result(stats)
                 .build());
     }
 }
