@@ -17,13 +17,4 @@ public class ApiResponse<T> {
     private String message;
     private T result;
 
-    // Manual static methods để thay thế builder khi Lombok không hoạt động
-    public static <T> ApiResponse<T> success(String message, T result) {
-        ApiResponse<T> response = new ApiResponse<>();
-        response.code = 1000;
-        response.message = message;
-        response.result = result;
-        return response;
-    }
-
 }

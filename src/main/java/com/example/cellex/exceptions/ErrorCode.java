@@ -120,7 +120,27 @@ public enum ErrorCode {
     // Payment Errors
     PAYMENT_ERROR(13001, "Lỗi thanh toán", HttpStatus.BAD_REQUEST),
     PAYMENT_FAILED(13002, "Thanh toán thất bại", HttpStatus.BAD_REQUEST),
-    PAYMENT_CANCELLED(13003, "Thanh toán bị hủy", HttpStatus.BAD_REQUEST);
+    PAYMENT_CANCELLED(13003, "Thanh toán bị hủy", HttpStatus.BAD_REQUEST),
+
+    // Review Errors
+    REVIEW_NOT_FOUND(14001, "Không tìm thấy đánh giá", HttpStatus.NOT_FOUND),
+    REVIEW_ALREADY_EXISTS(14002, "Bạn đã đánh giá sản phẩm này trong đơn hàng này", HttpStatus.BAD_REQUEST),
+    ORDER_NOT_DELIVERED(14003, "Chỉ có thể đánh giá sau khi đơn hàng đã được giao", HttpStatus.BAD_REQUEST),
+    PRODUCT_NOT_IN_ORDER(14004, "Sản phẩm không có trong đơn hàng này", HttpStatus.BAD_REQUEST),
+    PRODUCT_NOT_EXISTED(14005, "Sản phẩm không tồn tại", HttpStatus.NOT_FOUND),
+
+    // Chat Errors (MSG codes)
+    MSG08_NO_PERMISSION(15008, "Bạn không có quyền thực hiện hành động này", HttpStatus.FORBIDDEN),
+    MSG09_SENDING_FAILED(15009, "Gửi tin nhắn thất bại / Tuyến gửi không hợp lệ", HttpStatus.BAD_REQUEST),
+    MSG10_INAPPROPRIATE_CONTENT(15010, "Nội dung tin nhắn không phù hợp", HttpStatus.BAD_REQUEST),
+    MSG11_EMPTY_MESSAGE(15011, "Nội dung tin nhắn không được để trống", HttpStatus.BAD_REQUEST),
+    MSG12_MESSAGE_TOO_LONG(15012, "Nội dung tin nhắn quá dài (tối đa 1000 ký tự)", HttpStatus.BAD_REQUEST),
+    CHAT_ROOM_NOT_FOUND(15013, "Không tìm thấy phòng chat", HttpStatus.NOT_FOUND),
+    MESSAGE_NOT_FOUND(15014, "Không tìm thấy tin nhắn", HttpStatus.NOT_FOUND),
+
+    // Analytics Errors
+    MSG32_ACCESS_DENIED(15032, "Bạn không có quyền truy cập dữ liệu của cửa hàng này", HttpStatus.FORBIDDEN),
+    INVALID_DATE_RANGE(15033, "Khoảng thời gian không hợp lệ", HttpStatus.BAD_REQUEST);
 
     private final int code;
     private final String message;

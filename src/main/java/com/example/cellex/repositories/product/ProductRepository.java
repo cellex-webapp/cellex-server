@@ -29,4 +29,16 @@ public interface ProductRepository extends MongoRepository<Product, String> {
     Page<Product> findAllBy(Pageable pageable);
 
     int countByShopId(String shopId);
+
+    // ==================== Analytics Methods ====================
+
+    /**
+     * Đếm sản phẩm đã publish của shop
+     */
+    long countByShopIdAndIsPublishedTrue(String shopId);
+
+    /**
+     * Đếm tổng số sản phẩm đã publish (toàn hệ thống)
+     */
+    long countByIsPublishedTrue();
 }

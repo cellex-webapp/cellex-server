@@ -17,4 +17,11 @@ public interface ShopRepository extends MongoRepository<Shop, String> {
     List<Shop> findByStatus(ShopStatus status);
     Page<Shop> findByStatus(ShopStatus status, Pageable pageable);
     boolean existsByVendorId(String vendorId);
+
+    // ==================== Analytics Methods ====================
+
+    /**
+     * Đếm số shop theo status
+     */
+    long countByStatus(ShopStatus status);
 }
