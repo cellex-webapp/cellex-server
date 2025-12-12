@@ -19,6 +19,6 @@ public class LoginRequest {
     private String email;
 
     @NotBlank(message = "Password is required")
-    @Schema(example = "123")
+    @Schema(example = "Pass@123")
     private String password;
 }

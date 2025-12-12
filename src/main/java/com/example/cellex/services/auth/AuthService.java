@@ -1,5 +1,6 @@
 package com.example.cellex.services.auth;
 
+import com.example.cellex.dtos.request.auth.ChangePasswordRequest;
 import com.example.cellex.dtos.request.auth.LoginRequest;
 import com.example.cellex.dtos.request.auth.RefreshTokenRequest;
 import com.example.cellex.dtos.request.auth.SendOtpRequest;
@@ -223,6 +224,36 @@ public class AuthService {
                 .isActive(savedUser.isEnabled())
                 .createdAt(savedUser.getCreatedAt())
                 .build();
+    }
+
+    public void changePassword(String email, ChangePasswordRequest request) {
+        // Find user by email
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        // Check if user account is locked
+        if (user.isBanned()) {
+            throw new AccountBannedException(user.getBanReason());
+        }
+
+        // Verify old password
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        // Validate new password
+        if (request.getNewPassword() == null || request.getNewPassword().length() < 8) {
+            throw new AppException(ErrorCode.PASSWORD_INVALID);
+        }
+
+        // Check if new password is same as old password
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new AppException(ErrorCode.PASSWORD_INVALID);
+        }
+
+        // Update password
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 
     private boolean isValidEmail(String email) {

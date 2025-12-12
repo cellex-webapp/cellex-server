@@ -1,9 +1,11 @@
 package com.example.cellex.controllers;
 
+import com.example.cellex.dtos.request.auth.ChangePasswordRequest;
 import com.example.cellex.dtos.request.user.BanUserRequest;
 import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.user.UserResponse;
 import com.example.cellex.models.user.User;
+import com.example.cellex.services.auth.AuthService;
 import com.example.cellex.services.user.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -37,6 +39,7 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final AuthService authService;
 
     @Operation(
             summary = "Get all users",
@@ -319,6 +322,38 @@ public class UserController {
         return ApiResponse.<UserResponse>builder()
                 .result(unlockedUser)
                 .message("Tài khoản đã được mở khóa thành công.")
+                .build();
+    }
+
+    @PostMapping("/change-password")
+    @Operation(
+            summary = "Đổi mật khẩu",
+            description = "Đổi mật khẩu cho tài khoản hiện tại (tất cả các role). Yêu cầu mật khẩu cũ và mật khẩu mới."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Đổi mật khẩu thành công",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Không có quyền truy cập hoặc mật khẩu cũ không đúng",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "Định dạng mật khẩu không hợp lệ",
+                    content = @Content
+            )
+    })
+    public ApiResponse<String> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request,
+            Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        authService.changePassword(user.getEmail(), request);
+        return ApiResponse.<String>builder()
+                .message("Đổi mật khẩu thành công.")
                 .build();
     }
 }
