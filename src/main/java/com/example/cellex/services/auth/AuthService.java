@@ -6,14 +6,17 @@ import com.example.cellex.dtos.request.auth.RefreshTokenRequest;
 import com.example.cellex.dtos.request.auth.SendOtpRequest;
 import com.example.cellex.dtos.request.auth.VerifyOtpRequest;
 import com.example.cellex.dtos.response.auth.AuthResponse;
+import com.example.cellex.dtos.response.shop.ShopResponse;
 import com.example.cellex.dtos.response.user.UserResponse;
 import com.example.cellex.enums.Role;
 import com.example.cellex.exceptions.AccountBannedException;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.models.auth.Otp;
+import com.example.cellex.models.shop.Shop;
 import com.example.cellex.models.user.User;
 import com.example.cellex.repositories.auth.OtpRepository;
+import com.example.cellex.repositories.shop.ShopRepository;
 import com.example.cellex.repositories.user.UserRepository;
 import com.example.cellex.services.email.EmailService;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +39,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final ShopRepository shopRepository;
 
     public AuthResponse login(LoginRequest request) {
         // Validate email format and length
@@ -89,10 +93,46 @@ public class AuthService {
                 .createdAt(user.getCreatedAt())
                 .build();
 
+        // Fetch shop data if user is VENDOR
+        ShopResponse shopResponse = null;
+        if (user.getRole() == Role.VENDOR) {
+            var shopOptional = shopRepository.findByVendorId(user.getId());
+            if (shopOptional.isPresent()) {
+                Shop shop = shopOptional.get();
+                ShopResponse.AddressInfo addressInfo = null;
+                if (shop.getAddress() != null) {
+                    addressInfo = ShopResponse.AddressInfo.builder()
+                            .street(shop.getAddress().getStreet())
+                            .commune(shop.getAddress().getCommune())
+                            .province(shop.getAddress().getProvince())
+                            .country(shop.getAddress().getCountry())
+                            .fullAddress(shop.getAddress().getFullAddress())
+                            .isDefault(shop.getAddress().isDefault())
+                            .build();
+                }
+                
+                shopResponse = ShopResponse.builder()
+                        .id(shop.getId())
+                        .vendorId(shop.getVendorId())
+                        .shopName(shop.getShopName())
+                        .description(shop.getDescription())
+                        .logoUrl(shop.getLogoUrl())
+                        .address(addressInfo)
+                        .phoneNumber(shop.getPhoneNumber())
+                        .email(shop.getEmail())
+                        .status(shop.getStatus())
+                        .rating(shop.getRating())
+                        .rejectionReason(shop.getRejectionReason())
+                        .createdAt(shop.getCreatedAt())
+                        .build();
+            }
+        }
+
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .user(userResponse)
+                .shop(shopResponse)
                 .build();
     }
 

@@ -1,5 +1,6 @@
 package com.example.cellex.dtos.response.auth;
 
+import com.example.cellex.dtos.response.shop.ShopResponse;
 import com.example.cellex.dtos.response.user.UserResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,4 +15,5 @@ public class AuthResponse {
     private String accessToken;
     private String refreshToken;
     private UserResponse user;
+    private ShopResponse shop;
 }
