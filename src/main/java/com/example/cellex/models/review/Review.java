@@ -1,5 +1,6 @@
 package com.example.cellex.models.review;
 
+import com.example.cellex.enums.ReviewStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -67,6 +68,18 @@ public class Review {
     @Field("is_verified_purchase")
     @Builder.Default
     private Boolean isVerifiedPurchase = true; // Luôn true vì chỉ cho phép review sau khi nhận hàng
+
+    // Moderation fields
+    @Indexed
+    @Field("status")
+    @Builder.Default
+    private ReviewStatus status = ReviewStatus.PENDING_MODERATION;
+
+    @Field("moderation_result")
+    private ModerationResult moderationResult;
+
+    @Field("admin_decision")
+    private AdminDecision adminDecision;
 
     @CreatedDate
     @Field("created_at")

@@ -6,6 +6,7 @@ import com.example.cellex.dtos.response.PageResponse;
 import com.example.cellex.dtos.response.review.ReviewResponse;
 import com.example.cellex.dtos.response.review.ReviewStatsResponse;
 import com.example.cellex.enums.OrderStatus;
+import com.example.cellex.enums.ReviewStatus;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.models.order.Order;
@@ -28,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -40,6 +42,13 @@ public class ReviewService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final ShopRepository shopRepository;
+    private final ReviewModerationService reviewModerationService;
+
+    // List of statuses visible to public users
+    private static final List<ReviewStatus> PUBLIC_VISIBLE_STATUSES = Arrays.asList(
+            ReviewStatus.APPROVED, 
+            ReviewStatus.APPROVED_BY_ADMIN
+    );
 
     @Transactional
     public ReviewResponse createReview(String userId, CreateReviewRequest request) {
@@ -74,7 +83,7 @@ public class ReviewService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
-        // 6. Tạo review
+        // 6. Tạo review với status PENDING_MODERATION
         Review review = Review.builder()
                 .productId(request.getProductId())
                 .userId(userId)
@@ -88,16 +97,17 @@ public class ReviewService {
                 .images(request.getImages())
                 .videos(request.getVideos())
                 .isVerifiedPurchase(true)
+                .status(ReviewStatus.PENDING_MODERATION)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
 
         review = reviewRepository.save(review);
 
-        // 7. Cập nhật thống kê review cho product
-        updateProductReviewStats(request.getProductId());
+        // 7. Trigger async moderation
+        reviewModerationService.moderateReviewAsync(review.getId());
 
-        log.info("Review created successfully by user: {} for product: {} in order: {}",
+        log.info("Review created with PENDING_MODERATION status by user: {} for product: {} in order: {}",
                 userId, request.getProductId(), request.getOrderId());
 
         return mapToReviewResponse(review);
@@ -160,8 +170,12 @@ public class ReviewService {
         log.info("Vendor response deleted by vendor: {} for review: {}", vendorId, reviewId);
     }
 
+    /**
+     * Get public product reviews (only APPROVED and APPROVED_BY_ADMIN)
+     */
     public PageResponse<ReviewResponse> getProductReviews(String productId, Pageable pageable) {
-        Page<Review> reviewPage = reviewRepository.findByProductIdOrderByCreatedAtDesc(productId, pageable);
+        Page<Review> reviewPage = reviewRepository.findByProductIdAndStatusInOrderByCreatedAtDesc(
+                productId, PUBLIC_VISIBLE_STATUSES, pageable);
 
         List<ReviewResponse> reviews = reviewPage.getContent().stream()
                 .map(this::mapToReviewResponse)
@@ -176,8 +190,12 @@ public class ReviewService {
                 .build();
     }
 
+    /**
+     * Get public shop reviews (only APPROVED and APPROVED_BY_ADMIN)
+     */
     public PageResponse<ReviewResponse> getShopReviews(String shopId, Pageable pageable) {
-        Page<Review> reviewPage = reviewRepository.findByShopIdOrderByCreatedAtDesc(shopId, pageable);
+        Page<Review> reviewPage = reviewRepository.findByShopIdAndStatusInOrderByCreatedAtDesc(
+                shopId, PUBLIC_VISIBLE_STATUSES, pageable);
 
         List<ReviewResponse> reviews = reviewPage.getContent().stream()
                 .map(this::mapToReviewResponse)
@@ -192,6 +210,9 @@ public class ReviewService {
                 .build();
     }
 
+    /**
+     * Get user's own reviews (all statuses for the owner to see their review history)
+     */
     public PageResponse<ReviewResponse> getUserReviews(String userId, Pageable pageable) {
         Page<Review> reviewPage = reviewRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
 
@@ -215,8 +236,12 @@ public class ReviewService {
         return mapToReviewResponse(review);
     }
 
+    /**
+     * Get product review statistics (only approved reviews)
+     */
     public ReviewStatsResponse getProductReviewStats(String productId) {
-        List<Review> reviews = reviewRepository.findByProductId(productId);
+        // Only count approved reviews for public stats
+        List<Review> reviews = reviewRepository.findByProductIdAndStatusIn(productId, PUBLIC_VISIBLE_STATUSES);
 
         if (reviews.isEmpty()) {
             return ReviewStatsResponse.builder()
@@ -240,11 +265,11 @@ public class ReviewService {
                 .average()
                 .orElse(0.0);
 
-        long fiveStarCount = reviewRepository.countByProductIdAndRating(productId, 5);
-        long fourStarCount = reviewRepository.countByProductIdAndRating(productId, 4);
-        long threeStarCount = reviewRepository.countByProductIdAndRating(productId, 3);
-        long twoStarCount = reviewRepository.countByProductIdAndRating(productId, 2);
-        long oneStarCount = reviewRepository.countByProductIdAndRating(productId, 1);
+        long fiveStarCount = reviewRepository.countByProductIdAndRatingAndStatusIn(productId, 5, PUBLIC_VISIBLE_STATUSES);
+        long fourStarCount = reviewRepository.countByProductIdAndRatingAndStatusIn(productId, 4, PUBLIC_VISIBLE_STATUSES);
+        long threeStarCount = reviewRepository.countByProductIdAndRatingAndStatusIn(productId, 3, PUBLIC_VISIBLE_STATUSES);
+        long twoStarCount = reviewRepository.countByProductIdAndRatingAndStatusIn(productId, 2, PUBLIC_VISIBLE_STATUSES);
+        long oneStarCount = reviewRepository.countByProductIdAndRatingAndStatusIn(productId, 1, PUBLIC_VISIBLE_STATUSES);
 
         int totalReviews = reviews.size();
 
@@ -264,9 +289,11 @@ public class ReviewService {
                 .build();
     }
 
-    // Cập nhật thống kê review cho product
-    private void updateProductReviewStats(String productId) {
-        List<Review> reviews = reviewRepository.findByProductId(productId);
+    /**
+     * Update product review stats (only count approved reviews)
+     */
+    public void updateProductReviewStats(String productId) {
+        List<Review> reviews = reviewRepository.findByProductIdAndStatusIn(productId, PUBLIC_VISIBLE_STATUSES);
 
         if (!reviews.isEmpty()) {
             double averageRating = reviews.stream()
@@ -289,6 +316,23 @@ public class ReviewService {
     }
 
     private ReviewResponse mapToReviewResponse(Review review) {
+        String rejectionReason = null;
+        List<String> flaggedCategoriesVi = null;
+
+        // Generate rejection reason and Vietnamese categories if review was rejected
+        if (review.getModerationResult() != null && 
+            (review.getStatus() == ReviewStatus.REJECTED_AUTO || 
+             review.getStatus() == ReviewStatus.REJECTED_BY_ADMIN)) {
+            
+            if (review.getModerationResult().getFlaggedCategories() != null && 
+                !review.getModerationResult().getFlaggedCategories().isEmpty()) {
+                rejectionReason = reviewModerationService.generateRejectionReason(
+                        review.getModerationResult().getFlaggedCategories());
+                flaggedCategoriesVi = reviewModerationService.mapCategoriesToVietnamese(
+                        review.getModerationResult().getFlaggedCategories());
+            }
+        }
+
         return ReviewResponse.builder()
                 .id(review.getId())
                 .productId(review.getProductId())
@@ -303,6 +347,11 @@ public class ReviewService {
                 .videos(review.getVideos())
                 .vendorResponse(review.getVendorResponse())
                 .isVerifiedPurchase(review.getIsVerifiedPurchase())
+                .status(review.getStatus())
+                .moderationResult(review.getModerationResult())
+                .adminDecision(review.getAdminDecision())
+                .rejectionReason(rejectionReason)
+                .flaggedCategoriesVi(flaggedCategoriesVi)
                 .createdAt(review.getCreatedAt())
                 .updatedAt(review.getUpdatedAt())
                 .build();

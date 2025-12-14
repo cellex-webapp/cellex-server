@@ -19,7 +19,7 @@ import java.util.List;
 @RequestMapping("/api/v1/recommendations")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Recommendations", description = "Product recommendation APIs using Collaborative Filtering")
+@Tag(name = "18. Recommendations", description = "Product recommendation APIs using Collaborative Filtering")
 public class RecommendationController {
 
     private final RecommendationService recommendationService;

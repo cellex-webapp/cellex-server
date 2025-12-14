@@ -1,5 +1,6 @@
 package com.example.cellex.dtos.request.review;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
@@ -22,11 +23,13 @@ public class CreateReviewRequest {
     @Schema(description = "Order ID", example = "string", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Order ID không được để trống")
     @JsonProperty("order_id")
+    @JsonAlias({"orderId", "order_id"})
     private String orderId;
 
     @Schema(description = "Product ID", example = "string", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Product ID không được để trống")
     @JsonProperty("product_id")
+    @JsonAlias({"productId", "product_id"})
     private String productId;
 
     @Schema(description = "Rating (1-5 stars)", example = "5", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -43,4 +46,13 @@ public class CreateReviewRequest {
 
     @Schema(description = "Video URLs (JSON array of strings)", example = "[\"string\"]")
     private List<String> videos;
+
+    // Custom setters for multipart/form-data binding with snake_case
+    public void setOrder_id(String orderId) {
+        this.orderId = orderId;
+    }
+
+    public void setProduct_id(String productId) {
+        this.productId = productId;
+    }
 }

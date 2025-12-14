@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/reviews")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Review Management", description = "APIs for managing product reviews")
+@Tag(name = "15. Review Management", description = "APIs for managing product reviews")
 public class ReviewController {
 
     private final ReviewService reviewService;

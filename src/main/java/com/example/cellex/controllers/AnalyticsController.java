@@ -38,7 +38,7 @@ import java.time.LocalDate;
 @RequestMapping("/api/v1/analytics")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Analytics", description = "APIs cho Business Analytics & Reporting")
+@Tag(name = "17. Analytics", description = "APIs cho Business Analytics & Reporting")
 public class AnalyticsController {
 
     private final AdminAnalyticsService adminAnalyticsService;
