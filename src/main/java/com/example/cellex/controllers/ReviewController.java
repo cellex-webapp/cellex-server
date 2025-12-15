@@ -198,6 +198,32 @@ public class ReviewController {
                 .build());
     }
 
+    @Operation(
+            summary = "Update a review",
+            description = "Customer updates their own review. Review will be re-moderated after update.",
+            requestBody = @RequestBody(
+                    content = @Content(
+                            mediaType = MediaType.MULTIPART_FORM_DATA_VALUE
+                    )
+            )
+    )
+    @PutMapping(value = "/{reviewId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<ReviewResponse>> updateReview(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String reviewId,
+            @Valid @ModelAttribute com.example.cellex.dtos.request.review.UpdateReviewRequest request
+    ) {
+        String userId = ((com.example.cellex.models.user.User) userDetails).getId();
+        ReviewResponse review = reviewService.updateReview(userId, reviewId, request);
+
+        return ResponseEntity.ok(ApiResponse.<ReviewResponse>builder()
+                .code(2000)
+                .message("Cập nhật đánh giá thành công. Đánh giá sẽ được kiểm duyệt lại.")
+                .result(review)
+                .build());
+    }
+
     @Operation(summary = "Get product review statistics", description = "Get rating distribution and statistics for a product")
     @GetMapping("/product/{productId}/stats")
     public ResponseEntity<ApiResponse<ReviewStatsResponse>> getProductReviewStats(@PathVariable String productId) {

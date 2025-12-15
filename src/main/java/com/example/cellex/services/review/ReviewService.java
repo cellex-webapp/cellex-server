@@ -1,6 +1,7 @@
 package com.example.cellex.services.review;
 
 import com.example.cellex.dtos.request.review.CreateReviewRequest;
+import com.example.cellex.dtos.request.review.UpdateReviewRequest;
 import com.example.cellex.dtos.request.review.VendorResponseRequest;
 import com.example.cellex.dtos.response.PageResponse;
 import com.example.cellex.dtos.response.review.ReviewResponse;
@@ -109,6 +110,44 @@ public class ReviewService {
 
         log.info("Review created with PENDING_MODERATION status by user: {} for product: {} in order: {}",
                 userId, request.getProductId(), request.getOrderId());
+
+        return mapToReviewResponse(review);
+    }
+
+    @Transactional
+    public ReviewResponse updateReview(String userId, String reviewId, UpdateReviewRequest request) {
+        // 1. Lấy review
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new AppException(ErrorCode.REVIEW_NOT_FOUND));
+
+        // 2. Kiểm tra review có thuộc về user không
+        if (!review.getUserId().equals(userId)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        // 3. Cập nhật thông tin review
+        review.setRating(request.getRating());
+        review.setComment(request.getComment());
+        review.setImages(request.getImages());
+        review.setVideos(request.getVideos());
+        review.setUpdatedAt(LocalDateTime.now());
+
+        // 4. Đặt lại status về PENDING_MODERATION để kiểm duyệt lại
+        review.setStatus(ReviewStatus.PENDING_MODERATION);
+        
+        // 5. Xóa kết quả kiểm duyệt cũ
+        review.setModerationResult(null);
+        review.setAdminDecision(null);
+
+        review = reviewRepository.save(review);
+
+        // 6. Trigger async moderation lại
+        reviewModerationService.moderateReviewAsync(review.getId());
+
+        // 7. Cập nhật lại thống kê sản phẩm (tạm thời loại review này ra khỏi tính toán)
+        updateProductReviewStats(review.getProductId());
+
+        log.info("Review {} updated by user {} and set to PENDING_MODERATION for re-moderation", reviewId, userId);
 
         return mapToReviewResponse(review);
     }
