@@ -63,4 +63,9 @@ public interface UserRepository extends MongoRepository<User, String> {
      * Tìm users theo role với phân trang
      */
     List<User> findByRole(Role role, org.springframework.data.domain.Pageable pageable);
+
+    /**
+     * Tìm users theo tên (case insensitive) với phân trang
+     */
+    org.springframework.data.domain.Page<User> findByFullNameContainingIgnoreCase(String name, org.springframework.data.domain.Pageable pageable);
 }

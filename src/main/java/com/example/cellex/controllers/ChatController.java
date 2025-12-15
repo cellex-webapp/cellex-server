@@ -64,10 +64,11 @@ public class ChatController {
                description = "Lấy danh sách các cuộc hội thoại của user hiện tại với phân trang")
     public ResponseEntity<ApiResponse<PageResponse<ChatRoomResponse>>> getChatRooms(
             @AuthenticationPrincipal User currentUser,
-            @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Số lượng mỗi trang") @RequestParam(defaultValue = "20") int size
+            @Parameter(description = "Số trang (bắt đầu từ 1)") @RequestParam(defaultValue = "1") Integer page,
+            @Parameter(description = "Số lượng mỗi trang") @RequestParam(defaultValue = "20") Integer limit
     ) {
-        Page<ChatRoomResponse> chatRooms = chatService.getChatRooms(currentUser.getId(), page, size);
+        int pageNumber = Math.max(page - 1, 0);
+        Page<ChatRoomResponse> chatRooms = chatService.getChatRooms(currentUser.getId(), pageNumber, limit);
         
         PageResponse<ChatRoomResponse> pageResponse = PageResponse.<ChatRoomResponse>builder()
                 .content(chatRooms.getContent())
@@ -135,10 +136,11 @@ public class ChatController {
     public ResponseEntity<ApiResponse<PageResponse<MessageResponse>>> getMessages(
             @AuthenticationPrincipal User currentUser,
             @Parameter(description = "ID của chat room") @PathVariable String roomId,
-            @Parameter(description = "Số trang (bắt đầu từ 0)") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Số lượng mỗi trang") @RequestParam(defaultValue = "50") int size
+            @Parameter(description = "Số trang (bắt đầu từ 1)") @RequestParam(defaultValue = "1") Integer page,
+            @Parameter(description = "Số lượng mỗi trang") @RequestParam(defaultValue = "50") Integer limit
     ) {
-        Page<MessageResponse> messages = chatService.getMessages(roomId, currentUser.getId(), page, size);
+        int pageNumber = Math.max(page - 1, 0);
+        Page<MessageResponse> messages = chatService.getMessages(roomId, currentUser.getId(), pageNumber, limit);
         
         PageResponse<MessageResponse> pageResponse = PageResponse.<MessageResponse>builder()
                 .content(messages.getContent())

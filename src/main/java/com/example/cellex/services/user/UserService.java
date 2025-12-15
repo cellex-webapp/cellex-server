@@ -214,6 +214,20 @@ public class UserService {
         return com.example.cellex.dtos.response.PageResponse.of(page, this::mapToUserResponse);
     }
 
+    public com.example.cellex.dtos.response.PageResponse<UserResponse> getAllUsers(org.springframework.data.domain.Pageable pageable, String name) {
+        org.springframework.data.domain.Page<User> page;
+        
+        if (name != null && !name.trim().isEmpty()) {
+            // Search by name (case insensitive)
+            page = userRepository.findByFullNameContainingIgnoreCase(name.trim(), pageable);
+        } else {
+            // Get all users
+            page = userRepository.findAll(pageable);
+        }
+        
+        return com.example.cellex.dtos.response.PageResponse.of(page, this::mapToUserResponse);
+    }
+
     public UserResponse getUserById(String userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));

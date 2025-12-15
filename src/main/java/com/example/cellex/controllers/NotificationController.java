@@ -174,10 +174,16 @@ public class NotificationController {
     @Operation(summary = "Get user notifications with pagination")
     public ResponseEntity<ApiResponse<NotificationListResponse>> getUserNotifications(
             @AuthenticationPrincipal User user,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @io.swagger.v3.oas.annotations.Parameter(description = "Số trang (bắt đầu từ 1)") @RequestParam(defaultValue = "1") Integer page,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Số lượng mỗi trang") @RequestParam(defaultValue = "20") Integer limit,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Sắp xếp theo (createdAt)") @RequestParam(defaultValue = "createdAt") String sortBy,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Kiểu sắp xếp (asc/desc)") @RequestParam(defaultValue = "desc") String sortType
     ) {
-        Pageable pageable = PageRequest.of(page, size);
+        int pageNumber = Math.max(page - 1, 0);
+        org.springframework.data.domain.Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
+                ? org.springframework.data.domain.Sort.Direction.ASC
+                : org.springframework.data.domain.Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(pageNumber, limit, org.springframework.data.domain.Sort.by(direction, sortBy));
         Page<Notification> notificationPage = notificationService.getUserNotifications(user, pageable);
         Long unreadCount = notificationService.countUnreadNotifications(user);
 

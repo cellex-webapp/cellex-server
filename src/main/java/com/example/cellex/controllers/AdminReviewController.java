@@ -40,13 +40,14 @@ public class AdminReviewController {
     @Operation(summary = "Get all reviews", description = "Admin gets all reviews with all statuses")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ReviewResponse>>> getAllReviews(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir
+            @io.swagger.v3.oas.annotations.Parameter(description = "Số trang (bắt đầu từ 1)") @RequestParam(defaultValue = "1") Integer page,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Số lượng mỗi trang") @RequestParam(defaultValue = "20") Integer limit,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Sắp xếp theo (createdAt, rating)") @RequestParam(defaultValue = "createdAt") String sortBy,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Kiểu sắp xếp (asc/desc)") @RequestParam(defaultValue = "desc") String sortType
     ) {
-        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
-        Pageable pageable = PageRequest.of(page, size, sort);
+        int pageNumber = Math.max(page - 1, 0);
+        Sort sort = sortType.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(pageNumber, limit, sort);
         PageResponse<ReviewResponse> reviews = adminReviewService.getAllReviews(pageable);
 
         return ResponseEntity.ok(ApiResponse.<PageResponse<ReviewResponse>>builder()
@@ -60,10 +61,16 @@ public class AdminReviewController {
     @GetMapping("/status/{status}")
     public ResponseEntity<ApiResponse<PageResponse<ReviewResponse>>> getReviewsByStatus(
             @PathVariable ReviewStatus status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @io.swagger.v3.oas.annotations.Parameter(description = "Số trang (bắt đầu từ 1)") @RequestParam(defaultValue = "1") Integer page,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Số lượng mỗi trang") @RequestParam(defaultValue = "20") Integer limit,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Sắp xếp theo (createdAt, rating)") @RequestParam(defaultValue = "createdAt") String sortBy,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Kiểu sắp xếp (asc/desc)") @RequestParam(defaultValue = "desc") String sortType
     ) {
-        Pageable pageable = PageRequest.of(page, size);
+        int pageNumber = Math.max(page - 1, 0);
+        org.springframework.data.domain.Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
+                ? org.springframework.data.domain.Sort.Direction.ASC
+                : org.springframework.data.domain.Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(pageNumber, limit, org.springframework.data.domain.Sort.by(direction, sortBy));
         PageResponse<ReviewResponse> reviews = adminReviewService.getReviewsByStatus(status, pageable);
 
         return ResponseEntity.ok(ApiResponse.<PageResponse<ReviewResponse>>builder()
@@ -76,10 +83,16 @@ public class AdminReviewController {
     @Operation(summary = "Get pending reviews", description = "Admin gets reviews pending moderation or auto-rejected")
     @GetMapping("/pending")
     public ResponseEntity<ApiResponse<PageResponse<ReviewResponse>>> getPendingReviews(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @io.swagger.v3.oas.annotations.Parameter(description = "Số trang (bắt đầu từ 1)") @RequestParam(defaultValue = "1") Integer page,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Số lượng mỗi trang") @RequestParam(defaultValue = "20") Integer limit,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Sắp xếp theo (createdAt, rating)") @RequestParam(defaultValue = "createdAt") String sortBy,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Kiểu sắp xếp (asc/desc)") @RequestParam(defaultValue = "desc") String sortType
     ) {
-        Pageable pageable = PageRequest.of(page, size);
+        int pageNumber = Math.max(page - 1, 0);
+        org.springframework.data.domain.Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
+                ? org.springframework.data.domain.Sort.Direction.ASC
+                : org.springframework.data.domain.Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(pageNumber, limit, org.springframework.data.domain.Sort.by(direction, sortBy));
         List<ReviewStatus> pendingStatuses = List.of(
                 ReviewStatus.PENDING_MODERATION,
                 ReviewStatus.REJECTED_AUTO
@@ -98,10 +111,16 @@ public class AdminReviewController {
     public ResponseEntity<ApiResponse<PageResponse<ReviewResponse>>> getReviewsByProduct(
             @PathVariable String productId,
             @RequestParam(required = false) ReviewStatus status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @io.swagger.v3.oas.annotations.Parameter(description = "Số trang (bắt đầu từ 1)") @RequestParam(defaultValue = "1") Integer page,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Số lượng mỗi trang") @RequestParam(defaultValue = "20") Integer limit,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Sắp xếp theo (createdAt, rating)") @RequestParam(defaultValue = "createdAt") String sortBy,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Kiểu sắp xếp (asc/desc)") @RequestParam(defaultValue = "desc") String sortType
     ) {
-        Pageable pageable = PageRequest.of(page, size);
+        int pageNumber = Math.max(page - 1, 0);
+        org.springframework.data.domain.Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
+                ? org.springframework.data.domain.Sort.Direction.ASC
+                : org.springframework.data.domain.Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(pageNumber, limit, org.springframework.data.domain.Sort.by(direction, sortBy));
         PageResponse<ReviewResponse> reviews = adminReviewService.getReviewsByProduct(productId, status, pageable);
 
         return ResponseEntity.ok(ApiResponse.<PageResponse<ReviewResponse>>builder()
@@ -116,10 +135,16 @@ public class AdminReviewController {
     public ResponseEntity<ApiResponse<PageResponse<ReviewResponse>>> getReviewsByUser(
             @PathVariable String userId,
             @RequestParam(required = false) ReviewStatus status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @io.swagger.v3.oas.annotations.Parameter(description = "Số trang (bắt đầu từ 1)") @RequestParam(defaultValue = "1") Integer page,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Số lượng mỗi trang") @RequestParam(defaultValue = "20") Integer limit,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Sắp xếp theo (createdAt, rating)") @RequestParam(defaultValue = "createdAt") String sortBy,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Kiểu sắp xếp (asc/desc)") @RequestParam(defaultValue = "desc") String sortType
     ) {
-        Pageable pageable = PageRequest.of(page, size);
+        int pageNumber = Math.max(page - 1, 0);
+        org.springframework.data.domain.Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
+                ? org.springframework.data.domain.Sort.Direction.ASC
+                : org.springframework.data.domain.Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(pageNumber, limit, org.springframework.data.domain.Sort.by(direction, sortBy));
         PageResponse<ReviewResponse> reviews = adminReviewService.getReviewsByUser(userId, status, pageable);
 
         return ResponseEntity.ok(ApiResponse.<PageResponse<ReviewResponse>>builder()
@@ -135,10 +160,16 @@ public class AdminReviewController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
             @RequestParam(required = false) ReviewStatus status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @io.swagger.v3.oas.annotations.Parameter(description = "Số trang (bắt đầu từ 1)") @RequestParam(defaultValue = "1") Integer page,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Số lượng mỗi trang") @RequestParam(defaultValue = "20") Integer limit,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Sắp xếp theo (createdAt, rating)") @RequestParam(defaultValue = "createdAt") String sortBy,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Kiểu sắp xếp (asc/desc)") @RequestParam(defaultValue = "desc") String sortType
     ) {
-        Pageable pageable = PageRequest.of(page, size);
+        int pageNumber = Math.max(page - 1, 0);
+        org.springframework.data.domain.Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
+                ? org.springframework.data.domain.Sort.Direction.ASC
+                : org.springframework.data.domain.Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(pageNumber, limit, org.springframework.data.domain.Sort.by(direction, sortBy));
         PageResponse<ReviewResponse> reviews = adminReviewService.getReviewsByDateRange(
                 startDate, endDate, status, pageable);
 

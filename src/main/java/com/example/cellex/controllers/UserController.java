@@ -75,7 +75,10 @@ public class UserController {
             @RequestParam(defaultValue = "createdAt") String sortBy,
 
             @Parameter(description = "Kiểu sắp xếp (asc/desc)")
-            @RequestParam(defaultValue = "desc") String sortType) {
+            @RequestParam(defaultValue = "desc") String sortType,
+
+            @Parameter(description = "Tìm kiếm theo tên (optional)")
+            @RequestParam(required = false) String name) {
 
         int pageNumber = Math.max(page - 1, 0);
         Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
@@ -83,7 +86,7 @@ public class UserController {
                 : Sort.Direction.DESC;
 
         Pageable pageable = PageRequest.of(pageNumber, limit, Sort.by(direction, sortBy));
-        com.example.cellex.dtos.response.PageResponse<UserResponse> users = userService.getAllUsers(pageable);
+        com.example.cellex.dtos.response.PageResponse<UserResponse> users = userService.getAllUsers(pageable, name);
 
         return ApiResponse.<com.example.cellex.dtos.response.PageResponse<UserResponse>>builder()
                 .result(users)
