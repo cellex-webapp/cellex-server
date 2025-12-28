@@ -30,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -268,11 +269,60 @@ public class ReviewService {
                 .build();
     }
 
+    /**
+     * Get all reviews for a specific order
+     * Returns all reviews regardless of status (for order owner)
+     */
+    public List<ReviewResponse> getOrderReviews(String orderId) {
+        List<Review> reviews = reviewRepository.findByOrderId(orderId);
+        return reviews.stream()
+                .map(this::mapToReviewResponse)
+                .toList();
+    }
+
     public ReviewResponse getReviewById(String reviewId) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new AppException(ErrorCode.REVIEW_NOT_FOUND));
 
-        return mapToReviewResponse(review);
+        return mapToReviewResponse(review, null);
+    }
+
+    /**
+     * Mark a review as helpful
+     * Each user can only vote once per review
+     */
+    @Transactional
+    public ReviewResponse markReviewHelpful(String userId, String reviewId) {
+        // 1. Lấy review
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new AppException(ErrorCode.REVIEW_NOT_FOUND));
+
+        // 2. Kiểm tra review có public không (chỉ cho vote review đã được duyệt)
+        if (!PUBLIC_VISIBLE_STATUSES.contains(review.getStatus())) {
+            throw new AppException(ErrorCode.REVIEW_NOT_APPROVED);
+        }
+
+        // 3. Kiểm tra user đã vote chưa
+        List<String> votedUserIds = review.getHelpfulVotedUserIds();
+        if (votedUserIds == null) {
+            votedUserIds = new ArrayList<>();
+        }
+
+        if (votedUserIds.contains(userId)) {
+            throw new AppException(ErrorCode.ALREADY_VOTED_HELPFUL);
+        }
+
+        // 4. Thêm vote
+        votedUserIds.add(userId);
+        review.setHelpfulVotedUserIds(votedUserIds);
+        review.setHelpfulCount(votedUserIds.size());
+        review.setUpdatedAt(LocalDateTime.now());
+
+        review = reviewRepository.save(review);
+
+        log.info("User {} voted helpful for review {}", userId, reviewId);
+
+        return mapToReviewResponse(review, userId);
     }
 
     /**
@@ -355,6 +405,10 @@ public class ReviewService {
     }
 
     private ReviewResponse mapToReviewResponse(Review review) {
+        return mapToReviewResponse(review, null);
+    }
+
+    private ReviewResponse mapToReviewResponse(Review review, String currentUserId) {
         String rejectionReason = null;
         List<String> flaggedCategoriesVi = null;
 
@@ -372,9 +426,32 @@ public class ReviewService {
             }
         }
 
+        // Check if current user has voted helpful
+        Boolean hasVotedHelpful = null;
+        if (currentUserId != null && review.getHelpfulVotedUserIds() != null) {
+            hasVotedHelpful = review.getHelpfulVotedUserIds().contains(currentUserId);
+        }
+
+        // Get product info
+        String productName = null;
+        String productImage = null;
+        try {
+            Product product = productRepository.findById(review.getProductId()).orElse(null);
+            if (product != null) {
+                productName = product.getName();
+                if (product.getImages() != null && !product.getImages().isEmpty()) {
+                    productImage = product.getImages().get(0);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch product info for review {}: {}", review.getId(), e.getMessage());
+        }
+
         return ReviewResponse.builder()
                 .id(review.getId())
                 .productId(review.getProductId())
+                .productName(productName)
+                .productImage(productImage)
                 .userId(review.getUserId())
                 .userName(review.getUserName())
                 .userAvatar(review.getUserAvatar())
@@ -386,6 +463,8 @@ public class ReviewService {
                 .videos(review.getVideos())
                 .vendorResponse(review.getVendorResponse())
                 .isVerifiedPurchase(review.getIsVerifiedPurchase())
+                .helpfulCount(review.getHelpfulCount())
+                .hasVotedHelpful(hasVotedHelpful)
                 .status(review.getStatus())
                 .moderationResult(review.getModerationResult())
                 .adminDecision(review.getAdminDecision())
@@ -394,5 +473,28 @@ public class ReviewService {
                 .createdAt(review.getCreatedAt())
                 .updatedAt(review.getUpdatedAt())
                 .build();
+    }
+
+    /**
+     * Delete a review (Customer only - their own review)
+     * Cascade deletes vendor responses (handled by Review model cascade setting)
+     */
+    @Transactional
+    public void deleteReview(String userId, String reviewId) {
+        log.info("User {} attempting to delete review {}", userId, reviewId);
+
+        // Find review
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new AppException(ErrorCode.REVIEW_NOT_FOUND));
+
+        // Verify ownership
+        if (!review.getUserId().equals(userId)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        // Delete review (vendor response will be cascade deleted automatically if configured)
+        reviewRepository.delete(review);
+
+        log.info("Review {} deleted successfully by user {}", reviewId, userId);
     }
 }

@@ -43,6 +43,18 @@ public class OpenAIModerationService {
     }
 
     public ModerationResult moderateTextSync(String text) {
+        // Check if moderation is disabled
+        if (!moderationEnabled) {
+            log.info("OpenAI moderation is disabled, auto-approving review");
+            return createModerationDisabledResult();
+        }
+
+        // Check if API key is not configured
+        if (openaiApiKey == null || openaiApiKey.isEmpty()) {
+            log.warn("OpenAI API key not configured, auto-approving review");
+            return createNoApiKeyResult();
+        }
+
         int maxRetries = 5;
         int retryCount = 0;
         long waitTime = 10000; // Start with 10 seconds for rate limit
@@ -80,11 +92,6 @@ public class OpenAIModerationService {
     }
 
     private ModerationResult callModerationApi(String text) throws Exception {
-        if (openaiApiKey == null || openaiApiKey.isEmpty()) {
-            log.warn("OpenAI API key not configured, skipping moderation");
-            return createNoApiKeyResult();
-        }
-
         if (text == null || text.trim().isEmpty()) {
             log.info("Empty text provided for moderation, auto-approving");
             return createEmptyTextResult();
@@ -194,6 +201,17 @@ public class OpenAIModerationService {
                 .rawResponse("{\"info\": \"Empty text, auto-approved\"}")
                 .moderatedAt(LocalDateTime.now())
                 .modelUsed("none")
+                .build();
+    }
+
+    private ModerationResult createModerationDisabledResult() {
+        return ModerationResult.builder()
+                .isFlagged(false)
+                .flaggedCategories(Collections.emptyList())
+                .categoryScores(Collections.emptyMap())
+                .rawResponse("{\"info\": \"Moderation disabled, auto-approved\"}")
+                .moderatedAt(LocalDateTime.now())
+                .modelUsed("disabled")
                 .build();
     }
 }

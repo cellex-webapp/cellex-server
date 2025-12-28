@@ -7,9 +7,11 @@ import com.example.cellex.dtos.response.review.ReviewResponse;
 import com.example.cellex.enums.ReviewStatus;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
+import com.example.cellex.models.product.Product;
 import com.example.cellex.models.review.AdminDecision;
 import com.example.cellex.models.review.Review;
 import com.example.cellex.models.user.User;
+import com.example.cellex.repositories.product.ProductRepository;
 import com.example.cellex.repositories.review.ReviewRepository;
 import com.example.cellex.repositories.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +32,7 @@ public class AdminReviewService {
 
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
+    private final ProductRepository productRepository;
     private final ReviewService reviewService;
     private final ReviewModerationService reviewModerationService;
 
@@ -39,6 +42,77 @@ public class AdminReviewService {
     public PageResponse<ReviewResponse> getAllReviews(Pageable pageable) {
         Page<Review> reviewPage = reviewRepository.findAll(pageable);
         return buildPageResponse(reviewPage);
+    }
+
+    /**
+     * Search reviews by product name and/or user name
+     */
+    public PageResponse<ReviewResponse> searchReviews(
+            String productName, String userName, ReviewStatus status, Pageable pageable) {
+        
+        // If searching by userName
+        if (userName != null && !userName.isEmpty()) {
+            Page<Review> reviewPage;
+            if (status != null) {
+                reviewPage = reviewRepository.findByUserNameContainingIgnoreCaseAndStatusOrderByCreatedAtDesc(
+                        userName, status, pageable);
+            } else {
+                reviewPage = reviewRepository.findByUserNameContainingIgnoreCaseOrderByCreatedAtDesc(
+                        userName, pageable);
+            }
+            
+            // If productName is also provided, filter in memory
+            if (productName != null && !productName.isEmpty()) {
+                String productNameLower = productName.toLowerCase();
+                List<ReviewResponse> filteredReviews = reviewPage.getContent().stream()
+                        .map(this::mapToReviewResponse)
+                        .filter(r -> r.getProductName() != null && 
+                                r.getProductName().toLowerCase().contains(productNameLower))
+                        .toList();
+                
+                return PageResponse.<ReviewResponse>builder()
+                        .currentPage(reviewPage.getNumber())
+                        .pageSize(reviewPage.getSize())
+                        .totalPages(reviewPage.getTotalPages())
+                        .totalElements((long) filteredReviews.size())
+                        .content(filteredReviews)
+                        .build();
+            }
+            
+            return buildPageResponse(reviewPage);
+        }
+        
+        // If only searching by productName, we need to filter in memory since product name
+        // is not stored directly in Review but needs to be fetched from Product
+        if (productName != null && !productName.isEmpty()) {
+            Page<Review> allReviews;
+            if (status != null) {
+                allReviews = reviewRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
+            } else {
+                allReviews = reviewRepository.findAll(pageable);
+            }
+            
+            String productNameLower = productName.toLowerCase();
+            List<ReviewResponse> filteredReviews = allReviews.getContent().stream()
+                    .map(this::mapToReviewResponse)
+                    .filter(r -> r.getProductName() != null && 
+                            r.getProductName().toLowerCase().contains(productNameLower))
+                    .toList();
+            
+            return PageResponse.<ReviewResponse>builder()
+                    .currentPage(allReviews.getNumber())
+                    .pageSize(allReviews.getSize())
+                    .totalPages(allReviews.getTotalPages())
+                    .totalElements((long) filteredReviews.size())
+                    .content(filteredReviews)
+                    .build();
+        }
+        
+        // No search criteria, return all
+        if (status != null) {
+            return buildPageResponse(reviewRepository.findByStatusOrderByCreatedAtDesc(status, pageable));
+        }
+        return buildPageResponse(reviewRepository.findAll(pageable));
     }
 
     /**
@@ -304,9 +378,26 @@ public class AdminReviewService {
             }
         }
 
+        // Get product info
+        String productName = null;
+        String productImage = null;
+        try {
+            Product product = productRepository.findById(review.getProductId()).orElse(null);
+            if (product != null) {
+                productName = product.getName();
+                if (product.getImages() != null && !product.getImages().isEmpty()) {
+                    productImage = product.getImages().get(0);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch product info for review {}: {}", review.getId(), e.getMessage());
+        }
+
         return ReviewResponse.builder()
                 .id(review.getId())
                 .productId(review.getProductId())
+                .productName(productName)
+                .productImage(productImage)
                 .userId(review.getUserId())
                 .userName(review.getUserName())
                 .userAvatar(review.getUserAvatar())

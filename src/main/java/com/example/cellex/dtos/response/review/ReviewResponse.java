@@ -26,6 +26,12 @@ public class ReviewResponse {
     @JsonProperty("product_id")
     private String productId;
 
+    @JsonProperty("product_name")
+    private String productName;
+
+    @JsonProperty("product_image")
+    private String productImage;
+
     @JsonProperty("user_id")
     private String userId;
 
@@ -54,6 +60,13 @@ public class ReviewResponse {
 
     @JsonProperty("is_verified_purchase")
     private Boolean isVerifiedPurchase;
+
+    // Helpful vote fields
+    @JsonProperty("helpful_count")
+    private Integer helpfulCount;
+
+    @JsonProperty("has_voted_helpful")
+    private Boolean hasVotedHelpful; // Indicates if current user has voted helpful
 
     // Moderation fields
     private ReviewStatus status;

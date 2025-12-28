@@ -21,6 +21,9 @@ public class OrderResponse {
 
     private String id;
 
+    @JsonProperty("order_code")
+    private String orderCode;
+
     // full user and shop objects - prefer objects to ids
     @JsonProperty("user")
     private UserResponse user;

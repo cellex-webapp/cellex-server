@@ -59,13 +59,15 @@ public class ReviewController {
     }
 
     @Operation(summary = "Add vendor response", description = "Vendor adds a response to a review")
-    @PostMapping("/{reviewId}/vendor-response")
+    @PostMapping(value = "/{reviewId}/vendor-response", consumes = "application/json")
     @PreAuthorize("hasRole('VENDOR')")
     public ResponseEntity<ApiResponse<ReviewResponse>> addVendorResponse(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable String reviewId,
-            @Valid @RequestBody VendorResponseRequest request
+            @Valid @org.springframework.web.bind.annotation.RequestBody VendorResponseRequest request
     ) {
+        log.info("Received vendor response request: {}", request);
+        log.info("Comment value: {}", request.getComment());
         String vendorId = ((com.example.cellex.models.user.User) userDetails).getId();
         ReviewResponse review = reviewService.addVendorResponse(vendorId, reviewId, request);
 
@@ -186,6 +188,21 @@ public class ReviewController {
                 .build());
     }
 
+    @Operation(summary = "Get order reviews", description = "Get all reviews for a specific order")
+    @GetMapping("/order/{orderId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<java.util.List<ReviewResponse>>> getOrderReviews(
+            @PathVariable String orderId
+    ) {
+        java.util.List<ReviewResponse> reviews = reviewService.getOrderReviews(orderId);
+
+        return ResponseEntity.ok(ApiResponse.<java.util.List<ReviewResponse>>builder()
+                .code(2000)
+                .message("Lấy danh sách đánh giá của đơn hàng thành công")
+                .result(reviews)
+                .build());
+    }
+
     @Operation(summary = "Get review by ID", description = "Get detailed information of a specific review")
     @GetMapping("/{reviewId}")
     public ResponseEntity<ApiResponse<ReviewResponse>> getReviewById(@PathVariable String reviewId) {
@@ -233,6 +250,39 @@ public class ReviewController {
                 .code(2000)
                 .message("Lấy thống kê đánh giá thành công")
                 .result(stats)
+                .build());
+    }
+
+    @Operation(summary = "Mark review as helpful", description = "User marks a review as helpful. Each user can only vote once per review.")
+    @PostMapping("/{reviewId}/helpful")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<ReviewResponse>> markReviewHelpful(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String reviewId
+    ) {
+        String userId = ((com.example.cellex.models.user.User) userDetails).getId();
+        ReviewResponse review = reviewService.markReviewHelpful(userId, reviewId);
+
+        return ResponseEntity.ok(ApiResponse.<ReviewResponse>builder()
+                .code(2000)
+                .message("Đã đánh dấu đánh giá là hữu ích")
+                .result(review)
+                .build());
+    }
+
+    @Operation(summary = "Delete a review", description = "Customer deletes their own review. This will cascade delete vendor responses.")
+    @DeleteMapping("/{reviewId}")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<Void>> deleteReview(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String reviewId
+    ) {
+        String userId = ((com.example.cellex.models.user.User) userDetails).getId();
+        reviewService.deleteReview(userId, reviewId);
+
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .code(2000)
+                .message("Xóa đánh giá thành công")
                 .build());
     }
 }

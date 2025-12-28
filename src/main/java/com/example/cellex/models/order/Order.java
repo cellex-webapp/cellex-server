@@ -26,6 +26,10 @@ public class Order {
     @Id
     private String id;
 
+    @Indexed(unique = true, sparse = true)
+    @Field("order_code")
+    private String orderCode;
+
     @Indexed
     @Field("user_id")
     private String userId;

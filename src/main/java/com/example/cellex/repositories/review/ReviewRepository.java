@@ -95,4 +95,14 @@ public interface ReviewRepository extends MongoRepository<Review, String> {
 
     // Đếm reviews pending moderation
     long countByStatusIn(List<ReviewStatus> statuses);
+
+    // ============= SEARCH QUERIES =============
+
+    // Tìm kiếm theo tên người dùng (case-insensitive partial match)
+    Page<Review> findByUserNameContainingIgnoreCaseOrderByCreatedAtDesc(
+            String userName, Pageable pageable);
+
+    // Tìm kiếm theo tên người dùng và status
+    Page<Review> findByUserNameContainingIgnoreCaseAndStatusOrderByCreatedAtDesc(
+            String userName, ReviewStatus status, Pageable pageable);
 }

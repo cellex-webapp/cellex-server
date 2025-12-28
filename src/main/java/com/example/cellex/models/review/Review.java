@@ -69,6 +69,14 @@ public class Review {
     @Builder.Default
     private Boolean isVerifiedPurchase = true; // Luôn true vì chỉ cho phép review sau khi nhận hàng
 
+    // Helpful vote fields
+    @Field("helpful_count")
+    @Builder.Default
+    private Integer helpfulCount = 0; // Số lượt đánh giá hữu ích
+
+    @Field("helpful_voted_user_ids")
+    private List<String> helpfulVotedUserIds; // Danh sách user đã vote helpful
+
     // Moderation fields
     @Indexed
     @Field("status")

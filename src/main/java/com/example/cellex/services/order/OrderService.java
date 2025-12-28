@@ -115,6 +115,7 @@ public class OrderService {
 
         // Tạo đơn hàng (không lưu note ở bước tạo)
         Order order = Order.builder()
+            .orderCode(generateOrderCode())
             .userId(userId)
             .shopId(shop.getId())
             .shopName(shop.getShopName())
@@ -221,6 +222,7 @@ public class OrderService {
         double totalAmount = subtotal + shippingFee;
 
         Order order = Order.builder()
+                .orderCode(generateOrderCode())
                 .userId(userId)
                 .shopId(shop.getId())
                 .shopName(shop.getShopName())
@@ -867,6 +869,7 @@ public class OrderService {
 
         return OrderResponse.builder()
                 .id(order.getId())
+                .orderCode(order.getOrderCode())
                 .user(userResp)
                 .shop(shopResp)
                 .items(order.getItems().stream()
@@ -927,6 +930,49 @@ public class OrderService {
                 .updatedBy(history.getUpdatedBy())
                 .updatedAt(history.getUpdatedAt())
                 .build();
+    }
+
+    /**
+     * Generate a unique order code in format: ORDYYYYMMDDHHmmss + 4 random digits
+     * Example: ORD20240115143052-1234
+     */
+    private String generateOrderCode() {
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+        String timestamp = LocalDateTime.now().format(formatter);
+        int randomSuffix = new java.util.Random().nextInt(9000) + 1000; // 4-digit random number (1000-9999)
+        return String.format("ORD%s-%04d", timestamp, randomSuffix);
+    }
+
+    /**
+     * Migration method to generate orderCode for existing orders without one.
+     * Should be called on application startup.
+     */
+    @Transactional
+    public void migrateOrderCodes() {
+        log.info("Starting migration of order codes for existing orders...");
+        
+        List<Order> ordersWithoutCode = orderRepository.findAll().stream()
+                .filter(order -> order.getOrderCode() == null || order.getOrderCode().isEmpty())
+                .collect(Collectors.toList());
+        
+        if (ordersWithoutCode.isEmpty()) {
+            log.info("No orders need migration for order codes.");
+            return;
+        }
+        
+        log.info("Found {} orders without order codes, starting migration...", ordersWithoutCode.size());
+        
+        for (Order order : ordersWithoutCode) {
+            String newCode = generateOrderCode();
+            // Ensure uniqueness by checking and regenerating if needed
+            while (orderRepository.findByOrderCode(newCode).isPresent()) {
+                newCode = generateOrderCode();
+            }
+            order.setOrderCode(newCode);
+            orderRepository.save(order);
+        }
+        
+        log.info("Completed migration of {} order codes.", ordersWithoutCode.size());
     }
 }
 

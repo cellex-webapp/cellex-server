@@ -42,13 +42,25 @@ public class AdminReviewController {
     public ResponseEntity<ApiResponse<PageResponse<ReviewResponse>>> getAllReviews(
             @io.swagger.v3.oas.annotations.Parameter(description = "Số trang (bắt đầu từ 1)") @RequestParam(defaultValue = "1") Integer page,
             @io.swagger.v3.oas.annotations.Parameter(description = "Số lượng mỗi trang") @RequestParam(defaultValue = "20") Integer limit,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Tên sản phẩm") @RequestParam(required = false) String productName,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Tên người dùng") @RequestParam(required = false) String userName,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Trạng thái") @RequestParam(required = false) ReviewStatus status,
             @io.swagger.v3.oas.annotations.Parameter(description = "Sắp xếp theo (createdAt, rating)") @RequestParam(defaultValue = "createdAt") String sortBy,
             @io.swagger.v3.oas.annotations.Parameter(description = "Kiểu sắp xếp (asc/desc)") @RequestParam(defaultValue = "desc") String sortType
     ) {
         int pageNumber = Math.max(page - 1, 0);
         Sort sort = sortType.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(pageNumber, limit, sort);
-        PageResponse<ReviewResponse> reviews = adminReviewService.getAllReviews(pageable);
+        
+        PageResponse<ReviewResponse> reviews;
+        // If productName or userName is provided, use search
+        if ((productName != null && !productName.isEmpty()) || (userName != null && !userName.isEmpty())) {
+            reviews = adminReviewService.searchReviews(productName, userName, status, pageable);
+        } else if (status != null) {
+            reviews = adminReviewService.getReviewsByStatus(status, pageable);
+        } else {
+            reviews = adminReviewService.getAllReviews(pageable);
+        }
 
         return ResponseEntity.ok(ApiResponse.<PageResponse<ReviewResponse>>builder()
                 .code(2000)

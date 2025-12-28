@@ -43,6 +43,8 @@ public interface OrderRepository extends MongoRepository<Order, String> {
 
     List<Order> findByUserCouponId(String userCouponId);
 
+    Optional<Order> findByOrderCode(String orderCode);
+
     // ==================== Analytics Methods ====================
 
     /**

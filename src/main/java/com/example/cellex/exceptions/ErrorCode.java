@@ -130,6 +130,8 @@ public enum ErrorCode {
     PRODUCT_NOT_EXISTED(14005, "Sản phẩm không tồn tại", HttpStatus.NOT_FOUND),
     REVIEW_MODERATION_FAILED(14006, "Kiểm duyệt đánh giá thất bại", HttpStatus.INTERNAL_SERVER_ERROR),
     REVIEW_ALREADY_MODERATED(14007, "Đánh giá đã được kiểm duyệt", HttpStatus.BAD_REQUEST),
+    REVIEW_NOT_APPROVED(14008, "Đánh giá chưa được duyệt", HttpStatus.BAD_REQUEST),
+    ALREADY_VOTED_HELPFUL(14009, "Bạn đã đánh giá hữu ích rồi", HttpStatus.BAD_REQUEST),
 
     // Chat Errors (MSG codes)
     MSG08_NO_PERMISSION(15008, "Bạn không có quyền thực hiện hành động này", HttpStatus.FORBIDDEN),
