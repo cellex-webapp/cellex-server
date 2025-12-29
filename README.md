@@ -133,6 +133,60 @@ tail -f app.log
 ## 📚 Tài liệu API
 Sau khi ứng dụng đã khởi động thành công, tài liệu API sẽ có sẵn tại Swagger UI:
 
+**Local:**
+```
+http://localhost:8080/swagger-ui/index.html
+```
+
+**Production (EC2):**
 ```
 http://<your-ec2-ip>:8088/swagger-ui.html
 ```
+
+**Production (Render):**
+```
+https://your-service.onrender.com/swagger-ui/index.html
+```
+
+## 🚀 Deploy lên Render (Khuyến nghị)
+
+Render là một nền tảng cloud deployment đơn giản và miễn phí cho developers. Backend này đã được cấu hình sẵn để deploy với **Docker**.
+
+### 📖 Tài liệu Deployment
+- **Docker Guide**: [DOCKER_DEPLOYMENT.md](./DOCKER_DEPLOYMENT.md) - Deploy với Docker
+- **Quick Start (5 phút)**: [RENDER_QUICK_START.md](./RENDER_QUICK_START.md)
+- **Hướng dẫn đầy đủ**: [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md)
+- **Checklist chi tiết**: [RENDER_DEPLOYMENT_CHECKLIST.md](./RENDER_DEPLOYMENT_CHECKLIST.md)
+
+### ⚡ Các bước cơ bản
+1. Push code lên GitHub/GitLab
+2. Tạo Web Service trên [Render](https://render.com)
+3. Chọn runtime: **Docker** (tự động detect)
+4. Set environment variables
+5. Deploy! 🎉
+
+### 🐳 Local Development với Docker
+```bash
+# Chạy tất cả services (Backend + MongoDB + Mongo Express)
+docker-compose up -d
+
+# Xem logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
+```
+
+### 💰 Chi phí
+- **Free tier**: $0/tháng (development/testing)
+- **Starter**: $7/tháng (production với 24/7 uptime)
+- **Standard**: $25/tháng (production với performance cao hơn)
+
+### 🔗 Files deployment
+- `Dockerfile` - Multi-stage Docker build
+- `.dockerignore` - Optimize Docker build
+- `docker-compose.yml` - Local development
+- `render.yaml` - Infrastructure as Code
+- `.env.example` - Template cho environment variables
+
+Xem chi tiết trong [DOCKER_DEPLOYMENT.md](./DOCKER_DEPLOYMENT.md) và [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md)

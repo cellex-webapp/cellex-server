@@ -1,0 +1,95 @@
+services:
+  # Backend Web Service
+  - type: web
+    name: cellex-backend
+    runtime: docker  # Changed to Docker
+    plan: free  # Có thể chọn: free, starter, standard, pro
+    # Docker build sẽ tự động dùng Dockerfile
+    # Không cần buildCommand và startCommand
+    envVars:
+      # Server Configuration
+      - key: SERVER_PORT
+        sync: false
+        value: 8080
+      
+      # Database Configuration
+      - key: MONGO_URI
+        sync: false
+        # Value cần được set trong Render Dashboard
+      
+      # Email Configuration
+      - key: EMAIL_USERNAME
+        sync: false
+      - key: EMAIL_PASSWORD
+        sync: false
+      
+      # Google OAuth2 Configuration
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REFRESH_TOKEN
+        sync: false
+      
+      # Cloudinary Configuration
+      - key: CLOUDINARY_URL
+        sync: false
+      
+      # VNPAY Configuration
+      - key: VNPAY_TMN_CODE
+        sync: false
+      - key: VNPAY_HASH_SECRET
+        sync: false
+      - key: VNPAY_URL
+        sync: false
+      - key: VNPAY_RETURN_URL
+        sync: false
+      - key: VNPAY_VERSION
+        value: 2.1.0
+      - key: VNPAY_COMMAND
+        value: pay
+      - key: VNPAY_CURRENCY
+        value: VND
+      - key: VNPAY_LOCALE
+        value: vn
+      - key: VNPAY_ORDER_TYPE
+        value: other
+      
+      # Frontend URLs
+      - key: FRONTEND_PAYMENT_SUCCESS_URL
+        sync: false
+      - key: FRONTEND_PAYMENT_FAILURE_URL
+        sync: false
+      
+      # Firebase Configuration Path
+      - key: FIREBASE_CONFIG_PATH
+        value: firebase-service-account.json
+      
+      # OpenAI Configuration
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODERATION_ENABLED
+        value: false
+    
+    # Health check configuration
+    healthCheckPath: /actuator/health
+    
+    # Auto-deploy settings
+    autoDeploy: true
+    
+    # Region
+    region: singapore  # Chọn region gần nhất: oregon, frankfurt, singapore
+    
+    # Disk configuration for storing files
+    disk:
+      name: cellex-disk
+      mountPath: /opt/render/project/data
+      sizeGB: 1
+
+# Database (nếu dùng MongoDB trên Render)
+# Nếu dùng MongoDB Atlas thì không cần phần này
+# databases:
+#   - name: cellex-mongodb
+#     plan: free
+#     databaseName: cellex
+#     user: cellex_user

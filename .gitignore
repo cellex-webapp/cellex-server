@@ -39,3 +39,4 @@ build/
 
 firebase-service-account.json
 
+*.md
