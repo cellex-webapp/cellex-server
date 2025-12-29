@@ -12,6 +12,7 @@ import com.example.cellex.models.segment.CustomerSegment;
 import com.example.cellex.repositories.user.UserRepository;
 import com.example.cellex.services.S3Service;
 import com.example.cellex.services.address.AddressService;
+import com.example.cellex.services.chat.ChatService;
 import com.example.cellex.services.segment.CustomerSegmentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +36,7 @@ public class UserService {
     private final AddressService addressService;
     private final PasswordEncoder passwordEncoder;
     private final CustomerSegmentService customerSegmentService;
+    private final ChatService chatService;
 
     @Transactional
     public User createAccount(CreateUserDataRequest request, MultipartFile avatar) {
@@ -137,9 +139,14 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
+        String oldFullName = user.getFullName();
+        String oldAvatarUrl = user.getAvatarUrl();
+        boolean profileChanged = false;
+
         // Update basic info (removed email)
         if (request.getFullName() != null) {
             user.setFullName(request.getFullName());
+            profileChanged = true;
         }
 
         // Handle avatar upload
@@ -147,6 +154,7 @@ public class UserService {
             try {
                 String avatarUrl = s3Service.uploadFile(request.getAvatar(), "avatars");
                 user.setAvatarUrl(avatarUrl);
+                profileChanged = true;
             } catch (IOException e) {
                 throw new RuntimeException("Tải ảnh đại diện thất bại", e);
             }
@@ -198,6 +206,20 @@ public class UserService {
         }
 
         User savedUser = userRepository.save(user);
+
+        // Đồng bộ thông tin vào chat rooms nếu có thay đổi
+        if (profileChanged) {
+            String newFullName = !user.getFullName().equals(oldFullName) ? user.getFullName() : null;
+            String newAvatarUrl = user.getAvatarUrl() != null && !user.getAvatarUrl().equals(oldAvatarUrl) ? user.getAvatarUrl() : null;
+            
+            if (newFullName != null || newAvatarUrl != null) {
+                try {
+                    chatService.syncUserInfoInChatRooms(userId, newAvatarUrl, newFullName);
+                } catch (Exception e) {
+                    log.warn("Failed to sync user info to chat rooms: {}", e.getMessage());
+                }
+            }
+        }
 
         return mapToUserResponse(savedUser);
     }
@@ -267,9 +289,16 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
+        String oldFullName = user.getFullName();
+        boolean fullNameChanged = false;
+
         // Update basic info
         if (request.getFullName() != null && !request.getFullName().trim().isEmpty()) {
-            user.setFullName(request.getFullName().trim());
+            String newFullName = request.getFullName().trim();
+            if (!newFullName.equals(oldFullName)) {
+                user.setFullName(newFullName);
+                fullNameChanged = true;
+            }
         }
 
         if (request.getPhoneNumber() != null && !request.getPhoneNumber().trim().isEmpty()) {
@@ -286,6 +315,16 @@ public class UserService {
         }
 
         User savedUser = userRepository.save(user);
+        
+        // Đồng bộ fullName vào chat rooms nếu có thay đổi
+        if (fullNameChanged) {
+            try {
+                chatService.syncUserInfoInChatRooms(userId, null, savedUser.getFullName());
+            } catch (Exception e) {
+                log.warn("Failed to sync user fullName to chat rooms: {}", e.getMessage());
+            }
+        }
+        
         return mapToUserResponse(savedUser);
     }
 
@@ -393,9 +432,18 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
+        String oldFullName = user.getFullName();
+        String oldAvatarUrl = user.getAvatarUrl();
+        boolean fullNameChanged = false;
+        boolean avatarChanged = false;
+
         // Update full name if provided
         if (fullName != null && !fullName.trim().isEmpty()) {
-            user.setFullName(fullName);
+            String newFullName = fullName.trim();
+            if (!newFullName.equals(oldFullName)) {
+                user.setFullName(newFullName);
+                fullNameChanged = true;
+            }
         }
 
         // Update phone number if provided
@@ -418,10 +466,23 @@ public class UserService {
             // Upload avatar mới
             String newAvatarUrl = s3Service.uploadFile(avatar, "avatars");
             user.setAvatarUrl(newAvatarUrl);
+            avatarChanged = true;
         }
 
         User updatedUser = userRepository.save(user);
         log.info("Profile updated successfully for user: {}", userId);
+        
+        // Đồng bộ thông tin vào chat rooms nếu có thay đổi
+        if (fullNameChanged || avatarChanged) {
+            try {
+                String newFullNameToSync = fullNameChanged ? updatedUser.getFullName() : null;
+                String newAvatarUrlToSync = avatarChanged ? updatedUser.getAvatarUrl() : null;
+                chatService.syncUserInfoInChatRooms(userId, newAvatarUrlToSync, newFullNameToSync);
+            } catch (Exception e) {
+                log.warn("Failed to sync user info to chat rooms: {}", e.getMessage());
+            }
+        }
+        
         return mapToUserResponse(updatedUser);
     }
 

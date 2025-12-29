@@ -528,4 +528,58 @@ public class ChatService {
         }
         return total;
     }
+
+    /**
+     * Đồng bộ avatar và fullName của user vào tất cả chat rooms liên quan
+     * Được gọi khi user cập nhật profile
+     *
+     * @param userId ID của user đã cập nhật profile
+     * @param newAvatarUrl Avatar URL mới
+     * @param newFullName Tên đầy đủ mới
+     */
+    @Transactional
+    public void syncUserInfoInChatRooms(String userId, String newAvatarUrl, String newFullName) {
+        List<ChatRoom> chatRooms = chatRoomRepository.findAllByParticipantId(userId);
+        
+        if (chatRooms.isEmpty()) {
+            log.debug("No chat rooms found for user: {}", userId);
+            return;
+        }
+
+        int updatedCount = 0;
+        for (ChatRoom room : chatRooms) {
+            boolean updated = false;
+            
+            // Cập nhật nếu user là participant one
+            if (room.getParticipantOneId().equals(userId)) {
+                if (newAvatarUrl != null && !newAvatarUrl.equals(room.getParticipantOneAvatar())) {
+                    room.setParticipantOneAvatar(newAvatarUrl);
+                    updated = true;
+                }
+                if (newFullName != null && !newFullName.equals(room.getParticipantOneName())) {
+                    room.setParticipantOneName(newFullName);
+                    updated = true;
+                }
+            }
+            // Cập nhật nếu user là participant two
+            else if (room.getParticipantTwoId().equals(userId)) {
+                if (newAvatarUrl != null && !newAvatarUrl.equals(room.getParticipantTwoAvatar())) {
+                    room.setParticipantTwoAvatar(newAvatarUrl);
+                    updated = true;
+                }
+                if (newFullName != null && !newFullName.equals(room.getParticipantTwoName())) {
+                    room.setParticipantTwoName(newFullName);
+                    updated = true;
+                }
+            }
+            
+            if (updated) {
+                room.setUpdatedAt(LocalDateTime.now());
+                chatRoomRepository.save(room);
+                updatedCount++;
+            }
+        }
+        
+        log.info("✅ Synced user info for {} chat rooms (userId: {})", updatedCount, userId);
+    }
 }
