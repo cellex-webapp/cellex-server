@@ -33,9 +33,6 @@ WORKDIR /app
 # Copy JAR from build stage
 COPY --from=build /app/target/*.jar app.jar
 
-# Copy resources if needed
-COPY --from=build /app/src/main/resources/firebase-service-account.json* ./firebase-service-account.json 2>/dev/null || true
-
 # Change ownership to spring user
 RUN chown -R spring:spring /app
 

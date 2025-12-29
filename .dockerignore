@@ -4,8 +4,7 @@
 .gitattributes
 
 # Maven
-target/
-!target/*.jar
+# Note: Don't exclude target/ as it's needed during multi-stage build
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
