@@ -22,7 +22,17 @@ public class EnvLoader {
 
     @PostConstruct
     public void loadEnvFile() {
+        // Only load .env file in local development
+        // In production (Docker/Render), environment variables are already set
+        
         Map<String, Object> envProperties = new HashMap<>();
+        
+        // Check if .env file exists
+        java.io.File envFile = new java.io.File(".env");
+        if (!envFile.exists()) {
+            System.out.println("ℹ️  No .env file found - using system environment variables (Production mode)");
+            return;
+        }
 
         try (BufferedReader reader = new BufferedReader(new FileReader(".env"))) {
             String line;
@@ -51,8 +61,8 @@ public class EnvLoader {
             System.out.println("🎉 Successfully loaded " + envProperties.size() + " properties from .env");
 
         } catch (IOException e) {
-            System.err.println("❌ Could not load .env file: " + e.getMessage());
-            System.err.println("📁 Make sure .env file exists in project root directory");
+            System.out.println("⚠️  Could not load .env file: " + e.getMessage());
+            System.out.println("ℹ️  Continuing with system environment variables");
         }
     }
 
