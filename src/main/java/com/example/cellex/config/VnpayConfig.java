@@ -35,6 +35,9 @@ public class VnpayConfig {
     @Value("${vnpay.order-type:other}")
     private String orderType;
 
+    @Value("${vnpay.timeout-minutes:15}")
+    private int timeoutMinutes;
+
     @Value("${frontend.payment.success-url:http://localhost:3000/payment/success}")
     private String frontendSuccessUrl;
 
