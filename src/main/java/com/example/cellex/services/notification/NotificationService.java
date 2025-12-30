@@ -181,15 +181,23 @@ public class NotificationService {
                 notificationBuilder.setImage(imageUrl);
             }
 
-            // Build data payload
+            // Build data payload - THÊM title và body vào data để Service Worker có thể xử lý
             Map<String, String> data = new HashMap<>();
+            data.put("title", title);  // Thêm title vào data
+            data.put("body", message); // Thêm body vào data
+            data.put("message", message); // Giữ lại để backward compatibility
             if (metadata != null) {
                 data.put("metadata", metadata);
             }
             if (actionUrl != null) {
                 data.put("actionUrl", actionUrl);
             }
+            if (imageUrl != null && !imageUrl.isEmpty()) {
+                data.put("image", imageUrl);
+            }
             data.put("timestamp", String.valueOf(System.currentTimeMillis()));
+            
+            log.info("📦 Data payload: {}", data);
 
             // Build multicast message
             MulticastMessage multicastMessage = MulticastMessage.builder()

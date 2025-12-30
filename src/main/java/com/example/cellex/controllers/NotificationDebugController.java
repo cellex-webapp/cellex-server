@@ -171,4 +171,150 @@ public class NotificationDebugController {
             );
         }
     }
+
+    @DeleteMapping("/cleanup-devices")
+    @Operation(summary = "Remove inactive devices for current user")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> cleanupDevices(@AuthenticationPrincipal User user) {
+        List<UserDevice> devices = userDeviceRepository.findByUserId(user.getId());
+        
+        int removedCount = 0;
+        int keptCount = 0;
+        
+        for (UserDevice device : devices) {
+            if (!device.getIsActive()) {
+                userDeviceRepository.delete(device);
+                removedCount++;
+                log.info("🗑️ Removed inactive device: {}", device.getId());
+            } else {
+                keptCount++;
+            }
+        }
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("removedDevices", removedCount);
+        result.put("activeDevices", keptCount);
+        
+        return ResponseEntity.ok(
+            ApiResponse.<Map<String, Object>>builder()
+                .code(1000)
+                .message("Cleanup completed")
+                .result(result)
+                .build()
+        );
+    }
+
+    @PostMapping("/validate-token")
+    @Operation(summary = "Validate FCM token by sending a dry-run message")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> validateToken(
+            @RequestParam String fcmToken
+    ) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("token", fcmToken.length() > 30 ? fcmToken.substring(0, 30) + "..." : fcmToken);
+        
+        try {
+            // Build a simple message for dry-run validation
+            com.google.firebase.messaging.Message message = com.google.firebase.messaging.Message.builder()
+                    .setToken(fcmToken)
+                    .putData("validate", "true")
+                    .build();
+            
+            // Send with dryRun=true to validate without actually sending
+            String response = com.google.firebase.messaging.FirebaseMessaging.getInstance()
+                    .send(message, true);
+            
+            result.put("valid", true);
+            result.put("response", response);
+            
+            return ResponseEntity.ok(
+                ApiResponse.<Map<String, Object>>builder()
+                    .code(1000)
+                    .message("Token is valid")
+                    .result(result)
+                    .build()
+            );
+        } catch (com.google.firebase.messaging.FirebaseMessagingException e) {
+            result.put("valid", false);
+            result.put("error", e.getMessage());
+            result.put("errorCode", e.getMessagingErrorCode() != null ? e.getMessagingErrorCode().toString() : "UNKNOWN");
+            
+            return ResponseEntity.ok(
+                ApiResponse.<Map<String, Object>>builder()
+                    .code(4000)
+                    .message("Token validation failed: " + e.getMessage())
+                    .result(result)
+                    .build()
+            );
+        }
+    }
+
+    @PostMapping("/send-data-only")
+    @Operation(summary = "Send a data-only notification (no notification payload)")
+    public ResponseEntity<ApiResponse<Map<String, String>>> sendDataOnlyNotification(
+            @AuthenticationPrincipal User user
+    ) {
+        log.info("Sending data-only notification to user: {}", user.getEmail());
+        
+        try {
+            List<UserDevice> devices = userDeviceRepository.findByUserIdAndIsActiveTrue(user.getId());
+            
+            if (devices.isEmpty()) {
+                return ResponseEntity.ok(
+                    ApiResponse.<Map<String, String>>builder()
+                        .code(4004)
+                        .message("No active devices found")
+                        .build()
+                );
+            }
+
+            List<String> tokens = devices.stream()
+                    .map(UserDevice::getFcmToken)
+                    .collect(java.util.stream.Collectors.toList());
+            
+            // Build data-only message (no notification payload)
+            Map<String, String> data = new HashMap<>();
+            data.put("title", "Test Data-Only Message");
+            data.put("body", "Đây là tin nhắn data-only để test Service Worker");
+            data.put("message", "Đây là tin nhắn data-only để test Service Worker");
+            data.put("type", "TEST");
+            data.put("actionUrl", "/test");
+            data.put("timestamp", String.valueOf(System.currentTimeMillis()));
+            
+            com.google.firebase.messaging.MulticastMessage message = com.google.firebase.messaging.MulticastMessage.builder()
+                    .putAllData(data)
+                    .addAllTokens(tokens)
+                    .setWebpushConfig(com.google.firebase.messaging.WebpushConfig.builder()
+                            .putHeader("Urgency", "high")
+                            .putHeader("TTL", "86400")
+                            .build())
+                    .build();
+            
+            com.google.firebase.messaging.BatchResponse response = 
+                    com.google.firebase.messaging.FirebaseMessaging.getInstance().sendEachForMulticast(message);
+            
+            log.info("📊 Data-only Result: {} success, {} failures", 
+                    response.getSuccessCount(), response.getFailureCount());
+            
+            Map<String, String> result = new HashMap<>();
+            result.put("successCount", String.valueOf(response.getSuccessCount()));
+            result.put("failureCount", String.valueOf(response.getFailureCount()));
+            result.put("totalTokens", String.valueOf(tokens.size()));
+            
+            return ResponseEntity.ok(
+                ApiResponse.<Map<String, String>>builder()
+                    .code(1000)
+                    .message("Data-only notification sent")
+                    .result(result)
+                    .build()
+            );
+        } catch (Exception e) {
+            log.error("Error sending data-only notification", e);
+            
+            return ResponseEntity.status(500).body(
+                ApiResponse.<Map<String, String>>builder()
+                    .code(5000)
+                    .message("Error: " + e.getMessage())
+                    .build()
+            );
+        }
+    }
 }
