@@ -44,16 +44,23 @@ public class VnpayService {
             vnpParams.put("vnp_ReturnUrl", vnpayConfig.getReturnUrl());
             vnpParams.put("vnp_IpAddr", ipAddress);
 
-            // Add timestamp
-            Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
+            // Add timestamp with Vietnam timezone (CRITICAL: Must match VNPay server timezone)
+            // Issue: Render servers use UTC timezone, but VNPay expects Vietnam timezone
+            TimeZone vnTimeZone = TimeZone.getTimeZone("Asia/Ho_Chi_Minh");
+            Calendar cld = Calendar.getInstance(vnTimeZone);
             SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
+            formatter.setTimeZone(vnTimeZone); // CRITICAL: Set timezone for formatter too!
+            
             String vnpCreateDate = formatter.format(cld.getTime());
             vnpParams.put("vnp_CreateDate", vnpCreateDate);
 
-            // Add expire date (10 minutes from now - giống dự án tham khảo)
-            cld.add(Calendar.MINUTE, 10);
+            // Add expire date (configurable timeout, default 15 minutes - recommended by VNPay)
+            cld.add(Calendar.MINUTE, vnpayConfig.getTimeoutMinutes());
             String vnpExpireDate = formatter.format(cld.getTime());
             vnpParams.put("vnp_ExpireDate", vnpExpireDate);
+            
+            log.info("VNPay payment created - CreateDate: {}, ExpireDate: {}, Timeout: {} minutes (TZ: {})", 
+                    vnpCreateDate, vnpExpireDate, vnpayConfig.getTimeoutMinutes(), vnTimeZone.getID());
 
             // Sort parameters and build query string
             List<String> fieldNames = new ArrayList<>(vnpParams.keySet());
