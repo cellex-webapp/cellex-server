@@ -13,6 +13,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import com.example.cellex.models.events.NotificationEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import com.example.cellex.repositories.user.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -25,6 +28,8 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserDeviceRepository userDeviceRepository;
+    private final ApplicationEventPublisher eventPublisher;
+    private final UserRepository userRepository;
 
     /**
      * Tạo và gửi notification cho một user cụ thể
@@ -57,6 +62,17 @@ public class NotificationService {
 
         // Gửi push notification qua FCM
         sendPushNotificationToUser(user.getId(), title, message, metadata, actionUrl, imageUrl);
+
+        NotificationEvent event = NotificationEvent.builder()
+                .recipientId(user.getId())
+                .title(title)
+                .message(message)
+                .type(type)
+                .imageUrl(imageUrl)
+                .actionUrl(actionUrl)
+                .build();
+        
+        eventPublisher.publishEvent(event);
     }
 
     /**
@@ -91,6 +107,30 @@ public class NotificationService {
 
         // Gửi push notification đến tất cả devices
         sendPushNotificationToAllDevices(title, message, metadata, actionUrl, imageUrl);
+
+        List<User> users = userRepository.findAll(); 
+        
+        int emailCount = 0;
+        for (User user : users) {
+            // Chỉ gửi nếu user có email hợp lệ
+            if (user.getEmail() != null && !user.getEmail().isEmpty()) {
+                
+                // Tạo event gửi mail cho từng user
+                NotificationEvent event = NotificationEvent.builder()
+                        .recipientId(user.getId())
+                        .title(title)
+                        .message(message)
+                        .type(type)
+                        .actionUrl(actionUrl) // Có thể trỏ về trang thông báo chung
+                        // .imageUrl(imageUrl) // Nếu Event của bạn hỗ trợ image
+                        .build();
+
+                // Bắn sự kiện (Listener sẽ bắt và gửi mail)
+                eventPublisher.publishEvent(event);
+                emailCount++;
+            }
+        }
+        log.info("✅ Broadcast completed. Sent Push to devices and triggered {} emails.", emailCount);
     }
 
     /**
