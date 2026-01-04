@@ -25,6 +25,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.cellex.models.events.NotificationEvent;
+import com.example.cellex.enums.NotificationType;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -49,6 +53,10 @@ public class ChatService {
     private final ChatRoomRepository chatRoomRepository;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final ApplicationEventPublisher eventPublisher;
+
+    // @Value("${app.action.url}")
+    // private String appActionUrl;
 
     // Danh sách từ cấm (mocked)
     private static final List<String> PROHIBITED_WORDS = Arrays.asList("spam", "bad");
@@ -106,6 +114,17 @@ public class ChatService {
 
         // 7. Gửi tin nhắn realtime qua WebSocket
         sendWebSocketMessage(response, receiver.getId());
+
+        NotificationEvent event = NotificationEvent.builder()
+                .recipientId(receiver.getId())
+                .title("Tin nhắn mới từ " + sender.getFullName())
+                .message(request.getContent())
+                .type(NotificationType.CHAT_MESSAGE)
+                // .actionUrl(appActionUrl + chatRoom.getId())
+                .imageUrl(sender.getAvatarUrl())
+                .build();
+
+        eventPublisher.publishEvent(event);
 
         log.info("Message sent successfully from {} to {}", sender.getId(), receiver.getId());
         return response;

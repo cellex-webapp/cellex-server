@@ -13,5 +13,5 @@ public enum NotificationType {
     PROMOTION,        // Khuyến mãi
     PRODUCT_RESTOCK,  // Sản phẩm có hàng trở lại
     REVIEW_REQUEST,   // Yêu cầu đánh giá
-    REVIEW, CUSTOM           // Tùy chỉnh
+    REVIEW, CUSTOM, CHAT_MESSAGE           // Tùy chỉnh
 }
