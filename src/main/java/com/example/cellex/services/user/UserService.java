@@ -607,6 +607,9 @@ public class UserService {
         }
 
         return UserResponse.AddressResponse.builder()
+                .provinceCode(address.getProvinceCode())
+                .communeCode(address.getCommuneCode())
+                .detailAddress(address.getDetailAddress())
                 .street(address.getDetailAddress())
                 .commune(address.getCommuneName())
                 .province(address.getProvinceName())

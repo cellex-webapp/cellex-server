@@ -46,6 +46,9 @@ public class UserResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class AddressResponse {
+        private String provinceCode;
+        private String communeCode;
+        private String detailAddress;
         private String street;
         private String commune;
         private String province;
