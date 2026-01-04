@@ -3,9 +3,11 @@ package com.example.cellex.services.notification;
 import com.example.cellex.enums.NotificationType;
 import com.example.cellex.models.notification.Notification;
 import com.example.cellex.models.notification.UserDevice;
+import com.example.cellex.models.notification.UserNotificationRead;
 import com.example.cellex.models.user.User;
 import com.example.cellex.repositories.notification.NotificationRepository;
 import com.example.cellex.repositories.notification.UserDeviceRepository;
+import com.example.cellex.repositories.notification.UserNotificationReadRepository;
 import com.google.firebase.messaging.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +32,7 @@ public class NotificationService {
     private final UserDeviceRepository userDeviceRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final UserRepository userRepository;
+    private final UserNotificationReadRepository userNotificationReadRepository;
 
     /**
      * Tạo và gửi notification cho một user cụ thể
@@ -370,10 +373,28 @@ public class NotificationService {
     }
 
     /**
-     * Đếm số notification chưa đọc
+     * Đếm số notification chưa đọc (bao gồm cả broadcast chưa đọc)
      */
     public Long countUnreadNotifications(User user) {
-        return notificationRepository.countUnreadNotifications(user.getId(), LocalDateTime.now());
+        // 1. Đếm notifications cá nhân chưa đọc
+        Long personalUnread = notificationRepository.countUnreadPersonalNotifications(
+            user.getId(), 
+            LocalDateTime.now()
+        );
+        
+        // 2. Đếm broadcast notifications chưa đọc
+        List<Notification> activeBroadcasts = notificationRepository.findActiveBroadcastNotifications(
+            LocalDateTime.now()
+        );
+        
+        long broadcastUnread = activeBroadcasts.stream()
+            .filter(notification -> !userNotificationReadRepository.existsByUserIdAndNotificationId(
+                user.getId(), 
+                notification.getId()
+            ))
+            .count();
+        
+        return personalUnread + broadcastUnread;
     }
 
     /**
@@ -383,15 +404,28 @@ public class NotificationService {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new RuntimeException("Notification not found"));
 
-        // Verify user owns this notification (or it's a broadcast)
-        if (!notification.getIsBroadcast() && !notification.getUserId().equals(user.getId())) {
-            throw new RuntimeException("Unauthorized access to notification");
-        }
-
-        if (!notification.getIsRead()) {
-            notification.setIsRead(true);
-            notification.setReadAt(LocalDateTime.now());
-            notificationRepository.save(notification);
+        // Nếu là broadcast notification, thêm vào bảng user_notification_reads
+        if (notification.getIsBroadcast()) {
+            // Kiểm tra xem đã đánh dấu chưa
+            if (!userNotificationReadRepository.existsByUserIdAndNotificationId(user.getId(), notificationId)) {
+                UserNotificationRead readRecord = UserNotificationRead.builder()
+                    .userId(user.getId())
+                    .notificationId(notificationId)
+                    .readAt(LocalDateTime.now())
+                    .build();
+                userNotificationReadRepository.save(readRecord);
+            }
+        } else {
+            // Nếu là notification cá nhân, verify user owns this notification
+            if (!notification.getUserId().equals(user.getId())) {
+                throw new RuntimeException("Unauthorized access to notification");
+            }
+            
+            if (!notification.getIsRead()) {
+                notification.setIsRead(true);
+                notification.setReadAt(LocalDateTime.now());
+                notificationRepository.save(notification);
+            }
         }
     }
 
@@ -399,16 +433,37 @@ public class NotificationService {
      * Đánh dấu tất cả notifications là đã đọc
      */
     public int markAllAsRead(User user) {
-        List<Notification> unreadNotifications = notificationRepository.findByUserIdAndIsReadFalse(user.getId());
         LocalDateTime now = LocalDateTime.now();
+        int count = 0;
         
-        unreadNotifications.forEach(notification -> {
+        // 1. Đánh dấu tất cả personal notifications chưa đọc
+        List<Notification> unreadPersonalNotifications = notificationRepository.findByUserIdAndIsReadFalse(user.getId());
+        unreadPersonalNotifications.forEach(notification -> {
             notification.setIsRead(true);
             notification.setReadAt(now);
         });
+        notificationRepository.saveAll(unreadPersonalNotifications);
+        count += unreadPersonalNotifications.size();
         
-        notificationRepository.saveAll(unreadNotifications);
-        return unreadNotifications.size();
+        // 2. Đánh dấu tất cả broadcast notifications chưa đọc
+        List<Notification> activeBroadcasts = notificationRepository.findActiveBroadcastNotifications(now);
+        List<UserNotificationRead> newReads = new ArrayList<>();
+        
+        for (Notification broadcast : activeBroadcasts) {
+            if (!userNotificationReadRepository.existsByUserIdAndNotificationId(user.getId(), broadcast.getId())) {
+                UserNotificationRead readRecord = UserNotificationRead.builder()
+                    .userId(user.getId())
+                    .notificationId(broadcast.getId())
+                    .readAt(now)
+                    .build();
+                newReads.add(readRecord);
+            }
+        }
+        
+        userNotificationReadRepository.saveAll(newReads);
+        count += newReads.size();
+        
+        return count;
     }
 
     /**
@@ -435,5 +490,21 @@ public class NotificationService {
         int deleted = expiredNotifications.size();
         log.info("Deleted {} expired notifications", deleted);
         return deleted;
+    }
+    
+    /**
+     * Kiểm tra broadcast notification đã được đọc bởi user chưa
+     */
+    public boolean isBroadcastReadByUser(String notificationId, String userId) {
+        return userNotificationReadRepository.existsByUserIdAndNotificationId(userId, notificationId);
+    }
+    
+    /**
+     * Lấy thời gian đọc broadcast notification của user
+     */
+    public LocalDateTime getBroadcastReadTime(String notificationId, String userId) {
+        return userNotificationReadRepository.findByUserIdAndNotificationId(userId, notificationId)
+                .map(UserNotificationRead::getReadAt)
+                .orElse(null);
     }
 }

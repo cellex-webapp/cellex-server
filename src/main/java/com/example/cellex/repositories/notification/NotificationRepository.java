@@ -19,8 +19,13 @@ public interface NotificationRepository extends MongoRepository<Notification, St
     @Query("{ $or: [ { 'user_id': ?0 }, { 'is_broadcast': true } ], $or: [ { 'expires_at': null }, { 'expires_at': { $gt: ?1 } } ] }")
     Page<Notification> findUserNotifications(String userId, LocalDateTime now, Pageable pageable);
     
-    @Query(value = "{ $or: [ { 'user_id': ?0 }, { 'is_broadcast': true } ], 'is_read': false, $or: [ { 'expires_at': null }, { 'expires_at': { $gt: ?1 } } ] }", count = true)
-    Long countUnreadNotifications(String userId, LocalDateTime now);
+    // Đếm notifications cá nhân chưa đọc (không bao gồm broadcast)
+    @Query(value = "{ 'user_id': ?0, 'is_broadcast': false, 'is_read': false, $or: [ { 'expires_at': null }, { 'expires_at': { $gt: ?1 } } ] }", count = true)
+    Long countUnreadPersonalNotifications(String userId, LocalDateTime now);
+    
+    // Lấy tất cả broadcast notifications chưa hết hạn
+    @Query("{ 'is_broadcast': true, $or: [ { 'expires_at': null }, { 'expires_at': { $gt: ?0 } } ] }")
+    List<Notification> findActiveBroadcastNotifications(LocalDateTime now);
     
     List<Notification> findByUserIdAndIsReadFalse(String userId);
     

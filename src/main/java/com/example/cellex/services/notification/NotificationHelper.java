@@ -22,7 +22,7 @@ public class NotificationHelper {
     public void notifyOrderCreated(Order order, User user) {
         String title = "Đơn hàng đã được tạo";
         String message = String.format("Đơn hàng #%s của bạn đã được tạo thành công. Tổng tiền: %,.0f VNĐ", 
-                order.getId(), order.getTotalAmount());
+                order.getOrderCode(), order.getTotalAmount());
         String metadata = String.format("{\"orderId\": \"%s\"}", order.getId());
         String actionUrl = "/orders/" + order.getId();
 
@@ -43,7 +43,7 @@ public class NotificationHelper {
     public void notifyOrderConfirmed(Order order, User user) {
         String title = "Đơn hàng đã được xác nhận";
         String message = String.format("Đơn hàng #%s đã được xác nhận và đang được chuẩn bị", 
-                order.getId());
+                order.getOrderCode());
         String metadata = String.format("{\"orderId\": \"%s\"}", order.getId());
         String actionUrl = "/orders/" + order.getId();
 
@@ -64,7 +64,7 @@ public class NotificationHelper {
     public void notifyOrderShipping(Order order, User user) {
         String title = "Đơn hàng đang được giao";
         String message = String.format("Đơn hàng #%s đang trên đường giao đến bạn", 
-                order.getId());
+                order.getOrderCode());
         String metadata = String.format("{\"orderId\": \"%s\"}", order.getId());
         String actionUrl = "/orders/" + order.getId();
 
@@ -85,7 +85,7 @@ public class NotificationHelper {
     public void notifyOrderDelivered(Order order, User user) {
         String title = "Đơn hàng đã được giao";
         String message = String.format("Đơn hàng #%s đã được giao thành công. Cảm ơn bạn đã mua hàng!", 
-                order.getId());
+                order.getOrderCode());
         String metadata = String.format("{\"orderId\": \"%s\"}", order.getId());
         String actionUrl = "/orders/" + order.getId();
 
@@ -106,7 +106,7 @@ public class NotificationHelper {
     public void notifyOrderCancelled(Order order, User user, String reason) {
         String title = "Đơn hàng đã bị hủy";
         String message = String.format("Đơn hàng #%s đã bị hủy. Lý do: %s", 
-                order.getId(), reason != null ? reason : "Không có lý do");
+                order.getOrderCode(), reason != null ? reason : "Không có lý do");
         String metadata = String.format("{\"orderId\": \"%s\", \"reason\": \"%s\"}", 
                 order.getId(), reason);
         String actionUrl = "/orders/" + order.getId();
@@ -128,7 +128,7 @@ public class NotificationHelper {
     public void notifyPaymentSuccess(Order order, User user) {
         String title = "Thanh toán thành công";
         String message = String.format("Thanh toán cho đơn hàng #%s đã được xử lý thành công", 
-                order.getId());
+                order.getOrderCode());
         String metadata = String.format("{\"orderId\": \"%s\"}", order.getId());
         String actionUrl = "/orders/" + order.getId();
 
@@ -149,7 +149,7 @@ public class NotificationHelper {
     public void notifyPaymentFailed(Order order, User user, String reason) {
         String title = "Thanh toán thất bại";
         String message = String.format("Thanh toán cho đơn hàng #%s không thành công. %s", 
-                order.getId(), reason != null ? reason : "Vui lòng thử lại");
+                order.getOrderCode(), reason != null ? reason : "Vui lòng thử lại");
         String metadata = String.format("{\"orderId\": \"%s\", \"reason\": \"%s\"}", 
                 order.getId(), reason);
         String actionUrl = "/orders/" + order.getId();
@@ -191,7 +191,7 @@ public class NotificationHelper {
     public void notifyReviewRequest(Order order, User user) {
         String title = "Đánh giá đơn hàng của bạn";
         String message = String.format("Hãy cho chúng tôi biết trải nghiệm của bạn với đơn hàng #%s", 
-                order.getId());
+                order.getOrderCode());
         String metadata = String.format("{\"orderId\": \"%s\"}", order.getId());
         String actionUrl = "/orders/" + order.getId() + "/review";
 

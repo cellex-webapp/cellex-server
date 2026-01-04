@@ -29,6 +29,7 @@ import com.example.cellex.repositories.user.UserRepository;
 import com.example.cellex.services.user.UserService;
 import com.example.cellex.services.shop.ShopService;
 import com.example.cellex.services.payment.vnpay.VnpayService;
+import com.example.cellex.services.notification.NotificationHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -54,6 +55,7 @@ public class OrderService {
     private final UserService userService;
     private final ShopService shopService;
     private final VnpayService vnpayService;
+    private final NotificationHelper notificationHelper;
 
     @Transactional
     public OrderResponse createOrderFromProduct(String userId, CreateOrderRequest request) {
@@ -530,6 +532,13 @@ public class OrderService {
         Order updated = orderRepository.save(order);
         log.info("Order cancelled successfully: {}", orderId);
 
+        // Gửi notification và email cho user
+        User user = userRepository.findById(userId)
+                .orElse(null);
+        if (user != null) {
+            notificationHelper.notifyOrderCancelled(updated, user, "Khách hàng hủy");
+        }
+
         return mapToResponse(updated);
     }
 
@@ -650,6 +659,13 @@ public class OrderService {
         Order updated = orderRepository.save(order);
         log.info("Order confirmed successfully: {}", orderId);
 
+        // Gửi notification và email cho user
+        User user = userRepository.findById(order.getUserId())
+                .orElse(null);
+        if (user != null) {
+            notificationHelper.notifyOrderConfirmed(updated, user);
+        }
+
         return mapToResponse(updated);
     }
 
@@ -669,6 +685,13 @@ public class OrderService {
 
         Order updated = orderRepository.save(order);
         log.info("Order shipped successfully: {}", orderId);
+
+        // Gửi notification và email cho user
+        User user = userRepository.findById(order.getUserId())
+                .orElse(null);
+        if (user != null) {
+            notificationHelper.notifyOrderShipping(updated, user);
+        }
 
         return mapToResponse(updated);
     }
@@ -698,6 +721,13 @@ public class OrderService {
 
         Order updated = orderRepository.save(order);
         log.info("Order delivered successfully: {}", orderId);
+
+        // Gửi notification và email cho user
+        User user = userRepository.findById(userId)
+                .orElse(null);
+        if (user != null) {
+            notificationHelper.notifyOrderDelivered(updated, user);
+        }
 
         return mapToResponse(updated);
     }

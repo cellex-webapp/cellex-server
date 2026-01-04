@@ -188,7 +188,7 @@ public class NotificationController {
         Long unreadCount = notificationService.countUnreadNotifications(user);
 
         List<NotificationResponse> notifications = notificationPage.getContent().stream()
-                .map(this::convertToResponse)
+                .map(n -> convertToResponse(n, user))
                 .collect(Collectors.toList());
 
         NotificationListResponse result = NotificationListResponse.builder()
@@ -279,14 +279,23 @@ public class NotificationController {
     }
 
     // Helper method to convert entity to response DTO
-    private NotificationResponse convertToResponse(Notification notification) {
+    private NotificationResponse convertToResponse(Notification notification, User user) {
+        boolean isRead = notification.getIsRead();
+        LocalDateTime readAt = notification.getReadAt();
+        
+        // Nếu là broadcast notification, kiểm tra trong bảng user_notification_reads
+        if (notification.getIsBroadcast()) {
+            isRead = notificationService.isBroadcastReadByUser(notification.getId(), user.getId());
+            readAt = notificationService.getBroadcastReadTime(notification.getId(), user.getId());
+        }
+        
         return NotificationResponse.builder()
                 .id(notification.getId())
                 .title(notification.getTitle())
                 .message(notification.getMessage())
                 .type(notification.getType())
-                .isRead(notification.getIsRead())
-                .readAt(notification.getReadAt())
+                .isRead(isRead)
+                .readAt(readAt)
                 .isBroadcast(notification.getIsBroadcast())
                 .metadata(notification.getMetadata())
                 .actionUrl(notification.getActionUrl())
