@@ -8,6 +8,7 @@ import lombok.Data;
 public class SendOtpRequest {
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
+    @jakarta.validation.constraints.Pattern(regexp = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", message = "Invalid email format")
     @Schema(example = "test@example.com")
     private String email;
 

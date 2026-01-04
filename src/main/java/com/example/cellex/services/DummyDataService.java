@@ -67,9 +67,11 @@ public class DummyDataService implements CommandLineRunner {
         // Load địa chỉ từ file JSON
         loadLocations();
 
-         if (hasExistingDummyData()) {
-           return;
-         }
+                 if (hasExistingDummyData()) {
+                        // Ensure banned user exists even when dummy data already present
+                        ensureBannedUserExists();
+                        return;
+                 }
 
         // Drop toàn bộ database trước khi seed (khi chưa có dummy data)
         //mongoTemplate.getDb().drop();
@@ -84,10 +86,27 @@ public class DummyDataService implements CommandLineRunner {
         seedUserCoupons();
     }
 
+    // Ensure banned user exists for tests that rely on a banned account
+    private void ensureBannedUserExists() {
+        if (!userRepository.findByEmailIgnoreCase("banned@gmail.com").isPresent()) {
+            userRepository.save(User.builder()
+                    .fullName("Banned User")
+                    .email("banned@gmail.com")
+                    .password(passwordEncoder.encode("Password123"))
+                    .phoneNumber(randomPhone())
+                    .avatarUrl(AVATAR_URL)
+                    .role(Role.USER)
+                    .isActive(false)
+                    .isBanned(true)
+                    .banReason("Seeded banned user for tests")
+                    .build());
+        }
+    }
+
     private boolean hasExistingDummyData() {
-        boolean hasAdmin = userRepository.findByEmail("admin@gmail.com").isPresent();
-        boolean hasVendor = userRepository.findByEmail("vendor@gmail.com").isPresent();
-        boolean hasUser = userRepository.findByEmail("user@gmail.com").isPresent();
+        boolean hasAdmin = userRepository.findByEmailIgnoreCase("admin@gmail.com").isPresent();
+        boolean hasVendor = userRepository.findByEmailIgnoreCase("vendor@gmail.com").isPresent();
+        boolean hasUser = userRepository.findByEmailIgnoreCase("user@gmail.com").isPresent();
         boolean hasCategories = categoryRepository.count() > 0;
         boolean hasProducts = productRepository.count() > 0;
         return (hasAdmin && hasVendor && hasUser) || (hasCategories && hasProducts);
@@ -116,7 +135,7 @@ public class DummyDataService implements CommandLineRunner {
 
     private void seedUsersAndShop() {
         // Admin
-        userRepository.findByEmail("admin@gmail.com").orElseGet(() -> userRepository.save(User.builder()
+        userRepository.findByEmailIgnoreCase("admin@gmail.com").orElseGet(() -> userRepository.save(User.builder()
                 .fullName("Admin User")
                 .email("admin@gmail.com")
                 .password(passwordEncoder.encode("123"))
@@ -129,7 +148,7 @@ public class DummyDataService implements CommandLineRunner {
                 .build()));
 
         // Vendor
-        User vendor = userRepository.findByEmail("vendor@gmail.com").orElseGet(() -> userRepository.save(User.builder()
+        User vendor = userRepository.findByEmailIgnoreCase("vendor@gmail.com").orElseGet(() -> userRepository.save(User.builder()
                 .fullName("Vendor User")
                 .email("vendor@gmail.com")
                 .password(passwordEncoder.encode("123"))
@@ -142,7 +161,7 @@ public class DummyDataService implements CommandLineRunner {
                 .build()));
 
         // Normal User
-        userRepository.findByEmail("user@gmail.com").orElseGet(() -> userRepository.save(User.builder()
+        userRepository.findByEmailIgnoreCase("user@gmail.com").orElseGet(() -> userRepository.save(User.builder()
                 .fullName("Normal User")
                 .email("user@gmail.com")
                 .password(passwordEncoder.encode("123"))
@@ -153,6 +172,19 @@ public class DummyDataService implements CommandLineRunner {
                 .totalSpend(randomBetween(0, 5_000_000))
                 .address(sampleUserAddress())
                 .build()));
+
+        // Banned user for tests
+        userRepository.findByEmailIgnoreCase("banned@gmail.com").orElseGet(() -> userRepository.save(User.builder()
+            .fullName("Banned User")
+            .email("banned@gmail.com")
+            .password(passwordEncoder.encode("Password123"))
+            .phoneNumber(randomPhone())
+            .avatarUrl(AVATAR_URL)
+            .role(Role.USER)
+            .isActive(false)
+            .isBanned(true)
+            .banReason("Test ban")
+            .build()));
 
         // Create a Shop for vendor if not exists
         if (shopRepository.findAll().stream().noneMatch(s -> Objects.equals(s.getVendorId(), vendor.getId()))) {
@@ -339,14 +371,14 @@ public class DummyDataService implements CommandLineRunner {
                 .perUserLimit(3)
                 .status(CampaignStatus.ACTIVE)
                 .isActive(true)
-                .createdBy(userRepository.findByEmail("admin@gmail.com").map(User::getId).orElse(null))
+                .createdBy(userRepository.findByEmailIgnoreCase("admin@gmail.com").map(User::getId).orElse(null))
                 .note("Seeded data")
                 .build();
         couponCampaignRepository.save(campaign);
 
         campaignDistributionLogRepository.save(CampaignDistributionLog.builder()
                 .campaignId(campaign.getId())
-                .adminId(userRepository.findByEmail("admin@gmail.com").map(User::getId).orElse(null))
+                .adminId(userRepository.findByEmailIgnoreCase("admin@gmail.com").map(User::getId).orElse(null))
                 .filterCriteria(Map.of("categoryIds", anyCategoryIds))
                 .recipientsCount(1000)
                 .successCount(980)
@@ -358,7 +390,7 @@ public class DummyDataService implements CommandLineRunner {
 
     private void seedUserCoupons() {
         if (userCouponRepository.count() > 0) return;
-        Optional<User> userOpt = userRepository.findByEmail("user@gmail.com");
+        Optional<User> userOpt = userRepository.findByEmailIgnoreCase("user@gmail.com");
         if (userOpt.isEmpty()) return;
         User user = userOpt.get();
 

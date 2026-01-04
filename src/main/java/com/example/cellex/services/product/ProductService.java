@@ -346,6 +346,24 @@ public class ProductService {
                                                  MultipartFile[] images) throws IOException {
         log.info("Creating product for vendorId: {}, categoryId: {}", vendorId, categoryId);
 
+        // Validate mandatory fields FIRST before any database lookups
+        if (categoryId == null || categoryId.trim().isEmpty()) {
+            log.error("Product category is missing or empty");
+            throw new AppException(ErrorCode.PRODUCT_MANDATORY_FIELDS_MISSING);
+        }
+        if (name == null || name.trim().isEmpty()) {
+            log.error("Product name is missing or empty");
+            throw new AppException(ErrorCode.PRODUCT_MANDATORY_FIELDS_MISSING);
+        }
+        if (price == null || price.trim().isEmpty()) {
+            log.error("Product price is missing or empty");
+            throw new AppException(ErrorCode.PRODUCT_MANDATORY_FIELDS_MISSING);
+        }
+        if (stockQuantity == null || stockQuantity.trim().isEmpty()) {
+            log.error("Product stock quantity is missing or empty");
+            throw new AppException(ErrorCode.PRODUCT_MANDATORY_FIELDS_MISSING);
+        }
+
         // Kiểm tra shop của vendor có tồn tại không
         Optional<Shop> shopOptional = shopRepository.findByVendorId(vendorId);
         if (shopOptional.isEmpty()) {
@@ -377,26 +395,45 @@ public class ProductService {
         Integer stockQuantityValue;
         Boolean isPublishedValue;
 
+        // Parse price with better error handling
         try {
-            priceValue = Double.parseDouble(price);
-            saleOffValue = saleOff != null && !saleOff.trim().isEmpty() ? Double.parseDouble(saleOff) : 0.0;
-            stockQuantityValue = Integer.parseInt(stockQuantity);
-            isPublishedValue = isPublished != null && !isPublished.trim().isEmpty() ? Boolean.parseBoolean(isPublished) : false;
+            priceValue = Double.parseDouble(price.trim());
         } catch (NumberFormatException e) {
-            log.error("Invalid number format in product data: price={}, saleOff={}, stockQuantity={}",
-                     price, saleOff, stockQuantity, e);
-            throw new AppException(ErrorCode.INVALID_INPUT);
+            log.error("Invalid price format: {}", price, e);
+            throw new AppException(ErrorCode.PRODUCT_INVALID_PRICE_OR_STOCK);
         }
+
+        // Parse saleOff
+        try {
+            saleOffValue = saleOff != null && !saleOff.trim().isEmpty() ? Double.parseDouble(saleOff.trim()) : 0.0;
+        } catch (NumberFormatException e) {
+            log.error("Invalid saleOff format: {}", saleOff, e);
+            throw new AppException(ErrorCode.PRODUCT_INVALID_PRICE_OR_STOCK);
+        }
+
+        // Parse stockQuantity
+        try {
+            stockQuantityValue = Integer.parseInt(stockQuantity.trim());
+        } catch (NumberFormatException e) {
+            log.error("Invalid stock quantity format: {}", stockQuantity, e);
+            throw new AppException(ErrorCode.PRODUCT_INVALID_PRICE_OR_STOCK);
+        }
+
+        isPublishedValue = isPublished != null && !isPublished.trim().isEmpty() ? Boolean.parseBoolean(isPublished) : false;
 
         // Validate giá trị
         if (priceValue <= 0) {
-            throw new AppException(ErrorCode.INVALID_INPUT);
+            log.error("Invalid price value: {}", priceValue);
+            throw new AppException(ErrorCode.PRODUCT_INVALID_PRICE_OR_STOCK);
         }
         if (saleOffValue < 0 || saleOffValue > 100) {
-            throw new AppException(ErrorCode.INVALID_INPUT);
+            log.error("Invalid sale off value: {}", saleOffValue);
+            throw new AppException(ErrorCode.PRODUCT_INVALID_PRICE_OR_STOCK);
         }
+        // Allow stock quantity of 0 (out of stock) but not negative
         if (stockQuantityValue < 0) {
-            throw new AppException(ErrorCode.INVALID_INPUT);
+            log.error("Invalid stock quantity value: {}", stockQuantityValue);
+            throw new AppException(ErrorCode.PRODUCT_INVALID_PRICE_OR_STOCK);
         }
 
         // Tính final price
@@ -473,7 +510,11 @@ public class ProductService {
         log.info("Found product: {} belongs to shop: {}", product.getId(), product.getShopId());
 
         // Update category nếu có
-        if (categoryId != null && !categoryId.trim().isEmpty()) {
+        if (categoryId != null) {
+            if (categoryId.trim().isEmpty()) {
+                log.error("Product category cannot be empty");
+                throw new AppException(ErrorCode.PRODUCT_MANDATORY_FIELDS_MISSING);
+            }
             Category category = categoryRepository.findById(categoryId)
                     .orElseThrow(() -> {
                         log.error("Category not found: {}", categoryId);
@@ -484,8 +525,12 @@ public class ProductService {
         }
 
         // Update tên nếu có
-        if (name != null && !name.trim().isEmpty()) {
-            product.setName(name);
+        if (name != null) {
+            if (name.trim().isEmpty()) {
+                log.error("Product name cannot be empty");
+                throw new AppException(ErrorCode.PRODUCT_MANDATORY_FIELDS_MISSING);
+            }
+            product.setName(name.trim());
             log.info("Updated name to: {}", name);
         }
 
@@ -496,64 +541,81 @@ public class ProductService {
         }
 
         // Update giá nếu có
-        if (price != null && !price.trim().isEmpty()) {
+        if (price != null) {
+            if (price.trim().isEmpty()) {
+                log.error("Product price cannot be empty");
+                throw new AppException(ErrorCode.PRODUCT_MANDATORY_FIELDS_MISSING);
+            }
+            Double priceValue;
             try {
-                Double priceValue = Double.parseDouble(price);
-                if (priceValue <= 0) {
-                    throw new AppException(ErrorCode.INVALID_INPUT);
-                }
-                product.setPrice(priceValue);
-
-                // Tính lại final price
-                Double saleOffValue = product.getSaleOff() != null ? product.getSaleOff() : 0.0;
-                Double finalPrice = priceValue;
-                if (saleOffValue > 0) {
-                    finalPrice = priceValue * (100 - saleOffValue) / 100;
-                }
-                product.setFinalPrice(finalPrice);
-                log.info("Updated price to: {}, finalPrice: {}", priceValue, finalPrice);
+                priceValue = Double.parseDouble(price.trim());
             } catch (NumberFormatException e) {
                 log.error("Invalid price format: {}", price, e);
-                throw new AppException(ErrorCode.INVALID_INPUT);
+                throw new AppException(ErrorCode.PRODUCT_INVALID_PRICE_OR_STOCK);
             }
+            
+            if (priceValue <= 0) {
+                log.error("Invalid price value: {}", priceValue);
+                throw new AppException(ErrorCode.PRODUCT_INVALID_PRICE_OR_STOCK);
+            }
+            product.setPrice(priceValue);
+
+            // Tính lại final price
+            Double saleOffValue = product.getSaleOff() != null ? product.getSaleOff() : 0.0;
+            Double finalPrice = priceValue;
+            if (saleOffValue > 0) {
+                finalPrice = priceValue * (100 - saleOffValue) / 100;
+            }
+            product.setFinalPrice(finalPrice);
+            log.info("Updated price to: {}, finalPrice: {}", priceValue, finalPrice);
         }
 
         // Update sale off nếu có
         if (saleOff != null && !saleOff.trim().isEmpty()) {
+            Double saleOffValue;
             try {
-                Double saleOffValue = Double.parseDouble(saleOff);
-                if (saleOffValue < 0 || saleOffValue > 100) {
-                    throw new AppException(ErrorCode.INVALID_INPUT);
-                }
-                product.setSaleOff(saleOffValue);
-
-                // Tính lại final price
-                Double priceValue = product.getPrice();
-                Double finalPrice = priceValue;
-                if (saleOffValue > 0) {
-                    finalPrice = priceValue * (100 - saleOffValue) / 100;
-                }
-                product.setFinalPrice(finalPrice);
-                log.info("Updated saleOff to: {}%, finalPrice: {}", saleOffValue, finalPrice);
+                saleOffValue = Double.parseDouble(saleOff.trim());
             } catch (NumberFormatException e) {
                 log.error("Invalid saleOff format: {}", saleOff, e);
-                throw new AppException(ErrorCode.INVALID_INPUT);
+                throw new AppException(ErrorCode.PRODUCT_INVALID_PRICE_OR_STOCK);
             }
+            
+            if (saleOffValue < 0 || saleOffValue > 100) {
+                log.error("Invalid sale off value: {}", saleOffValue);
+                throw new AppException(ErrorCode.PRODUCT_INVALID_PRICE_OR_STOCK);
+            }
+            product.setSaleOff(saleOffValue);
+
+            // Tính lại final price
+            Double priceValue = product.getPrice();
+            Double finalPrice = priceValue;
+            if (saleOffValue > 0) {
+                finalPrice = priceValue * (100 - saleOffValue) / 100;
+            }
+            product.setFinalPrice(finalPrice);
+            log.info("Updated saleOff to: {}%, finalPrice: {}", saleOffValue, finalPrice);
         }
 
         // Update stock quantity nếu có
-        if (stockQuantity != null && !stockQuantity.trim().isEmpty()) {
+        if (stockQuantity != null) {
+            if (stockQuantity.trim().isEmpty()) {
+                log.error("Product stock quantity cannot be empty");
+                throw new AppException(ErrorCode.PRODUCT_MANDATORY_FIELDS_MISSING);
+            }
+            Integer stockQuantityValue;
             try {
-                Integer stockQuantityValue = Integer.parseInt(stockQuantity);
-                if (stockQuantityValue < 0) {
-                    throw new AppException(ErrorCode.INVALID_INPUT);
-                }
-                product.setStockQuantity(stockQuantityValue);
-                log.info("Updated stockQuantity to: {}", stockQuantityValue);
+                stockQuantityValue = Integer.parseInt(stockQuantity.trim());
             } catch (NumberFormatException e) {
                 log.error("Invalid stockQuantity format: {}", stockQuantity, e);
-                throw new AppException(ErrorCode.INVALID_INPUT);
+                throw new AppException(ErrorCode.PRODUCT_INVALID_PRICE_OR_STOCK);
             }
+            
+            if (stockQuantityValue < 0) {
+                log.error("Invalid stock quantity value: {}", stockQuantityValue);
+                throw new AppException(ErrorCode.PRODUCT_INVALID_PRICE_OR_STOCK);
+            }
+            product.setStockQuantity(stockQuantityValue);
+            log.info("Updated stockQuantity to: {}", stockQuantityValue);
         }
 
         // Update attribute values nếu có

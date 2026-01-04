@@ -1,5 +1,6 @@
 package com.example.cellex.config;
 
+import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.services.auth.JwtService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -96,7 +97,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         response.setCharacterEncoding("UTF-8");
 
         Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("code", status);
+        // Use application-specific error code when possible
+        errorResponse.put("code", ErrorCode.UNAUTHENTICATED.getCode());
         errorResponse.put("message", message);
         errorResponse.put("errorCode", errorCode);
 

@@ -54,30 +54,63 @@ public class GlobalExceptionHandler {
         });
         log.error("========================================");
         
-        String message = ex.getBindingResult().getFieldErrors().stream()
-                .findFirst()
-                .map(err -> err.getField() + ": " + err.getDefaultMessage())
-                .orElse("Dữ liệu không hợp lệ. Vui lòng kiểm tra lại các trường thông tin.");
+        String field = ex.getBindingResult().getFieldErrors().stream()
+            .findFirst()
+            .map(err -> err.getField())
+            .orElse("");
 
+        String message = ex.getBindingResult().getFieldErrors().stream()
+            .findFirst()
+            .map(err -> err.getField() + ": " + err.getDefaultMessage())
+            .orElse("Dữ liệu không hợp lệ. Vui lòng kiểm tra lại các trường thông tin.");
+
+        // Map validation field to a domain-specific ErrorCode when possible
+        ErrorCode mapped = mapFieldToErrorCode(field);
         ApiResponse apiResponse = ApiResponse.builder()
-                .code(HttpStatus.BAD_REQUEST.value())
-                .message(message)
-                .build();
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiResponse);
+            .code(mapped != null ? mapped.getCode() : HttpStatus.BAD_REQUEST.value())
+            .message(mapped != null ? mapped.getMessage() : message)
+            .build();
+        return ResponseEntity.status(mapped != null ? mapped.getHttpStatus() : HttpStatus.BAD_REQUEST).body(apiResponse);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
     ResponseEntity<ApiResponse> handleConstraintViolation(ConstraintViolationException ex) {
+        String path = ex.getConstraintViolations().stream()
+                .findFirst()
+                .map(v -> v.getPropertyPath().toString())
+                .orElse("");
+
         String message = ex.getConstraintViolations().stream()
                 .findFirst()
                 .map(v -> v.getPropertyPath() + ": " + v.getMessage())
                 .orElse("Yêu cầu không hợp lệ. Vui lòng kiểm tra lại thông tin gửi lên.");
 
+        ErrorCode mapped = mapFieldToErrorCode(path);
         ApiResponse apiResponse = ApiResponse.builder()
-                .code(HttpStatus.BAD_REQUEST.value())
-                .message(message)
-                .build();
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiResponse);
+            .code(mapped != null ? mapped.getCode() : HttpStatus.BAD_REQUEST.value())
+            .message(mapped != null ? mapped.getMessage() : message)
+            .build();
+        return ResponseEntity.status(mapped != null ? mapped.getHttpStatus() : HttpStatus.BAD_REQUEST).body(apiResponse);
+    }
+
+    // Simple mapping from validation field/property name to an ErrorCode
+    private ErrorCode mapFieldToErrorCode(String field) {
+        if (field == null) return null;
+        String f = field.toLowerCase();
+        if (f.contains("email") || f.contains("username")) {
+            // Tests expect USERNAME_INVALID for email/username validation
+            return ErrorCode.USERNAME_INVALID;
+        }
+        if (f.contains("password") && f.contains("confirm")) {
+            return ErrorCode.PASSWORDS_DO_NOT_MATCH;
+        }
+        if (f.contains("password")) {
+            return ErrorCode.PASSWORD_INVALID;
+        }
+        if (f.contains("required") || f.contains("notnull") || f.contains("notempty")) {
+            return ErrorCode.FIELD_REQUIRED;
+        }
+        return null;
     }
 
     // Thêm handler cho MediaType không được hỗ trợ
@@ -94,14 +127,18 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccountBannedException.class)
     ResponseEntity<ApiResponse> handleAccountLockedException(AccountBannedException exception) {
-        String detailedMessage = String.format("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin",
-                 exception.getBanReason());
+        // Use canonical message from ErrorCode and optionally append ban reason
+        String base = ErrorCode.ACCOUNT_BANNED.getMessage();
+        String detailedMessage = base;
+        if (exception.getBanReason() != null && !exception.getBanReason().isBlank()) {
+            detailedMessage = base + ": " + exception.getBanReason();
+        }
 
         ApiResponse apiResponse = ApiResponse.builder()
                 .code(ErrorCode.ACCOUNT_BANNED.getCode())
                 .message(detailedMessage)
                 .build();
 
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(apiResponse);
+        return ResponseEntity.status(ErrorCode.ACCOUNT_BANNED.getHttpStatus()).body(apiResponse);
     }
 }

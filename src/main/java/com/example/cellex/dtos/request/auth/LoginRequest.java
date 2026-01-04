@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
 public class LoginRequest {
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
+    @jakarta.validation.constraints.Pattern(regexp = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", message = "Invalid email format")
     @Schema(example = "admin@gmail.com")
     private String email;
 

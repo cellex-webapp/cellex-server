@@ -26,8 +26,11 @@ public class ApplicationConfig {
 
     @Bean
     public UserDetailsService userDetailsService() {
-        return username -> (org.springframework.security.core.userdetails.UserDetails) userRepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
+        // Return the domain `User` (implements UserDetails) directly so
+        // that controllers using `@AuthenticationPrincipal User` receive
+        // the application's User object (avoid ClassCastException).
+        return username -> userRepository.findByEmailIgnoreCase(username)
+            .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
     }
 
     @Bean
@@ -123,6 +126,11 @@ public class ApplicationConfig {
         System.out.println("========================================\n");
 
         return cloudinary;
+    }
+
+    @Bean
+    public com.fasterxml.jackson.databind.Module trimStringModule() {
+        return new TrimStringModule();
     }
 
     /**

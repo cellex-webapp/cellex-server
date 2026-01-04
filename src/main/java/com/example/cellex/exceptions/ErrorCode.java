@@ -12,16 +12,16 @@ public enum ErrorCode {
     INVALID_KEY(1001, "Khóa message không hợp lệ", HttpStatus.BAD_REQUEST),
 
     // Authentication & Authorization Errors
-    USER_EXISTED(1002, "Người dùng đã tồn tại", HttpStatus.BAD_REQUEST),
+    USER_EXISTED(1002, "Email này đã được đăng ký trong hệ thống", HttpStatus.BAD_REQUEST),
     USERNAME_INVALID(1003, "Tên đăng nhập phải có ít nhất 3 ký tự", HttpStatus.BAD_REQUEST),
-    PASSWORD_INVALID(1004, "Mật khẩu phải có ít nhất 8 ký tự", HttpStatus.BAD_REQUEST),
-    USER_NOT_FOUND(1005, "Không tìm thấy email hoặc mật khẩu", HttpStatus.NOT_FOUND),
-    UNAUTHENTICATED(1006, "Email hoặc mật khẩu không chính xác", HttpStatus.UNAUTHORIZED),
+    PASSWORD_INVALID(1004, "Mật khẩu không hợp lệ", HttpStatus.BAD_REQUEST),
+    USER_NOT_FOUND(1005, "Email hoặc mật khẩu không hợp lệ.", HttpStatus.NOT_FOUND),
+    UNAUTHENTICATED(1006, "Email hoặc mật khẩu không hợp lệ.", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1007, "Bạn không có quyền truy cập chức năng này", HttpStatus.FORBIDDEN),
 
     // Sign Up Errors
-    PASSWORDS_DO_NOT_MATCH(1008, "Mật khẩu nhập lại không khớp", HttpStatus.BAD_REQUEST),
-    EMAIL_ALREADY_EXISTS(1009, "Email này đã được đăng ký", HttpStatus.BAD_REQUEST),
+    PASSWORDS_DO_NOT_MATCH(1008, "Mật khẩu xác nhận không trùng khớp", HttpStatus.BAD_REQUEST),
+    EMAIL_ALREADY_EXISTS(1009, "Email này đã được đăng ký trong hệ thống", HttpStatus.BAD_REQUEST),
     INVALID_OTP(1010, "Mã OTP không hợp lệ", HttpStatus.BAD_REQUEST),
     OTP_EXPIRED(1011, "Mã OTP đã hết hạn", HttpStatus.BAD_REQUEST),
     OTP_ALREADY_USED(1012, "Mã OTP đã được sử dụng", HttpStatus.BAD_REQUEST),
@@ -35,6 +35,10 @@ public enum ErrorCode {
     SHOP_ALREADY_EXISTS(2005, "Bạn đã có cửa hàng, không thể đăng ký thêm", HttpStatus.BAD_REQUEST),
     SHOP_NOT_VERIFIED(2006, "Cửa hàng chưa được duyệt", HttpStatus.BAD_REQUEST),
     SHOP_NOT_FOUND_OR_NOT_VERIFIED(2007, "Không tìm thấy cửa hàng hoặc cửa hàng chưa được duyệt", HttpStatus.BAD_REQUEST),
+
+    // Product Validation Errors
+    PRODUCT_MANDATORY_FIELDS_MISSING(2013, "Vui lòng điền đầy đủ các thông tin bắt buộc (Tên, Giá, Kho, Danh mục).", HttpStatus.BAD_REQUEST),
+    PRODUCT_INVALID_PRICE_OR_STOCK(2014, "Giá sản phẩm và số lượng tồn kho không hợp lệ.", HttpStatus.BAD_REQUEST),
 
     // Category Attribute Errors
     CATEGORY_ATTRIBUTE_NOT_FOUND(2008, "Không tìm thấy thuộc tính danh mục", HttpStatus.NOT_FOUND),
@@ -65,7 +69,7 @@ public enum ErrorCode {
     DUPLICATE_VALUE(5006, "Giá trị bị trùng lặp không được phép", HttpStatus.BAD_REQUEST),
 
     // Account Ban Errors
-    ACCOUNT_BANNED(6001, "Tài khoản đã bị khóa", HttpStatus.FORBIDDEN),
+    ACCOUNT_BANNED(6001, "Tài khoản của bạn đã bị khóa", HttpStatus.FORBIDDEN),
     ACCOUNT_ALREADY_BANNED(6002, "Tài khoản đã bị khóa trước đó", HttpStatus.BAD_REQUEST),
     ACCOUNT_NOT_BANNED(6003, "Tài khoản chưa bị khóa", HttpStatus.BAD_REQUEST),
     CANNOT_BAN_ADMIN(6004, "Không thể khóa tài khoản admin", HttpStatus.FORBIDDEN),

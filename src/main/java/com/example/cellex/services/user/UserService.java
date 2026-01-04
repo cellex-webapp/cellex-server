@@ -43,7 +43,7 @@ public class UserService {
         log.info("Creating account for email: {} with role: {}", request.getEmail(), request.getRole());
 
         // Check if email already exists
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+        if (userRepository.findByEmailIgnoreCase(request.getEmail()).isPresent()) {
             log.warn("Account creation failed - email already exists: {}", request.getEmail());
             throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
@@ -390,7 +390,7 @@ public class UserService {
         log.info("Creating account for email: {} with role: {}", email, role);
 
         // Check if email already exists
-        if (userRepository.findByEmail(email).isPresent()) {
+        if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
             log.warn("Account creation failed - email already exists: {}", email);
             throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }

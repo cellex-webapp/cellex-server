@@ -14,6 +14,7 @@ import java.util.Optional;
 public interface UserRepository extends MongoRepository<User, String> {
     // Custom query method to find a user by their email address.
     Optional<User> findByEmail(String email);
+    Optional<User> findByEmailIgnoreCase(String email);
     
     // Find all users in a specific customer segment
     List<User> findByCustomerSegmentId(String customerSegmentId);
