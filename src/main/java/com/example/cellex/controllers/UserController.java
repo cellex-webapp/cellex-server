@@ -359,4 +359,31 @@ public class UserController {
                 .message("Đổi mật khẩu thành công.")
                 .build();
     }
+
+    // ==================== ADMIN UTILITY ENDPOINTS ====================
+
+    @Operation(
+            summary = "[ADMIN] Reset all user passwords",
+            description = "Resets all user passwords to 'Pass@123'. This is a utility endpoint for testing/seeding purposes. Only accessible by ADMIN role."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Passwords reset successfully",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "Access denied - Admin role required",
+                    content = @Content
+            )
+    })
+    @PutMapping("/admin/reset-all-passwords")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<String> resetAllPasswords() {
+        int updatedCount = userService.resetAllPasswords("Pass@123");
+        return ApiResponse.<String>builder()
+                .message("Đã reset mật khẩu cho " + updatedCount + " người dùng thành 'Pass@123")
+                .build();
+    }
 }

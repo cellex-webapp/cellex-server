@@ -294,6 +294,11 @@ public class ProductAnalyticsService {
         for (Order order : completedOrders) {
             if (order.getItems() != null) {
                 for (OrderItem item : order.getItems()) {
+                    // Skip items with null productId
+                    if (item.getProductId() == null) {
+                        log.warn("OrderItem with null productId found in order: {}", order.getId());
+                        continue;
+                    }
                     String categoryId = productRepository.findById(item.getProductId())
                             .map(Product::getCategoryId)
                             .orElse(null);
@@ -432,6 +437,11 @@ public class ProductAnalyticsService {
         for (Order order : completedOrders) {
             if (order.getItems() != null) {
                 for (OrderItem item : order.getItems()) {
+                    // Skip items with null productId
+                    if (item.getProductId() == null) {
+                        log.warn("OrderItem with null productId found in order: {}", order.getId());
+                        continue;
+                    }
                     String categoryId = productRepository.findById(item.getProductId())
                             .map(Product::getCategoryId)
                             .orElse(null);

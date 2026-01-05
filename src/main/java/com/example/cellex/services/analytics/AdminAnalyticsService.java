@@ -341,6 +341,11 @@ public class AdminAnalyticsService {
         for (Order order : completedOrders) {
             if (order.getItems() != null) {
                 for (OrderItem item : order.getItems()) {
+                    // Skip items with null productId
+                    if (item.getProductId() == null) {
+                        log.warn("OrderItem with null productId found in order: {}", order.getId());
+                        continue;
+                    }
                     // Get category from product
                     String categoryId = productRepository.findById(item.getProductId())
                             .map(Product::getCategoryId)

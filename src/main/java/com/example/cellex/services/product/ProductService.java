@@ -102,8 +102,12 @@ public class ProductService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
 
-        Shop shop = shopRepository.findById(product.getShopId()).orElse(null);
-        Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
+        Shop shop = product.getShopId() != null 
+            ? shopRepository.findById(product.getShopId()).orElse(null) 
+            : null;
+        Category category = product.getCategoryId() != null 
+            ? categoryRepository.findById(product.getCategoryId()).orElse(null) 
+            : null;
 
         return mapToResponse(product, shop, category);
     }
@@ -114,11 +118,15 @@ public class ProductService {
 
         // Map to ProductResponse
         Page<ProductResponse> productResponsePage = products.map(product -> {
-            Shop shop = shopRepository.findById(product.getShopId()).orElse(null);
+            Shop shop = product.getShopId() != null 
+                ? shopRepository.findById(product.getShopId()).orElse(null) 
+                : null;
             if (shop == null || shop.getStatus() != ShopStatus.APPROVED) {
                 return null;
             }
-            Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
+            Category category = product.getCategoryId() != null 
+                ? categoryRepository.findById(product.getCategoryId()).orElse(null) 
+                : null;
             return mapToResponse(product, shop, category);
         });
 
@@ -146,7 +154,9 @@ public class ProductService {
 
         Page<Product> products = productRepository.findByShopIdAndIsPublishedTrue(shopId, pageable);
         Page<ProductResponse> productResponsePage = products.map(product -> {
-            Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
+            Category category = product.getCategoryId() != null 
+                ? categoryRepository.findById(product.getCategoryId()).orElse(null) 
+                : null;
             return mapToResponse(product, shop, category);
         });
 
@@ -268,7 +278,9 @@ public class ProductService {
         Product savedProduct = productRepository.save(product);
         log.info("Toggled publish status for product: {} to {}", productId, savedProduct.getIsPublished());
 
-        Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
+        Category category = product.getCategoryId() != null 
+            ? categoryRepository.findById(product.getCategoryId()).orElse(null) 
+            : null;
         return mapToResponse(savedProduct, shop, category);
     }
 
@@ -296,8 +308,12 @@ public class ProductService {
 
         Product savedProduct = productRepository.save(product);
 
-        Shop shop = shopRepository.findById(product.getShopId()).orElse(null);
-        Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
+        Shop shop = product.getShopId() != null 
+            ? shopRepository.findById(product.getShopId()).orElse(null) 
+            : null;
+        Category category = product.getCategoryId() != null 
+            ? categoryRepository.findById(product.getCategoryId()).orElse(null) 
+            : null;
 
         return mapToResponse(savedProduct, shop, category);
     }
@@ -333,8 +349,12 @@ public class ProductService {
         product.setImages(imageUrls);
         Product savedProduct = productRepository.save(product);
 
-        Shop shop = shopRepository.findById(product.getShopId()).orElse(null);
-        Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
+        Shop shop = product.getShopId() != null 
+            ? shopRepository.findById(product.getShopId()).orElse(null) 
+            : null;
+        Category category = product.getCategoryId() != null 
+            ? categoryRepository.findById(product.getCategoryId()).orElse(null) 
+            : null;
 
         return mapToResponse(savedProduct, shop, category);
     }
@@ -623,8 +643,12 @@ public class ProductService {
 
     // Helper method để map Product thành ProductResponse (overload không cần shop và category)
     private ProductResponse mapToProductResponse(Product product) {
-        Shop shop = shopRepository.findById(product.getShopId()).orElse(null);
-        Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
+        Shop shop = product.getShopId() != null 
+            ? shopRepository.findById(product.getShopId()).orElse(null) 
+            : null;
+        Category category = product.getCategoryId() != null 
+            ? categoryRepository.findById(product.getCategoryId()).orElse(null) 
+            : null;
         return mapToResponse(product, shop, category);
     }
 
@@ -921,8 +945,12 @@ public class ProductService {
     // New method to map Product to ProductResponse with lookup for shop and category
     private ProductResponse mapToResponseWithLookup(Product product) {
         // Lấy thông tin shop và category
-        Shop shop = shopRepository.findById(product.getShopId()).orElse(null);
-        Category category = categoryRepository.findById(product.getCategoryId()).orElse(null);
+        Shop shop = product.getShopId() != null 
+            ? shopRepository.findById(product.getShopId()).orElse(null) 
+            : null;
+        Category category = product.getCategoryId() != null 
+            ? categoryRepository.findById(product.getCategoryId()).orElse(null) 
+            : null;
 
         return mapToResponse(product, shop, category);
     }

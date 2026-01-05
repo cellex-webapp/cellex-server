@@ -619,4 +619,32 @@ public class UserService {
                 .build();
     }
 
+    // ==================== ADMIN UTILITY METHODS ====================
+
+    /**
+     * Reset all user passwords to a specified password
+     * Used for testing/seeding purposes
+     *
+     * @param newPassword The new password to set for all users
+     * @return Number of users updated
+     */
+    @Transactional
+    public int resetAllPasswords(String newPassword) {
+        log.info("Resetting all user passwords");
+        
+        List<User> allUsers = userRepository.findAll();
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        
+        int updatedCount = 0;
+        for (User user : allUsers) {
+            user.setPassword(encodedPassword);
+            user.setUpdatedAt(LocalDateTime.now());
+            userRepository.save(user);
+            updatedCount++;
+        }
+        
+        log.info("Successfully reset passwords for {} users", updatedCount);
+        return updatedCount;
+    }
+
 }
