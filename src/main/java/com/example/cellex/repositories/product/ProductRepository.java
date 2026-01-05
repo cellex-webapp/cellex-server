@@ -65,4 +65,9 @@ public interface ProductRepository extends MongoRepository<Product, String> {
      */
     @Query("{'isPublished': true}")
     List<Product> findAllByIsPublishedTrue(org.springframework.data.domain.Pageable pageable);
+
+    /**
+     * Tìm tất cả sản phẩm đã publish của shop
+     */
+    List<Product> findByShopIdAndIsPublishedTrue(String shopId);
 }

@@ -119,4 +119,14 @@ public interface OrderRepository extends MongoRepository<Order, String> {
      */
     @Query("{'created_at': {$gte: ?0, $lte: ?1}}")
     List<Order> findOrdersByDateRange(LocalDateTime startDate, LocalDateTime endDate);
+
+    /**
+     * Tìm tất cả đơn hàng của shop sau một thời điểm
+     */
+    List<Order> findByShopIdAndCreatedAtAfter(String shopId, LocalDateTime createdAt);
+
+    /**
+     * Tìm tất cả đơn hàng sau một thời điểm (toàn hệ thống)
+     */
+    List<Order> findByCreatedAtAfter(LocalDateTime createdAt);
 }

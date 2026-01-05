@@ -26,6 +26,7 @@ import org.springframework.web.client.RestTemplate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Service xử lý AI Chat với Gemini API
@@ -61,8 +62,8 @@ public class AIService {
         // 2. Lưu tin nhắn user
         AIMessage userMessage = saveUserMessage(conversation, currentUser, request.getMessage());
 
-        // 3. Lấy context từ history
-        List<AIMessage> contextMessages = getContextMessages(conversation.getId());
+        // 3. Lấy context từ history (exclude tin nhắn vừa lưu)
+        List<AIMessage> contextMessages = getContextMessages(conversation.getId(), userMessage.getId());
 
         // 4. Tạo system prompt theo role
         String systemPrompt = buildSystemPrompt(currentUser.getRole(), currentUser.getId(), request.getShopId());
@@ -108,7 +109,7 @@ public class AIService {
         conversationRepository.findByIdAndUserId(conversationId, userId)
             .orElseThrow(() -> new RuntimeException("Conversation not found"));
 
-        return messageRepository.findByConversationIdOrderByCreatedAtDesc(
+        return messageRepository.findByConversationIdOrderByCreatedAtAsc(
             conversationId, PageRequest.of(page, size));
     }
 
@@ -200,9 +201,15 @@ public class AIService {
         conversationRepository.save(conversation);
     }
 
-    private List<AIMessage> getContextMessages(String conversationId) {
-        return messageRepository.findTopByConversationIdOrderByCreatedAtDesc(
-            conversationId, PageRequest.of(0, MAX_CONTEXT_MESSAGES));
+    private List<AIMessage> getContextMessages(String conversationId, String excludeMessageId) {
+        List<AIMessage> allMessages = messageRepository.findTopByConversationIdOrderByCreatedAtDesc(
+            conversationId, PageRequest.of(0, MAX_CONTEXT_MESSAGES + 1)); // +1 to account for excluded message
+        
+        // Filter out the current user message to avoid duplication
+        return allMessages.stream()
+            .filter(msg -> !msg.getId().equals(excludeMessageId))
+            .limit(MAX_CONTEXT_MESSAGES)
+            .collect(Collectors.toList());
     }
 
     private String buildSystemPrompt(Role role, String userId, String shopId) {
@@ -223,6 +230,8 @@ public class AIService {
                 prompt.append("4. Giải đáp thắc mắc về sản phẩm, chính sách đổi trả, bảo hành\n\n");
                 prompt.append("Khi gợi ý sản phẩm, HÃY SỬ DỤNG các function tools để tìm kiếm và lấy thông tin sản phẩm thực từ database.\n");
                 prompt.append("VÍ DỤ: User hỏi 'các sản phẩm bán chạy', BẮT BUỘC gọi getHotProducts() để lấy dữ liệu thực.\n");
+                prompt.append("VÍ DỤ: User hỏi về spec cụ thể như 'điện thoại pin trâu nhất', 'laptop RAM lớn nhất', 'màn hình to nhất', BẮT BUỘC gọi searchByAttribute() với attributeKey tương ứng (battery, ram, screen).\n");
+                prompt.append("QUAN TRỌNG: Các attribute key phổ biến: battery (pin), ram (RAM), screen (màn hình), storage (bộ nhớ), cpu (CPU), vga (card đồ họa).\n");
                 prompt.append("Khi trả về danh sách sản phẩm, luôn bao gồm productIds trong metadata để frontend render Product Cards.\n");
                 break;
 
@@ -244,6 +253,7 @@ public class AIService {
                 prompt.append("VÍ DỤ: Khi user hỏi 'sản phẩm tồn kho thấp' hoặc 'sản phẩm sắp hết hàng', BẮT BUỘC gọi getLowStockProducts() NGAY LẬP TỨC\n");
                 prompt.append("VÍ DỤ: Khi user hỏi 'sản phẩm bán chạy', BẮT BUỘC gọi getTopSellingProducts() NGAY LẬP TỨC\n");
                 prompt.append("VÍ DỤ: Khi user hỏi 'doanh thu' hoặc 'báo cáo', BẮT BUỘC gọi getRevenueStats() NGAY LẬP TỨC\n");
+                prompt.append("VÍ DỤ: Khi user hỏi 'chiến lược kinh doanh', 'đề xuất để tăng doanh số', 'làm sao cải thiện', BẮT BUỘC gọi suggestVendorBusinessStrategy() để phân tích toàn diện\n");
                 prompt.append("KHÔNG BAO GIỜ chỉ nói 'tôi sẽ kiểm tra' hay 'hãy để tôi xem' - PHẢI GỌI FUNCTION NGAY\n");
                 prompt.append("Khi báo cáo số liệu, luôn format tiền tệ VNĐ và cung cấp chartData trong metadata nếu có thể.\n");
                 break;
@@ -258,8 +268,9 @@ public class AIService {
                 prompt.append("4. Đề xuất điều chỉnh phân khúc khách hàng\n");
                 prompt.append("5. Cung cấp insights về hoạt động của sàn\n\n");
                 prompt.append("HÃY SỬ DỤNG các function tools để truy vấn dữ liệu thực từ database.\n");
-                prompt.append("VÍ DỤ: User hỏi 'chiến lược kinh doanh quý tiếp theo', BẮT BUỘC gọi getSystemRevenue(), getSegmentAnalytics() để có dữ liệu phân tích.\n");
+                prompt.append("VÍ DỤ: User hỏi 'chiến lược kinh doanh quý tiếp theo', BẮT BUỘC gọi suggestAdminBusinessStrategy() để có phân tích toàn diện.\n");
                 prompt.append("VÍ DỤ: User hỏi 'tổng quan hệ thống', BẮT BUỘC gọi getSystemOverview() ngay lập tức.\n");
+                prompt.append("VÍ DỤ: User hỏi 'đề xuất phát triển platform', 'làm sao tăng GMV', BẮT BUỘC gọi suggestAdminBusinessStrategy().\n");
                 prompt.append("KHÔNG được chỉ nói 'cần phân tích' mà phải GỌI FUNCTION để lấy dữ liệu thực.\n");
                 prompt.append("Cung cấp chartData và tableData trong metadata để hiển thị trực quan.\n");
                 break;
@@ -367,9 +378,9 @@ public class AIService {
         List<Map<String, Object>> functions = new ArrayList<>();
 
         // Common functions for all roles
-        functions.add(buildFunction("searchProducts", "Tìm kiếm sản phẩm theo keyword, category, giá",
+        functions.add(buildFunction("searchProducts", "Tìm kiếm sản phẩm theo keyword, category, giá. Keyword có thể là tên sản phẩm hoặc tên danh mục (ví dụ: 'laptop', 'điện thoại', 'tai nghe')",
             Map.of(
-                "keyword", Map.of("type", "string", "description", "Từ khóa tìm kiếm"),
+                "keyword", Map.of("type", "string", "description", "Từ khóa tìm kiếm (tên sản phẩm hoặc tên danh mục như 'laptop', 'điện thoại')"),
                 "categoryId", Map.of("type", "string", "description", "ID danh mục"),
                 "minPrice", Map.of("type", "number", "description", "Giá tối thiểu"),
                 "maxPrice", Map.of("type", "number", "description", "Giá tối đa"),
@@ -392,6 +403,15 @@ public class AIService {
         functions.add(buildFunction("getHotProducts", "Lấy sản phẩm hot/bán chạy",
             Map.of(
                 "categoryId", Map.of("type", "string", "description", "ID danh mục (tùy chọn)"),
+                "limit", Map.of("type", "integer", "description", "Số lượng kết quả")
+            )));
+
+        functions.add(buildFunction("searchByAttribute", "Tìm và sắp xếp sản phẩm theo thuộc tính kỹ thuật (pin, RAM, màn hình, storage, CPU). Dùng khi user hỏi về spec cụ thể như 'pin trâu nhất', 'RAM lớn nhất', 'màn hình to nhất' HOẶC 'RAM 12GB', 'pin 5000mAh'",
+            Map.of(
+                "keyword", Map.of("type", "string", "description", "Từ khóa loại sản phẩm (laptop, điện thoại...)"),
+                "attributeKey", Map.of("type", "string", "description", "Tên attribute (battery, ram, screen, storage, cpu, vga). VÍ DỤ: battery cho pin, ram cho RAM, screen cho màn hình"),
+                "attributeValue", Map.of("type", "string", "description", "Giá trị cụ thể cần tìm (VD: '12' cho RAM 12GB, '5000' cho pin 5000mAh). Để trống nếu muốn lấy các sản phẩm lớn nhất/nhỏ nhất"),
+                "sortOrder", Map.of("type", "string", "description", "Thứ tự sắp xếp: 'desc' (lớn nhất) hoặc 'asc' (nhỏ nhất). Chỉ dùng khi không có attributeValue"),
                 "limit", Map.of("type", "integer", "description", "Số lượng kết quả")
             )));
 
@@ -436,6 +456,12 @@ public class AIService {
                     "startDate", Map.of("type", "string", "description", "Ngày bắt đầu"),
                     "endDate", Map.of("type", "string", "description", "Ngày kết thúc")
                 )));
+
+            functions.add(buildFunction("suggestVendorBusinessStrategy", "Đề xuất chiến lược kinh doanh toàn diện cho shop dựa trên phân tích sâu doanh thu, sản phẩm, tồn kho, xu hướng. Dùng khi vendor hỏi về 'chiến lược', 'đề xuất kinh doanh', 'làm sao để tăng doanh thu', 'cải thiện hiệu quả'",
+                Map.of(
+                    "shopId", Map.of("type", "string", "description", "ID shop"),
+                    "daysToAnalyze", Map.of("type", "integer", "description", "Số ngày phân tích (mặc định 30)")
+                )));
         }
 
         // ADMIN-specific functions
@@ -454,6 +480,11 @@ public class AIService {
 
             functions.add(buildFunction("getSystemOverview", "Tổng quan hệ thống",
                 Map.of()));
+
+            functions.add(buildFunction("suggestAdminBusinessStrategy", "Đề xuất chiến lược kinh doanh toàn hệ thống dựa trên phân tích sâu GMV, vendors, segments, growth opportunities. Dùng khi admin hỏi về 'chiến lược tổng thể', 'làm sao phát triển hệ thống', 'tăng trưởng platform', 'đề xuất mở rộng'",
+                Map.of(
+                    "daysToAnalyze", Map.of("type", "integer", "description", "Số ngày phân tích (mặc định 30)")
+                )));
         }
 
         return functions;
@@ -579,6 +610,15 @@ public class AIService {
                         args.has("limit") ? args.path("limit").asInt() : null
                     );
 
+                case "searchByAttribute":
+                    return aiToolsService.searchByAttribute(
+                        args.path("keyword").asText(null),
+                        args.path("attributeKey").asText(null),
+                        args.path("attributeValue").asText(null),
+                        args.path("sortOrder").asText("desc"),
+                        args.has("limit") ? args.path("limit").asInt() : null
+                    );
+
                 case "getCategories":
                     return aiToolsService.getCategories();
 
@@ -633,6 +673,17 @@ public class AIService {
 
                 case "getSystemOverview":
                     return aiToolsService.getSystemOverview();
+
+                case "suggestVendorBusinessStrategy":
+                    return aiToolsService.suggestVendorBusinessStrategy(
+                        shopId,
+                        args.has("daysToAnalyze") ? args.path("daysToAnalyze").asInt() : null
+                    );
+
+                case "suggestAdminBusinessStrategy":
+                    return aiToolsService.suggestAdminBusinessStrategy(
+                        args.has("daysToAnalyze") ? args.path("daysToAnalyze").asInt() : null
+                    );
 
                 default:
                     return Map.of("error", "Unknown function: " + functionName);
@@ -701,6 +752,10 @@ public class AIService {
             if (result.containsKey("comparison")) {
                 // Bảng so sánh sản phẩm - thêm STT và sắp xếp cột
                 List<Map<String, Object>> comparison = (List<Map<String, Object>>) result.get("comparison");
+                tableData = formatComparisonTable(comparison);
+            } else if ("compareProducts".equals(functionName) && result.containsKey("products")) {
+                // compareProducts cũng trả về products nhưng cần format như comparison
+                List<Map<String, Object>> comparison = (List<Map<String, Object>>) result.get("products");
                 tableData = formatComparisonTable(comparison);
             } else if (result.containsKey("segments")) {
                 tableData = addIndexToTable((List<Map<String, Object>>) result.get("segments"));
@@ -806,28 +861,66 @@ public class AIService {
             Map<String, Object> row = new LinkedHashMap<>();
             
             // 1. STT
-            row.put("stt", i + 1);
+            row.put("STT", i + 1);
             
             // 2. Tên sản phẩm (ưu tiên đầu tiên)
             if (original.containsKey("name")) {
-                row.put("name", original.get("name"));
+                row.put("Tên sản phẩm", original.get("name"));
             } else if (original.containsKey("productName")) {
-                row.put("name", original.get("productName"));
+                row.put("Tên sản phẩm", original.get("productName"));
             }
             
-            // 3. Các cột quan trọng tiếp theo
-            String[] priorityKeys = {"price", "brand", "stockQuantity", "rating", "purchaseCount"};
-            for (String key : priorityKeys) {
-                if (original.containsKey(key)) {
-                    row.put(key, original.get(key));
-                }
+            // 3. Review Count
+            if (original.containsKey("reviewCount")) {
+                row.put("Review Count", original.get("reviewCount"));
             }
             
-            // 4. Các cột còn lại (trừ ID)
+            // 4. Giá
+            if (original.containsKey("price")) {
+                row.put("Giá", original.get("price"));
+            }
+            
+            // 5. Average Rating
+            if (original.containsKey("averageRating")) {
+                row.put("Average Rating", original.get("averageRating"));
+            }
+            
+            // 6. Key Attributes (đã được format thành string)
+            if (original.containsKey("keyAttributes")) {
+                row.put("Key Attributes", original.get("keyAttributes"));
+            }
+            
+            // 7. Final Price
+            if (original.containsKey("finalPrice")) {
+                row.put("Final Price", original.get("finalPrice"));
+            }
+            
+            // 8. Tồn kho
+            if (original.containsKey("stockQuantity")) {
+                row.put("Tồn kho", original.get("stockQuantity"));
+            }
+            
+            // 9. Sale Off
+            if (original.containsKey("saleOff")) {
+                row.put("Sale Off", original.get("saleOff"));
+            }
+            
+            // 10. Các cột còn lại (trừ ID và các trường đã xử lý)
             for (Map.Entry<String, Object> entry : original.entrySet()) {
                 String key = entry.getKey();
-                if (!row.containsKey(key) && !key.endsWith("Id") && 
-                    !key.equals("name") && !key.equals("productName")) {
+                if (!key.endsWith("Id") && 
+                    !key.equals("name") && 
+                    !key.equals("productName") &&
+                    !key.equals("reviewCount") &&
+                    !key.equals("price") &&
+                    !key.equals("averageRating") &&
+                    !key.equals("keyAttributes") &&
+                    !key.equals("finalPrice") &&
+                    !key.equals("stockQuantity") &&
+                    !key.equals("saleOff") &&
+                    !key.equals("description") &&
+                    !key.equals("attributes") &&
+                    !key.equals("purchaseCount")) {
                     row.put(key, entry.getValue());
                 }
             }
@@ -861,6 +954,53 @@ public class AIService {
                 Object hotProductsObj = result.get("products");
                 if (hotProductsObj instanceof List) {
                     appendProductList(sb, (List<Map<String, Object>>) hotProductsObj);
+                }
+                break;
+
+            case "searchByAttribute":
+                String sortedBy = result.get("sortedBy") != null ? result.get("sortedBy").toString() : "";
+                String sortOrder = result.get("sortOrder") != null ? result.get("sortOrder").toString() : "desc";
+                String attributeValue = result.get("attributeValue") != null ? result.get("attributeValue").toString() : null;
+                int totalAttrFound = getIntValue(result.get("totalFound"));
+                
+                // Map attributeKey sang tên hiển thị
+                String attrDisplayName = switch(sortedBy) {
+                    case "battery" -> "pin";
+                    case "ram" -> "RAM";
+                    case "screen" -> "màn hình";
+                    case "storage" -> "bộ nhớ";
+                    case "cpu" -> "CPU";
+                    case "vga" -> "card đồ họa";
+                    default -> sortedBy;
+                };
+                
+                sb.append("🔋 Tôi đã tìm thấy **").append(totalAttrFound).append(" sản phẩm** ");
+                if (attributeValue != null && !attributeValue.isEmpty()) {
+                    // Filter theo giá trị cụ thể
+                    sb.append("có ").append(attrDisplayName).append(" **").append(attributeValue);
+                    // Thêm đơn vị nếu cần
+                    if ("ram".equals(sortedBy) || "storage".equals(sortedBy)) {
+                        sb.append("GB");
+                    } else if ("battery".equals(sortedBy)) {
+                        sb.append("mAh");
+                    } else if ("screen".equals(sortedBy)) {
+                        sb.append(" inch");
+                    }
+                    sb.append("**");
+                } else {
+                    // Sort theo giá trị lớn nhất/nhỏ nhất
+                    sb.append("với ").append(attrDisplayName);
+                    if ("desc".equals(sortOrder)) {
+                        sb.append(" **lớn nhất**");
+                    } else {
+                        sb.append(" **nhỏ nhất**");
+                    }
+                }
+                sb.append(":\n\n");
+                
+                Object attrProductsObj = result.get("products");
+                if (attrProductsObj instanceof List) {
+                    appendProductListWithAttributes(sb, (List<Map<String, Object>>) attrProductsObj, sortedBy);
                 }
                 break;
 
@@ -976,6 +1116,16 @@ public class AIService {
                 formatSystemOverview(sb, result);
                 break;
 
+            case "suggestVendorBusinessStrategy":
+                sb.append("🎯 **Chiến lược kinh doanh toàn diện cho shop của bạn:**\n\n");
+                formatVendorBusinessStrategy(sb, result);
+                break;
+
+            case "suggestAdminBusinessStrategy":
+                sb.append("🚀 **Chiến lược phát triển toàn hệ thống:**\n\n");
+                formatAdminBusinessStrategy(sb, result);
+                break;
+
             case "getPersonalizedRecommendations":
                 sb.append("🎁 **Gợi ý dành riêng cho bạn:**\n\n");
                 sb.append("Dựa trên lịch sử mua sắm và sở thích của bạn, tôi nghĩ bạn sẽ thích những sản phẩm này:\n\n");
@@ -1073,6 +1223,58 @@ public class AIService {
                 sb.append("   - Tồn kho: ").append(stock);
                 if (stock < 10) {
                     sb.append(" ⚠️ Sắp hết hàng");
+                }
+                sb.append("\n");
+            }
+            
+            sb.append("\n");
+        }
+    }
+
+    /**
+     * Helper method để format danh sách sản phẩm với attribute nổi bật
+     */
+    @SuppressWarnings("unchecked")
+    private void appendProductListWithAttributes(StringBuilder sb, List<Map<String, Object>> products, String highlightAttr) {
+        if (products == null || products.isEmpty()) {
+            sb.append("Không tìm thấy sản phẩm nào phù hợp.");
+            return;
+        }
+
+        for (int i = 0; i < products.size(); i++) {
+            Map<String, Object> p = products.get(i);
+            sb.append((i + 1)).append(". **").append(p.get("name")).append("**\n");
+            
+            // Hiển thị attribute được highlight (now keyAttributes is a String)
+            if (p.get("keyAttributes") != null && !p.get("keyAttributes").toString().equals("N/A")) {
+                String keyAttrsStr = p.get("keyAttributes").toString();
+                sb.append("   - ").append(keyAttrsStr).append("\n");
+            }
+            
+            // Giá
+            if (p.get("finalPrice") != null) {
+                Double finalPrice = (Double) p.get("finalPrice");
+                Double originalPrice = (Double) p.get("price");
+                
+                if (originalPrice != null && !originalPrice.equals(finalPrice)) {
+                    sb.append("   - Giá: ~~").append(formatCurrency(originalPrice)).append("~~ **")
+                      .append(formatCurrency(finalPrice)).append("**");
+                    if (p.get("saleOff") != null) {
+                        sb.append(" (-").append(p.get("saleOff")).append("%)");
+                    }
+                    sb.append("\n");
+                } else {
+                    sb.append("   - Giá: **").append(formatCurrency(finalPrice)).append("**\n");
+                }
+            } else if (p.get("price") != null) {
+                sb.append("   - Giá: **").append(formatCurrency((Double) p.get("price"))).append("**\n");
+            }
+            
+            // Rating
+            if (p.get("averageRating") != null) {
+                sb.append("   - Đánh giá: ⭐ ").append(p.get("averageRating")).append("/5");
+                if (p.get("reviewCount") != null) {
+                    sb.append(" (").append(p.get("reviewCount")).append(" đánh giá)");
                 }
                 sb.append("\n");
             }
@@ -1811,6 +2013,127 @@ public class AIService {
             case "REFUNDED": return "Hoàn tiền";
             default: return status;
         }
+    }
+    
+    /**
+     * Format vendor business strategy
+     */
+    @SuppressWarnings("unchecked")
+    private void formatVendorBusinessStrategy(StringBuilder sb, Map<String, Object> result) {
+        // Key insights
+        if (result.containsKey("keyInsights")) {
+            List<String> insights = (List<String>) result.get("keyInsights");
+            sb.append("📊 **Tổng quan tình hình:**\n");
+            for (String insight : insights) {
+                sb.append(insight).append("\n");
+            }
+            sb.append("\n");
+        }
+        
+        // Strategies
+        if (result.containsKey("strategies")) {
+            List<Map<String, Object>> strategies = (List<Map<String, Object>>) result.get("strategies");
+            sb.append("---\n\n");
+            sb.append("## 🎯 Các chiến lược đề xuất:\n\n");
+            
+            for (int i = 0; i < strategies.size(); i++) {
+                Map<String, Object> strategy = strategies.get(i);
+                String priority = (String) strategy.get("priority");
+                String priorityEmoji = priority.equals("CRITICAL") ? "🔴" : priority.equals("HIGH") ? "🟠" : "🟢";
+                
+                sb.append("### ").append(i + 1).append(". ").append(priorityEmoji).append(" ")
+                  .append(strategy.get("category")).append("\n");
+                sb.append("**Mức độ ưu tiên:** ").append(priority).append("\n\n");
+                
+                if (strategy.containsKey("actions")) {
+                    sb.append("**Hành động cụ thể:**\n");
+                    List<String> actions = (List<String>) strategy.get("actions");
+                    for (String action : actions) {
+                        sb.append("- ").append(action).append("\n");
+                    }
+                    sb.append("\n");
+                }
+                
+                if (strategy.containsKey("expectedImpact")) {
+                    sb.append("**Kết quả kỳ vọng:** ").append(strategy.get("expectedImpact")).append("\n");
+                }
+                sb.append("\n");
+            }
+        }
+        
+        sb.append("---\n\n");
+        sb.append("💡 **Lưu ý:** Hãy triển khai các chiến lược theo thứ tự ưu tiên. ");
+        sb.append("Bắt đầu với các action CRITICAL và HIGH trước, sau đó mới đến MEDIUM. ");
+        sb.append("Theo dõi kết quả sau 1-2 tuần để điều chỉnh nếu cần.");
+    }
+    
+    /**
+     * Format admin business strategy
+     */
+    @SuppressWarnings("unchecked")
+    private void formatAdminBusinessStrategy(StringBuilder sb, Map<String, Object> result) {
+        // Key insights
+        if (result.containsKey("keyInsights")) {
+            List<String> insights = (List<String>) result.get("keyInsights");
+            sb.append("📊 **Phân tích toàn cảnh:**\n");
+            for (String insight : insights) {
+                sb.append(insight).append("\n");
+            }
+            sb.append("\n");
+        }
+        
+        // Top products
+        if (result.containsKey("topProducts")) {
+            List<Map<String, Object>> topProducts = (List<Map<String, Object>>) result.get("topProducts");
+            if (!topProducts.isEmpty()) {
+                sb.append("🏆 **Top 5 sản phẩm toàn hệ thống:**\n");
+                for (int i = 0; i < topProducts.size(); i++) {
+                    Map<String, Object> p = topProducts.get(i);
+                    sb.append((i + 1)).append(". ").append(p.get("name"))
+                      .append(" - ").append(p.get("sales")).append(" lượt bán")
+                      .append(" (").append(formatCurrency(((Number)p.get("revenue")).doubleValue())).append(")\n");
+                }
+                sb.append("\n");
+            }
+        }
+        
+        // Strategies
+        if (result.containsKey("strategies")) {
+            List<Map<String, Object>> strategies = (List<Map<String, Object>>) result.get("strategies");
+            sb.append("---\n\n");
+            sb.append("## 🚀 Các chiến lược phát triển hệ thống:\n\n");
+            
+            for (int i = 0; i < strategies.size(); i++) {
+                Map<String, Object> strategy = strategies.get(i);
+                String priority = (String) strategy.get("priority");
+                String priorityEmoji = priority.equals("CRITICAL") ? "🔴" : priority.equals("HIGH") ? "🟠" : "🟢";
+                
+                sb.append("### ").append(i + 1).append(". ").append(priorityEmoji).append(" ")
+                  .append(strategy.get("category")).append("\n");
+                sb.append("**Mức độ ưu tiên:** ").append(priority).append("\n\n");
+                
+                if (strategy.containsKey("actions")) {
+                    sb.append("**Hành động cụ thể:**\n");
+                    List<String> actions = (List<String>) strategy.get("actions");
+                    for (String action : actions) {
+                        sb.append("- ").append(action).append("\n");
+                    }
+                    sb.append("\n");
+                }
+                
+                if (strategy.containsKey("expectedImpact")) {
+                    sb.append("**Tác động kỳ vọng:** ").append(strategy.get("expectedImpact")).append("\n");
+                }
+                sb.append("\n");
+            }
+        }
+        
+        sb.append("---\n\n");
+        sb.append("🎯 **Roadmap đề xuất:**\n");
+        sb.append("- **Q1 (ngay):** Triển khai các chiến lược CRITICAL và HIGH priority\n");
+        sb.append("- **Q2:** Đo lường KPIs, tối ưu dựa trên data thực tế\n");
+        sb.append("- **Q3-Q4:** Scale thành công và mở rộng thị trường\n\n");
+        sb.append("💼 Với roadmap này, hệ thống có thể đạt tăng trưởng 50-70% GMV trong năm tới.");
     }
     
     /**

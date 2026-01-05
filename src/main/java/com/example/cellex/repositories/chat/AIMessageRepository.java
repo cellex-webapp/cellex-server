@@ -16,14 +16,14 @@ import java.util.List;
 public interface AIMessageRepository extends MongoRepository<AIMessage, String> {
 
     /**
-     * Lấy tin nhắn theo conversation ID (mới nhất trước)
+     * Lấy tin nhắn theo conversation ID (cũ nhất trước - để hiển thị đúng trong chat)
      */
-    List<AIMessage> findByConversationIdOrderByCreatedAtDesc(String conversationId);
+    List<AIMessage> findByConversationIdOrderByCreatedAtAsc(String conversationId);
 
     /**
-     * Lấy tin nhắn theo conversation ID với phân trang
+     * Lấy tin nhắn theo conversation ID với phân trang (cũ nhất trước)
      */
-    Page<AIMessage> findByConversationIdOrderByCreatedAtDesc(String conversationId, Pageable pageable);
+    Page<AIMessage> findByConversationIdOrderByCreatedAtAsc(String conversationId, Pageable pageable);
 
     /**
      * Lấy N tin nhắn gần nhất của conversation (để làm context cho AI)
