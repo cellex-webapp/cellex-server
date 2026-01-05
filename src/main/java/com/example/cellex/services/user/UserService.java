@@ -89,25 +89,32 @@ public class UserService {
     private User.Address buildAddress(String provinceCode, String communeCode, String detailAddress) {
         User.Address.AddressBuilder addressBuilder = User.Address.builder();
 
-        // Set province info
-        if (provinceCode != null && !provinceCode.trim().isEmpty()) {
-            addressBuilder.provinceCode(provinceCode.trim());
-            var province = addressService.getProvinceByCode(provinceCode.trim());
-            if (province != null) {
-                addressBuilder.provinceName(province.getName());
-            } else {
-                log.warn("Province not found with code: {}", provinceCode);
-            }
-        }
-
-        // Set commune info
+        // communeCode is now the NEW WARD CODE from the 2025 system
+        // Set ward/commune info from NEW system
         if (communeCode != null && !communeCode.trim().isEmpty()) {
             addressBuilder.communeCode(communeCode.trim());
-            var commune = addressService.getCommuneByCode(communeCode.trim());
-            if (commune != null) {
-                addressBuilder.communeName(commune.getName());
+            var newWard = addressService.getNewWardByCode(communeCode.trim());
+            if (newWard != null) {
+                addressBuilder.communeName(newWard.getName());
+                // Get province from the ward's province code
+                if (newWard.getProvinceCode() != null) {
+                    var newProvince = addressService.getNewProvinceByCode(newWard.getProvinceCode());
+                    if (newProvince != null) {
+                        addressBuilder.provinceCode(newWard.getProvinceCode());
+                        addressBuilder.provinceName(newProvince.getName());
+                    }
+                }
             } else {
-                log.warn("Commune not found with code: {}", communeCode);
+                log.warn("New ward not found with code: {}", communeCode);
+            }
+        } else if (provinceCode != null && !provinceCode.trim().isEmpty()) {
+            // Fallback: if only provinceCode is provided (backward compatibility)
+            addressBuilder.provinceCode(provinceCode.trim());
+            var newProvince = addressService.getNewProvinceByCode(provinceCode.trim());
+            if (newProvince != null) {
+                addressBuilder.provinceName(newProvince.getName());
+            } else {
+                log.warn("New province not found with code: {}", provinceCode);
             }
         }
 
@@ -490,25 +497,32 @@ public class UserService {
     private User.Address buildAddressFromCodes(String provinceCode, String communeCode, String detailAddress) {
         User.Address.AddressBuilder addressBuilder = User.Address.builder();
 
-        // Lấy thông tin tỉnh/thành phố từ code
-        if (provinceCode != null && !provinceCode.trim().isEmpty()) {
-            addressBuilder.provinceCode(provinceCode.trim());
-            var province = addressService.getProvinceByCode(provinceCode.trim());
-            if (province != null) {
-                addressBuilder.provinceName(province.getName());
-            } else {
-                log.warn("Province not found with code: {}", provinceCode);
-            }
-        }
-
-        // Lấy thông tin xã/phường từ code
+        // communeCode is now the NEW WARD CODE from the 2025 system
+        // Lấy thông tin xã/phường từ NEW system
         if (communeCode != null && !communeCode.trim().isEmpty()) {
             addressBuilder.communeCode(communeCode.trim());
-            var commune = addressService.getCommuneByCode(communeCode.trim());
-            if (commune != null) {
-                addressBuilder.communeName(commune.getName());
+            var newWard = addressService.getNewWardByCode(communeCode.trim());
+            if (newWard != null) {
+                addressBuilder.communeName(newWard.getName());
+                // Get province from the ward's province code
+                if (newWard.getProvinceCode() != null) {
+                    var newProvince = addressService.getNewProvinceByCode(newWard.getProvinceCode());
+                    if (newProvince != null) {
+                        addressBuilder.provinceCode(newWard.getProvinceCode());
+                        addressBuilder.provinceName(newProvince.getName());
+                    }
+                }
             } else {
-                log.warn("Commune not found with code: {}", communeCode);
+                log.warn("New ward not found with code: {}", communeCode);
+            }
+        } else if (provinceCode != null && !provinceCode.trim().isEmpty()) {
+            // Fallback: if only provinceCode is provided (backward compatibility)
+            addressBuilder.provinceCode(provinceCode.trim());
+            var newProvince = addressService.getNewProvinceByCode(provinceCode.trim());
+            if (newProvince != null) {
+                addressBuilder.provinceName(newProvince.getName());
+            } else {
+                log.warn("New province not found with code: {}", provinceCode);
             }
         }
 
