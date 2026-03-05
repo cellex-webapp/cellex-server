@@ -1,16 +1,23 @@
 package com.example.cellex.models.category;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
-@Document(collection = "category_attributes")
+@Entity
+@Table(name = "category_attributes")
 @Data
 @Builder
 @AllArgsConstructor
@@ -18,36 +25,67 @@ import java.util.List;
 public class CategoryAttribute {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
+    @JsonIgnore
+    private UUID uuid;
 
-    private String categoryId;
+    @Column(name = "category_id", nullable = false)
+    @JsonIgnore
+    private UUID categoryUuid;
 
-    private String attributeName; // Tên thuộc tính (VD: "RAM", "Chipset", "Camera chính")
+    @Column(name = "attribute_name")
+    private String attributeName;
 
-    private String attributeKey; // Key để code sử dụng (VD: "ram", "chipset", "main_camera")
+    @Column(name = "attribute_key")
+    private String attributeKey;
 
-    private String dataType; // "TEXT", "NUMBER", "BOOLEAN", "SELECT", "MULTI_SELECT"
+    @Column(name = "data_type")
+    private String dataType;
 
-    private String unit; // Đơn vị (VD: "GB", "MP", "inch")
+    private String unit;
 
-    private Boolean isRequired; // Bắt buộc nhập hay không
+    @Column(name = "is_required")
+    private Boolean isRequired;
 
-    private Boolean isHighlight; // Có phải là thông số nổi bật không (hiển thị trên card sản phẩm)
+    @Column(name = "is_highlight")
+    private Boolean isHighlight;
 
-    private List<String> selectOptions; // Các lựa chọn nếu dataType là SELECT hoặc MULTI_SELECT
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "select_options", columnDefinition = "jsonb")
+    private List<String> selectOptions;
 
-    private String validationPattern; // Regex để validate (nếu cần)
+    @Column(name = "validation_pattern")
+    private String validationPattern;
 
-    private Integer sortOrder; // Thứ tự hiển thị
+    @Column(name = "sort_order")
+    private Integer sortOrder;
 
-    private String description; // Mô tả thuộc tính
+    private String description;
 
     @Builder.Default
+    @Column(name = "is_active")
     private Boolean isActive = true;
 
-    @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 
-    @Builder.Default
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    // --- Backward-compat String-based ID accessors ---
+
+    @JsonProperty("id")
+    public String getId() { return uuid != null ? uuid.toString() : null; }
+
+    public void setId(String id) { this.uuid = id != null ? UUID.fromString(id) : null; }
+
+    @JsonProperty("categoryId")
+    public String getCategoryId() { return categoryUuid != null ? categoryUuid.toString() : null; }
+
+    public void setCategoryId(String categoryId) {
+        this.categoryUuid = categoryId != null ? UUID.fromString(categoryId) : null;
+    }
 }

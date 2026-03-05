@@ -14,7 +14,6 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 @EnableMongoRepositories(
         basePackages = {
                 "com.example.cellex.repositories.cart",
-                "com.example.cellex.repositories.category",
                 "com.example.cellex.repositories.chat",
                 "com.example.cellex.repositories.common",
                 "com.example.cellex.repositories.coupon",

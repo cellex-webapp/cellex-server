@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -60,7 +61,7 @@ public class CategoryAttributeService {
         }
 
         CategoryAttribute categoryAttribute = CategoryAttribute.builder()
-                .categoryId(categoryId)
+                .categoryUuid(UUID.fromString(categoryId))
                 .attributeName(request.getAttributeName())
                 .attributeKey(request.getAttributeKey())
                 .dataType(request.getDataType())

@@ -305,44 +305,44 @@ public class DummyDataService implements CommandLineRunner {
 
         String phoneCategoryId = categoryIdByName.get("Điện thoại");
         List<CategoryAttribute> phoneAttrs = List.of(
-                CategoryAttribute.builder().categoryId(phoneCategoryId).attributeName("Màn hình").attributeKey("screen").dataType("TEXT").unit("inch").isRequired(true).isHighlight(true).sortOrder(1).description("Kích thước màn hình").build(),
-                CategoryAttribute.builder().categoryId(phoneCategoryId).attributeName("RAM").attributeKey("ram").dataType("NUMBER").unit("GB").isRequired(true).isHighlight(true).sortOrder(2).build(),
-                CategoryAttribute.builder().categoryId(phoneCategoryId).attributeName("Bộ nhớ").attributeKey("storage").dataType("NUMBER").unit("GB").isRequired(true).isHighlight(true).sortOrder(3).build(),
-                CategoryAttribute.builder().categoryId(phoneCategoryId).attributeName("Pin").attributeKey("battery").dataType("NUMBER").unit("mAh").isRequired(false).isHighlight(false).sortOrder(4).build()
+                CategoryAttribute.builder().categoryUuid(UUID.fromString(phoneCategoryId)).attributeName("Màn hình").attributeKey("screen").dataType("TEXT").unit("inch").isRequired(true).isHighlight(true).sortOrder(1).description("Kích thước màn hình").build(),
+                CategoryAttribute.builder().categoryUuid(UUID.fromString(phoneCategoryId)).attributeName("RAM").attributeKey("ram").dataType("NUMBER").unit("GB").isRequired(true).isHighlight(true).sortOrder(2).build(),
+                CategoryAttribute.builder().categoryUuid(UUID.fromString(phoneCategoryId)).attributeName("Bộ nhớ").attributeKey("storage").dataType("NUMBER").unit("GB").isRequired(true).isHighlight(true).sortOrder(3).build(),
+                CategoryAttribute.builder().categoryUuid(UUID.fromString(phoneCategoryId)).attributeName("Pin").attributeKey("battery").dataType("NUMBER").unit("mAh").isRequired(false).isHighlight(false).sortOrder(4).build()
         );
 
         String accessoryCategoryId = categoryIdByName.get("Phụ kiện");
         List<CategoryAttribute> accessoryAttrs = List.of(
-                CategoryAttribute.builder().categoryId(accessoryCategoryId).attributeName("Loại phụ kiện").attributeKey("type").dataType("SELECT").selectOptions(List.of("Sạc", "Ốp lưng", "Tai nghe")).isRequired(true).isHighlight(true).sortOrder(1).build(),
-                CategoryAttribute.builder().categoryId(accessoryCategoryId).attributeName("Thương hiệu").attributeKey("brand").dataType("TEXT").isRequired(false).isHighlight(false).sortOrder(2).build()
+                CategoryAttribute.builder().categoryUuid(UUID.fromString(accessoryCategoryId)).attributeName("Loại phụ kiện").attributeKey("type").dataType("SELECT").selectOptions(List.of("Sạc", "Ốp lưng", "Tai nghe")).isRequired(true).isHighlight(true).sortOrder(1).build(),
+                CategoryAttribute.builder().categoryUuid(UUID.fromString(accessoryCategoryId)).attributeName("Thương hiệu").attributeKey("brand").dataType("TEXT").isRequired(false).isHighlight(false).sortOrder(2).build()
         );
 
         String tabletCategoryId = categoryIdByName.get("Máy tính bảng");
         List<CategoryAttribute> tabletAttrs = List.of(
-                CategoryAttribute.builder().categoryId(tabletCategoryId).attributeName("Màn hình").attributeKey("screen").dataType("TEXT").unit("inch").isRequired(true).isHighlight(true).sortOrder(1).build(),
-                CategoryAttribute.builder().categoryId(tabletCategoryId).attributeName("RAM").attributeKey("ram").dataType("NUMBER").unit("GB").isRequired(true).isHighlight(true).sortOrder(2).build(),
-                CategoryAttribute.builder().categoryId(tabletCategoryId).attributeName("Bộ nhớ").attributeKey("storage").dataType("NUMBER").unit("GB").isRequired(true).isHighlight(true).sortOrder(3).build()
+                CategoryAttribute.builder().categoryUuid(UUID.fromString(tabletCategoryId)).attributeName("Màn hình").attributeKey("screen").dataType("TEXT").unit("inch").isRequired(true).isHighlight(true).sortOrder(1).build(),
+                CategoryAttribute.builder().categoryUuid(UUID.fromString(tabletCategoryId)).attributeName("RAM").attributeKey("ram").dataType("NUMBER").unit("GB").isRequired(true).isHighlight(true).sortOrder(2).build(),
+                CategoryAttribute.builder().categoryUuid(UUID.fromString(tabletCategoryId)).attributeName("Bộ nhớ").attributeKey("storage").dataType("NUMBER").unit("GB").isRequired(true).isHighlight(true).sortOrder(3).build()
         );
         
         String laptopCategoryId = categoryIdByName.get("Laptop");
         List<CategoryAttribute> laptopAttrs = List.of(
-                CategoryAttribute.builder().categoryId(laptopCategoryId).attributeName("CPU").attributeKey("cpu").dataType("TEXT").isRequired(true).isHighlight(true).sortOrder(1).build(),
-                CategoryAttribute.builder().categoryId(laptopCategoryId).attributeName("RAM").attributeKey("ram").dataType("NUMBER").unit("GB").isRequired(true).isHighlight(true).sortOrder(2).build(),
-                CategoryAttribute.builder().categoryId(laptopCategoryId).attributeName("Ổ cứng").attributeKey("storage").dataType("TEXT").isRequired(true).isHighlight(true).sortOrder(3).build(),
-                CategoryAttribute.builder().categoryId(laptopCategoryId).attributeName("Card đồ họa").attributeKey("gpu").dataType("TEXT").isRequired(false).isHighlight(true).sortOrder(4).build()
+                CategoryAttribute.builder().categoryUuid(UUID.fromString(laptopCategoryId)).attributeName("CPU").attributeKey("cpu").dataType("TEXT").isRequired(true).isHighlight(true).sortOrder(1).build(),
+                CategoryAttribute.builder().categoryUuid(UUID.fromString(laptopCategoryId)).attributeName("RAM").attributeKey("ram").dataType("NUMBER").unit("GB").isRequired(true).isHighlight(true).sortOrder(2).build(),
+                CategoryAttribute.builder().categoryUuid(UUID.fromString(laptopCategoryId)).attributeName("Ổ cứng").attributeKey("storage").dataType("TEXT").isRequired(true).isHighlight(true).sortOrder(3).build(),
+                CategoryAttribute.builder().categoryUuid(UUID.fromString(laptopCategoryId)).attributeName("Card đồ họa").attributeKey("gpu").dataType("TEXT").isRequired(false).isHighlight(true).sortOrder(4).build()
         );
         
         String smartwatchCategoryId = categoryIdByName.get("Đồng hồ thông minh");
         List<CategoryAttribute> smartwatchAttrs = List.of(
-                CategoryAttribute.builder().categoryId(smartwatchCategoryId).attributeName("Màn hình").attributeKey("screen").dataType("TEXT").unit("inch").isRequired(true).isHighlight(true).sortOrder(1).build(),
-                CategoryAttribute.builder().categoryId(smartwatchCategoryId).attributeName("Thời lượng pin").attributeKey("battery_life").dataType("TEXT").unit("ngày").isRequired(false).isHighlight(true).sortOrder(2).build(),
-                CategoryAttribute.builder().categoryId(smartwatchCategoryId).attributeName("Chống nước").attributeKey("water_resistance").dataType("TEXT").isRequired(false).isHighlight(false).sortOrder(3).build()
+                CategoryAttribute.builder().categoryUuid(UUID.fromString(smartwatchCategoryId)).attributeName("Màn hình").attributeKey("screen").dataType("TEXT").unit("inch").isRequired(true).isHighlight(true).sortOrder(1).build(),
+                CategoryAttribute.builder().categoryUuid(UUID.fromString(smartwatchCategoryId)).attributeName("Thời lượng pin").attributeKey("battery_life").dataType("TEXT").unit("ngày").isRequired(false).isHighlight(true).sortOrder(2).build(),
+                CategoryAttribute.builder().categoryUuid(UUID.fromString(smartwatchCategoryId)).attributeName("Chống nước").attributeKey("water_resistance").dataType("TEXT").isRequired(false).isHighlight(false).sortOrder(3).build()
         );
         
         String headphoneCategoryId = categoryIdByName.get("Tai nghe");
         List<CategoryAttribute> headphoneAttrs = List.of(
-                CategoryAttribute.builder().categoryId(headphoneCategoryId).attributeName("Loại kết nối").attributeKey("connection_type").dataType("SELECT").selectOptions(List.of("Bluetooth", "Có dây", "USB-C")).isRequired(true).isHighlight(true).sortOrder(1).build(),
-                CategoryAttribute.builder().categoryId(headphoneCategoryId).attributeName("Chống ồn").attributeKey("noise_cancelling").dataType("SELECT").selectOptions(List.of("Có", "Không")).isRequired(false).isHighlight(true).sortOrder(2).build()
+                CategoryAttribute.builder().categoryUuid(UUID.fromString(headphoneCategoryId)).attributeName("Loại kết nối").attributeKey("connection_type").dataType("SELECT").selectOptions(List.of("Bluetooth", "Có dây", "USB-C")).isRequired(true).isHighlight(true).sortOrder(1).build(),
+                CategoryAttribute.builder().categoryUuid(UUID.fromString(headphoneCategoryId)).attributeName("Chống ồn").attributeKey("noise_cancelling").dataType("SELECT").selectOptions(List.of("Có", "Không")).isRequired(false).isHighlight(true).sortOrder(2).build()
         );
 
         List<CategoryAttribute> all = new ArrayList<>();

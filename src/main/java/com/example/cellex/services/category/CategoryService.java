@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -47,7 +48,7 @@ public class CategoryService {
         Category category = Category.builder()
                 .name(request.getName())
                 .slug(slug)
-                .parentId(request.getParentId())
+                .parentUuid(request.getParentId() != null && !request.getParentId().isEmpty() ? UUID.fromString(request.getParentId()) : null)
                 .imageUrl(imageUrl)
                 .description(request.getDescription())
                 .isActive(request.getIsActive() != null ? request.getIsActive() : true)
@@ -76,7 +77,7 @@ public class CategoryService {
         Category category = Category.builder()
                 .name(name)
                 .slug(slug)
-                .parentId(parentId)
+                .parentUuid(parentId != null && !parentId.isEmpty() ? UUID.fromString(parentId) : null)
                 .imageUrl(imageUrl)
                 .description(description)
                 .isActive(isActive != null ? isActive : true)
