@@ -1,53 +1,71 @@
 package com.example.cellex.models.notification;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
-@Document(collection = "user_devices")
+@Entity
+@Table(name = "user_devices")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class UserDevice {
-    
+
     @Id
-    private String id;
-    
-    @Field("user_id")
-    private String userId;
-    
-    @Indexed(unique = true)
-    @Field("fcm_token")
-    private String fcmToken;  // Firebase Cloud Messaging token
-    
-    @Field("device_type")
-    private String deviceType;  // WEB, ANDROID, IOS
-    
-    @Field("device_name")
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
+    @JsonIgnore
+    private UUID uuid;
+
+    @Column(name = "user_id", nullable = false)
+    @JsonIgnore
+    private UUID userUuid;
+
+    @Column(name = "fcm_token", unique = true, nullable = false)
+    private String fcmToken;
+
+    @Column(name = "device_type")
+    private String deviceType;
+
+    @Column(name = "device_name")
     private String deviceName;
-    
-    @Field("is_active")
+
     @Builder.Default
+    @Column(name = "is_active")
     private Boolean isActive = true;
-    
-    @CreatedDate
-    @Field("created_at")
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-    
-    @LastModifiedDate
-    @Field("updated_at")
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-    
-    @Field("last_used_at")
+
+    @Column(name = "last_used_at")
     private LocalDateTime lastUsedAt;
+
+    // --- Backward-compat String-based ID accessors ---
+
+    @JsonProperty("id")
+    public String getId() { return uuid != null ? uuid.toString() : null; }
+
+    public void setId(String id) { this.uuid = id != null ? UUID.fromString(id) : null; }
+
+    @JsonProperty("userId")
+    public String getUserId() { return userUuid != null ? userUuid.toString() : null; }
+
+    public void setUserId(String userId) {
+        this.userUuid = (userId != null && !userId.isEmpty()) ? UUID.fromString(userId) : null;
+    }
 }

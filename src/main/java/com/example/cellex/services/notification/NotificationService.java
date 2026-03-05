@@ -49,7 +49,7 @@ public class NotificationService {
     ) {
         // Lưu notification vào database
         Notification notification = Notification.builder()
-                .userId(user.getId())
+                .userUuid(UUID.fromString(user.getId()))
                 .title(title)
                 .message(message)
                 .type(type)
@@ -58,7 +58,6 @@ public class NotificationService {
                 .imageUrl(imageUrl)
                 .isBroadcast(false)
                 .isRead(false)
-                .createdAt(LocalDateTime.now())
                 .build();
         
         notificationRepository.save(notification);
@@ -93,7 +92,7 @@ public class NotificationService {
     ) {
         // Lưu broadcast notification vào database
         Notification notification = Notification.builder()
-                .userId(null)
+                .userUuid(null)
                 .title(title)
                 .message(message)
                 .type(type)
@@ -103,7 +102,6 @@ public class NotificationService {
                 .isBroadcast(true)
                 .isRead(false)
                 .expiresAt(expiresAt)
-                .createdAt(LocalDateTime.now())
                 .build();
         
         notificationRepository.save(notification);
@@ -343,13 +341,12 @@ public class NotificationService {
         }
 
         UserDevice newDevice = UserDevice.builder()
-                .userId(user.getId())
+                .userUuid(UUID.fromString(user.getId()))
                 .fcmToken(fcmToken)
                 .deviceType(deviceType)
                 .deviceName(deviceName)
                 .isActive(true)
                 .lastUsedAt(LocalDateTime.now())
-                .createdAt(LocalDateTime.now())
                 .build();
 
         return userDeviceRepository.save(newDevice);
@@ -409,8 +406,8 @@ public class NotificationService {
             // Kiểm tra xem đã đánh dấu chưa
             if (!userNotificationReadRepository.existsByUserIdAndNotificationId(user.getId(), notificationId)) {
                 UserNotificationRead readRecord = UserNotificationRead.builder()
-                    .userId(user.getId())
-                    .notificationId(notificationId)
+                    .userUuid(UUID.fromString(user.getId()))
+                    .notificationUuid(UUID.fromString(notificationId))
                     .readAt(LocalDateTime.now())
                     .build();
                 userNotificationReadRepository.save(readRecord);
@@ -452,8 +449,8 @@ public class NotificationService {
         for (Notification broadcast : activeBroadcasts) {
             if (!userNotificationReadRepository.existsByUserIdAndNotificationId(user.getId(), broadcast.getId())) {
                 UserNotificationRead readRecord = UserNotificationRead.builder()
-                    .userId(user.getId())
-                    .notificationId(broadcast.getId())
+                    .userUuid(UUID.fromString(user.getId()))
+                    .notificationUuid(UUID.fromString(broadcast.getId()))
                     .readAt(now)
                     .build();
                 newReads.add(readRecord);

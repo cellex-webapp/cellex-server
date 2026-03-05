@@ -1,43 +1,54 @@
 package com.example.cellex.models.segment;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.*;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "customer_segments")
+@Entity
+@Table(name = "customer_segments")
 public class CustomerSegment {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
+    @JsonIgnore
+    private UUID uuid;
 
-    @Field("name")
     private String name;
 
-    @Field("min_spend")
+    @Column(name = "min_spend")
     private Double minSpend;
 
-    @Field("max_spend")
-    private Double maxSpend; // Optional, null nghĩa là không giới hạn trên
+    @Column(name = "max_spend")
+    private Double maxSpend;
 
-    @Field("level")
-    private Integer level; // Cấp độ phân khúc (1, 2, 3...), càng cao càng VIP
+    private Integer level;
 
-    @Field("description")
     private String description;
 
-    @CreatedDate
-    @Field("created_at")
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @LastModifiedDate
-    @Field("updated_at")
+    @UpdateTimestamp
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    // --- Backward-compat String-based ID accessors ---
+
+    @JsonProperty("id")
+    public String getId() { return uuid != null ? uuid.toString() : null; }
+
+    public void setId(String id) { this.uuid = id != null ? UUID.fromString(id) : null; }
 }
 
