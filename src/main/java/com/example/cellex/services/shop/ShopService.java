@@ -76,7 +76,7 @@ public class ShopService {
 
         // Tạo shop mới với status PENDING
         Shop shop = Shop.builder()
-                .vendorId(vendorId)
+                .ownerUuid(java.util.UUID.fromString(vendorId))
                 .shopName(request.getShopName())
                 .description(request.getDescription())
                 .logoUrl(logoUrl)
@@ -319,7 +319,7 @@ public class ShopService {
 
         // Tạo shop mới với status PENDING
         Shop shop = Shop.builder()
-                .vendorId(vendorId)
+                .ownerUuid(java.util.UUID.fromString(vendorId))
                 .shopName(shopName)
                 .description(description)
                 .logoUrl(logoUrl)

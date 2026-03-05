@@ -1,19 +1,34 @@
 package com.example.cellex.models.shop;
 
 import com.example.cellex.enums.ShopStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
-@Document(collection = "shops")
+/**
+ * JPA Entity for the 'shops' table in PostgreSQL (Supabase).
+ * Migrated from MongoDB @Document. Same package and class name
+ * to preserve backward compatibility across 12+ dependent files.
+ */
+@Entity
+@Table(name = "shops", indexes = {
+        @Index(name = "idx_shops_owner_id", columnList = "owner_id"),
+        @Index(name = "idx_shops_status", columnList = "status"),
+        @Index(name = "idx_shops_created_at", columnList = "created_at")
+})
+@EntityListeners(AuditingEntityListener.class)
 @Data
 @Builder
 @AllArgsConstructor
@@ -21,70 +36,108 @@ import java.time.LocalDateTime;
 public class Shop {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
+    @JsonIgnore
+    private UUID uuid;
 
-    @Field("vendor_id")
-    private String vendorId;
+    /**
+     * FK → users(id). Stored as UUID internally.
+     * Backward-compat: getVendorId()/setVendorId(String) preserved.
+     */
+    @Column(name = "owner_id", nullable = false)
+    @JsonIgnore
+    private UUID ownerUuid;
 
-    @Field("shop_name")
+    @Column(name = "shop_name", nullable = false)
     private String shopName;
 
-    @Field("description")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Field("logo_url")
+    @Column(name = "logo_url", columnDefinition = "TEXT")
     private String logoUrl;
 
-    @Field("address")
+    /**
+     * Address stored as JSONB in PostgreSQL.
+     * Hibernate 6 maps Java object ↔ JSONB automatically.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "address_json", columnDefinition = "jsonb")
     private Address address;
 
-    @Field("phone_number")
+    @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 
-    @Field("email")
+    @Column(name = "email")
     private String email;
 
-    @Field("status")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
     private ShopStatus status = ShopStatus.PENDING;
 
-    @Field("rating")
+    @Column(name = "rating", precision = 3, scale = 2)
     @Builder.Default
     private Double rating = 0.0;
 
-    @Field("rejection_reason")
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
     private String rejectionReason;
 
     @CreatedDate
-    @Field("created_at")
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @LastModifiedDate
-    @Field("updated_at")
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    // ==================== Backward-compatible ID accessors ====================
+
+    /**
+     * Returns the shop ID as String (backward compatible with MongoDB String id).
+     */
+    @JsonProperty("id")
+    public String getId() {
+        return uuid != null ? uuid.toString() : null;
+    }
+
+    /**
+     * Sets the shop ID from a String (backward compatible).
+     */
+    public void setId(String id) {
+        this.uuid = (id != null && !id.isBlank()) ? UUID.fromString(id) : null;
+    }
+
+    /**
+     * Returns vendorId as String (backward compatible).
+     * Maps to owner_id UUID column.
+     */
+    @JsonProperty("vendorId")
+    public String getVendorId() {
+        return ownerUuid != null ? ownerUuid.toString() : null;
+    }
+
+    /**
+     * Sets vendorId from String (backward compatible).
+     */
+    public void setVendorId(String vendorId) {
+        this.ownerUuid = (vendorId != null && !vendorId.isBlank()) ? UUID.fromString(vendorId) : null;
+    }
+
+    // ==================== Inner classes ====================
 
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Address {
-        @Field("street")
         private String street;
-
-        @Field("commune")
         private String commune;
-
-        @Field("province")
         private String province;
-
-        @Field("country")
         @Builder.Default
         private String country = "Việt Nam";
-
-        @Field("full_address")
         private String fullAddress;
-
-        @Field("is_default")
         @Builder.Default
         private boolean isDefault = false;
     }

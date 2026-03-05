@@ -250,7 +250,7 @@ public class DummyDataService implements CommandLineRunner {
             User v = vendors.get(i);
             if (shopRepository.findAll().stream().noneMatch(s -> Objects.equals(s.getVendorId(), v.getId()))) {
                 Shop shop = Shop.builder()
-                        .vendorId(v.getId())
+                        .ownerUuid(v.getUuid())
                         .shopName(vendorNames[i])
                         .description("Cửa hàng chuyên " + getShopDescription(i))
                         .logoUrl(AVATAR_URL)

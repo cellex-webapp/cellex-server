@@ -17,7 +17,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
         basePackages = {
                 "com.example.cellex.repositories.jpa",
                 "com.example.cellex.repositories.user",
-                "com.example.cellex.repositories.auth"
+                "com.example.cellex.repositories.auth",
+                "com.example.cellex.repositories.shop"
         }
 )
 public class JpaConfig {
