@@ -3,92 +3,112 @@ package com.example.cellex.models.coupon;
 import com.example.cellex.enums.CouponStatus;
 import com.example.cellex.enums.CouponType;
 import com.example.cellex.enums.IssuedVia;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.*;
-import org.springframework.data.mongodb.core.index.CompoundIndex;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "user_coupons")
-@CompoundIndex(name = "user_segment_coupon_idx", def = "{'user_id': 1, 'segment_coupon_id': 1}")
-@CompoundIndex(name = "user_campaign_idx", def = "{'user_id': 1, 'campaign_id': 1}")
-@CompoundIndex(name = "user_code_idx", def = "{'user_id': 1, 'code': 1}", unique = true) // Unique per user+code combo (cho SHARED_CODE)
+@Entity
+@Table(name = "user_coupons",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "code"}))
 public class UserCoupon {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
+    @JsonIgnore
+    private UUID uuid;
 
-    @Field("user_id")
+    @Column(name = "user_id", length = 50)
     private String userId;
 
-    @Field("segment_coupon_id")
-    private String segmentCouponId; // Cho segment coupon (có thể null nếu từ campaign)
+    @Column(name = "segment_coupon_id", length = 50)
+    private String segmentCouponId;
 
-    @Field("campaign_id")
-    private String campaignId; // Cho campaign coupon (có thể null nếu từ segment)
+    @Column(name = "campaign_id", length = 50)
+    private String campaignId;
 
-    @Indexed(name = "code_idx") // Đặt tên khác để tránh conflict với index cũ
-    @Field("code")
-    private String code; // Mã coupon (unique per user cho SEGMENT, shared cho CAMPAIGN SHARED_CODE)
+    @Column(name = "code", length = 100)
+    private String code;
 
-    @Field("title")
+    @Column(name = "title")
     private String title;
 
-    @Field("description")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Field("coupon_type")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "coupon_type", length = 50)
     private CouponType couponType;
 
-    @Field("discount_value")
+    @Column(name = "discount_value")
     private Double discountValue;
 
-    @Field("min_order_amount")
+    @Column(name = "min_order_amount")
     private Double minOrderAmount;
 
-    // Áp dụng cho sản phẩm/danh mục cụ thể (từ campaign)
-    @Field("applicable_product_ids")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "applicable_product_ids", columnDefinition = "jsonb")
     private List<String> applicableProductIds;
 
-    @Field("applicable_category_ids")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "applicable_category_ids", columnDefinition = "jsonb")
     private List<String> applicableCategoryIds;
 
-    @Field("issued_date")
-    private LocalDateTime issuedDate; // Ngày phát coupon
+    @Column(name = "issued_date")
+    private LocalDateTime issuedDate;
 
-    @Field("expires_at")
-    private LocalDateTime expiresAt; // Ngày hết hạn
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
 
-    @Field("status")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 50)
     @Builder.Default
     private CouponStatus status = CouponStatus.ACTIVE;
 
-    @Field("redeemed_order_id")
-    private String redeemedOrderId; // ID đơn hàng đã sử dụng coupon
+    @Column(name = "redeemed_order_id", length = 50)
+    private String redeemedOrderId;
 
-    @Field("redeemed_at")
-    private LocalDateTime redeemedAt; // Thời điểm sử dụng coupon
+    @Column(name = "redeemed_at")
+    private LocalDateTime redeemedAt;
 
-    @Field("issued_via")
-    private IssuedVia issuedVia; // ADMIN_MANUAL, SCHEDULED, AUTO_ON_UPGRADE, CAMPAIGN
+    @Enumerated(EnumType.STRING)
+    @Column(name = "issued_via", length = 50)
+    private IssuedVia issuedVia;
 
-    @Field("issued_by")
-    private String issuedBy; // Admin ID nếu phát thủ công
+    @Column(name = "issued_by", length = 50)
+    private String issuedBy;
 
-    @CreatedDate
-    @Field("created_at")
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @LastModifiedDate
-    @Field("updated_at")
+    @UpdateTimestamp
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    // ==================== Backward-compatible ID accessors ====================
+
+    @JsonProperty("id")
+    public String getId() {
+        return uuid != null ? uuid.toString() : null;
+    }
+
+    @JsonIgnore
+    public void setId(String id) {
+        this.uuid = id != null ? UUID.fromString(id) : null;
+    }
 }
 

@@ -16,10 +16,8 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
                 "com.example.cellex.repositories.cart",
                 "com.example.cellex.repositories.chat",
                 "com.example.cellex.repositories.common",
-                "com.example.cellex.repositories.coupon",
                 "com.example.cellex.repositories.product",
-                "com.example.cellex.repositories.recommendation",
-                "com.example.cellex.repositories.review"
+                "com.example.cellex.repositories.recommendation"
         }
 )
 public class MongoConfig {

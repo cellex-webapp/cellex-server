@@ -18,14 +18,15 @@ import com.example.cellex.repositories.coupon.CampaignDistributionLogRepository;
 import com.example.cellex.repositories.coupon.CouponCampaignRepository;
 import com.example.cellex.repositories.coupon.UserCouponRepository;
 import com.example.cellex.repositories.user.UserRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -39,7 +40,9 @@ public class CouponCampaignService {
     private final UserRepository userRepository;
     private final UserCouponRepository userCouponRepository;
     private final CampaignDistributionLogRepository distributionLogRepository;
-    private final MongoTemplate mongoTemplate;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public CouponCampaignResponse createCampaign(CreateCampaignRequest request, String adminId) {
         // Validation
@@ -250,60 +253,81 @@ public class CouponCampaignService {
     }
 
     private List<User> filterUsers(CampaignRecipientFilter filter) {
-        Query query = new Query();
-        List<Criteria> criteriaList = new ArrayList<>();
+        StringBuilder jpql = new StringBuilder("SELECT DISTINCT u FROM User u");
+        List<String> conditions = new ArrayList<>();
+        Map<String, Object> params = new HashMap<>();
+
+        boolean needsAddressJoin = filter.getCity() != null || filter.getDistrict() != null;
+        if (needsAddressJoin) {
+            jpql.append(" LEFT JOIN u.addresses a");
+        }
 
         // Base: user active và không bị ban
-        criteriaList.add(Criteria.where("is_active").is(true));
-        criteriaList.add(Criteria.where("is_banned").is(false));
+        conditions.add("u.isActive = true");
+        conditions.add("u.isBanned = false");
 
-        // All users
-        if (Boolean.TRUE.equals(filter.getAll())) {
-            query.addCriteria(new Criteria().andOperator(criteriaList.toArray(new Criteria[0])));
-            return mongoTemplate.find(query, User.class);
+        if (!Boolean.TRUE.equals(filter.getAll())) {
+            // Explicit user IDs
+            if (filter.getExplicitUserIds() != null && !filter.getExplicitUserIds().isEmpty()) {
+                List<UUID> uuids = filter.getExplicitUserIds().stream()
+                        .map(UUID::fromString).toList();
+                conditions.add("u.uuid IN :explicitIds");
+                params.put("explicitIds", uuids);
+            }
+
+            // By segment
+            if (filter.getCustomerSegmentId() != null) {
+                conditions.add("u.customerSegmentId = :segmentId");
+                params.put("segmentId", filter.getCustomerSegmentId());
+            }
+
+            // By total spend
+            if (filter.getMinTotalSpend() != null) {
+                conditions.add("u.totalSpendDecimal >= :minSpend");
+                params.put("minSpend", BigDecimal.valueOf(filter.getMinTotalSpend()));
+            }
+            if (filter.getMaxTotalSpend() != null) {
+                conditions.add("u.totalSpendDecimal <= :maxSpend");
+                params.put("maxSpend", BigDecimal.valueOf(filter.getMaxTotalSpend()));
+            }
+
+            // By registration date
+            if (filter.getRegisteredBefore() != null) {
+                conditions.add("u.createdAt <= :regBefore");
+                params.put("regBefore", filter.getRegisteredBefore());
+            }
+            if (filter.getRegisteredAfter() != null) {
+                conditions.add("u.createdAt >= :regAfter");
+                params.put("regAfter", filter.getRegisteredAfter());
+            }
+
+            // By location
+            if (filter.getCity() != null) {
+                conditions.add("LOWER(a.provinceName) LIKE LOWER(:city)");
+                params.put("city", "%" + filter.getCity() + "%");
+            }
+            if (filter.getDistrict() != null) {
+                conditions.add("LOWER(a.communeName) LIKE LOWER(:district)");
+                params.put("district", "%" + filter.getDistrict() + "%");
+            }
+
+            // Exclude users
+            if (filter.getExcludeUserIds() != null && !filter.getExcludeUserIds().isEmpty()) {
+                List<UUID> excludeUuids = filter.getExcludeUserIds().stream()
+                        .map(UUID::fromString).toList();
+                conditions.add("u.uuid NOT IN :excludeIds");
+                params.put("excludeIds", excludeUuids);
+            }
         }
 
-        // Explicit user IDs
-        if (filter.getExplicitUserIds() != null && !filter.getExplicitUserIds().isEmpty()) {
-            criteriaList.add(Criteria.where("_id").in(filter.getExplicitUserIds()));
+        if (!conditions.isEmpty()) {
+            jpql.append(" WHERE ").append(String.join(" AND ", conditions));
         }
 
-        // By segment
-        if (filter.getCustomerSegmentId() != null) {
-            criteriaList.add(Criteria.where("customer_segment_id").is(filter.getCustomerSegmentId()));
-        }
+        TypedQuery<User> typedQuery = entityManager.createQuery(jpql.toString(), User.class);
+        params.forEach(typedQuery::setParameter);
 
-        // By total spend
-        if (filter.getMinTotalSpend() != null) {
-            criteriaList.add(Criteria.where("total_spend").gte(filter.getMinTotalSpend()));
-        }
-        if (filter.getMaxTotalSpend() != null) {
-            criteriaList.add(Criteria.where("total_spend").lte(filter.getMaxTotalSpend()));
-        }
-
-        // By registration date
-        if (filter.getRegisteredBefore() != null) {
-            criteriaList.add(Criteria.where("created_at").lte(filter.getRegisteredBefore()));
-        }
-        if (filter.getRegisteredAfter() != null) {
-            criteriaList.add(Criteria.where("created_at").gte(filter.getRegisteredAfter()));
-        }
-
-        // By location
-        if (filter.getCity() != null) {
-            criteriaList.add(Criteria.where("address.province_name").regex(filter.getCity(), "i"));
-        }
-        if (filter.getDistrict() != null) {
-            criteriaList.add(Criteria.where("address.commune_name").regex(filter.getDistrict(), "i"));
-        }
-
-        // Exclude users
-        if (filter.getExcludeUserIds() != null && !filter.getExcludeUserIds().isEmpty()) {
-            criteriaList.add(Criteria.where("_id").nin(filter.getExcludeUserIds()));
-        }
-
-        query.addCriteria(new Criteria().andOperator(criteriaList.toArray(new Criteria[0])));
-        return mongoTemplate.find(query, User.class);
+        return typedQuery.getResultList();
     }
 
     private String generateCouponCode(CouponCampaign campaign, String userId) {

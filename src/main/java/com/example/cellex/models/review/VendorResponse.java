@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.LocalDateTime;
 
@@ -14,18 +13,9 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class VendorResponse {
 
-    @Field("vendor_id")
     private String vendorId;
-
-    @Field("vendor_name")
     private String vendorName;
-
-    @Field("comment")
     private String comment;
-
-    @Field("created_at")
     private LocalDateTime createdAt;
-
-    @Field("updated_at")
     private LocalDateTime updatedAt;
 }

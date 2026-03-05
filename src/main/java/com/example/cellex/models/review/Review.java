@@ -1,99 +1,117 @@
 package com.example.cellex.models.review;
 
 import com.example.cellex.enums.ReviewStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "reviews")
+@Entity
+@Table(name = "reviews")
 public class Review {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
+    @JsonIgnore
+    private UUID uuid;
 
-    @Indexed
-    @Field("product_id")
+    @Column(name = "product_id", length = 50)
     private String productId;
 
-    @Indexed
-    @Field("user_id")
+    @Column(name = "user_id", length = 50)
     private String userId;
 
-    @Field("user_name")
+    @Column(name = "user_name")
     private String userName;
 
-    @Field("user_avatar")
+    @Column(name = "user_avatar", columnDefinition = "TEXT")
     private String userAvatar;
 
-    @Indexed
-    @Field("order_id")
+    @Column(name = "order_id", length = 50)
     private String orderId;
 
-    @Field("order_item_id")
-    private String orderItemId; // ID của item trong order để đánh giá đúng sản phẩm
+    @Column(name = "order_item_id", length = 50)
+    private String orderItemId;
 
-    @Indexed
-    @Field("shop_id")
+    @Column(name = "shop_id", length = 50)
     private String shopId;
 
-    @Field("rating")
-    private Integer rating; // 1-5 sao
+    @Column(name = "rating")
+    private Integer rating;
 
-    @Field("comment")
-    private String comment; // Bình luận
+    @Column(name = "comment", columnDefinition = "TEXT")
+    private String comment;
 
-    @Field("images")
-    private List<String> images; // URLs của hình ảnh
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "images", columnDefinition = "jsonb")
+    private List<String> images;
 
-    @Field("videos")
-    private List<String> videos; // URLs của video
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "videos", columnDefinition = "jsonb")
+    private List<String> videos;
 
-    @Field("vendor_response")
-    private VendorResponse vendorResponse; // Phản hồi từ vendor
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "vendor_response", columnDefinition = "jsonb")
+    private VendorResponse vendorResponse;
 
-    @Field("is_verified_purchase")
+    @Column(name = "is_verified_purchase")
     @Builder.Default
-    private Boolean isVerifiedPurchase = true; // Luôn true vì chỉ cho phép review sau khi nhận hàng
+    private Boolean isVerifiedPurchase = true;
 
-    // Helpful vote fields
-    @Field("helpful_count")
+    @Column(name = "helpful_count")
     @Builder.Default
-    private Integer helpfulCount = 0; // Số lượt đánh giá hữu ích
+    private Integer helpfulCount = 0;
 
-    @Field("helpful_voted_user_ids")
-    private List<String> helpfulVotedUserIds; // Danh sách user đã vote helpful
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "helpful_voted_user_ids", columnDefinition = "jsonb")
+    private List<String> helpfulVotedUserIds;
 
-    // Moderation fields
-    @Indexed
-    @Field("status")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 50)
     @Builder.Default
     private ReviewStatus status = ReviewStatus.PENDING_MODERATION;
 
-    @Field("moderation_result")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "moderation_result", columnDefinition = "jsonb")
     private ModerationResult moderationResult;
 
-    @Field("admin_decision")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "admin_decision", columnDefinition = "jsonb")
     private AdminDecision adminDecision;
 
-    @CreatedDate
-    @Field("created_at")
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @LastModifiedDate
-    @Field("updated_at")
+    @UpdateTimestamp
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    // ==================== Backward-compatible ID accessors ====================
+
+    @JsonProperty("id")
+    public String getId() {
+        return uuid != null ? uuid.toString() : null;
+    }
+
+    @JsonIgnore
+    public void setId(String id) {
+        this.uuid = id != null ? UUID.fromString(id) : null;
+    }
 }

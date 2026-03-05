@@ -3,94 +3,119 @@ package com.example.cellex.models.coupon;
 import com.example.cellex.enums.CampaignStatus;
 import com.example.cellex.enums.CouponType;
 import com.example.cellex.enums.DistributionType;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.*;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "coupon_campaigns")
+@Entity
+@Table(name = "coupon_campaigns")
 public class CouponCampaign {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
+    @JsonIgnore
+    private UUID uuid;
 
-    @Field("title")
+    @Column(name = "title", nullable = false)
     private String title;
 
-    @Field("description")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Field("code_template")
-    private String codeTemplate; // Nếu SHARED_CODE thì dùng code này, nếu UNIQUE thì null
+    @Column(name = "code_template", length = 100)
+    private String codeTemplate;
 
-    @Field("coupon_type")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "coupon_type", length = 50, nullable = false)
     private CouponType couponType;
 
-    @Field("discount_value")
+    @Column(name = "discount_value")
     private Double discountValue;
 
-    @Field("min_order_amount")
+    @Column(name = "min_order_amount")
     private Double minOrderAmount;
 
-    // Áp dụng cho sản phẩm/danh mục cụ thể
-    @Field("applicable_product_ids")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "applicable_product_ids", columnDefinition = "jsonb")
     private List<String> applicableProductIds;
 
-    @Field("applicable_category_ids")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "applicable_category_ids", columnDefinition = "jsonb")
     private List<String> applicableCategoryIds;
 
-    @Field("start_date")
+    @Column(name = "start_date")
     private LocalDateTime startDate;
 
-    @Field("end_date")
+    @Column(name = "end_date")
     private LocalDateTime endDate;
 
-    @Field("distribution_type")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "distribution_type", length = 50)
     private DistributionType distributionType;
 
-    @Field("max_total_issuance")
-    private Integer maxTotalIssuance; // Tổng số coupon tối đa
+    @Column(name = "max_total_issuance")
+    private Integer maxTotalIssuance;
 
-    @Field("per_user_limit")
-    private Integer perUserLimit; // Số lần 1 user được nhận
+    @Column(name = "per_user_limit")
+    private Integer perUserLimit;
 
-    @Field("current_issuance")
+    @Column(name = "current_issuance")
     @Builder.Default
-    private Integer currentIssuance = 0; // Số lượng đã phát
+    private Integer currentIssuance = 0;
 
-    @Field("status")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 50)
     @Builder.Default
     private CampaignStatus status = CampaignStatus.DRAFT;
 
-    @Field("scheduled_at")
-    private LocalDateTime scheduledAt; // Thời điểm phát theo lịch
+    @Column(name = "scheduled_at")
+    private LocalDateTime scheduledAt;
 
-    @Field("distributed_at")
-    private LocalDateTime distributedAt; // Thời điểm thực sự phát
+    @Column(name = "distributed_at")
+    private LocalDateTime distributedAt;
 
-    @Field("is_active")
+    @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;
 
-    @Field("created_by")
-    private String createdBy; // Admin ID
+    @Column(name = "created_by", length = 50)
+    private String createdBy;
 
-    @Field("note")
+    @Column(name = "note", columnDefinition = "TEXT")
     private String note;
 
-    @CreatedDate
-    @Field("created_at")
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @LastModifiedDate
-    @Field("updated_at")
+    @UpdateTimestamp
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    // ==================== Backward-compatible ID accessors ====================
+
+    @JsonProperty("id")
+    public String getId() {
+        return uuid != null ? uuid.toString() : null;
+    }
+
+    @JsonIgnore
+    public void setId(String id) {
+        this.uuid = id != null ? UUID.fromString(id) : null;
+    }
 }
 

@@ -2,95 +2,117 @@ package com.example.cellex.models.coupon;
 
 import com.example.cellex.enums.DiscountType;
 import com.example.cellex.enums.ScheduleFrequency;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.*;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "segment_coupons")
+@Entity
+@Table(name = "segment_coupons")
 public class SegmentCoupon {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
+    @JsonIgnore
+    private UUID uuid;
 
-    @Field("segment_id")
-    private String segmentId; // ID của customer segment
+    @Column(name = "segment_id", length = 50)
+    private String segmentId;
 
-    @Field("code_prefix")
-    private String codePrefix; // Tiền tố cho mã coupon (VD: "VIP", "GOLD"), sẽ kết hợp với UUID
+    @Column(name = "code_prefix", length = 50)
+    private String codePrefix;
 
-    @Field("title")
+    @Column(name = "title")
     private String title;
 
-    @Field("description")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Field("discount_type")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "discount_type", length = 50)
     private DiscountType discountType;
 
-    @Field("discount_value")
-    private Double discountValue; // Giá trị giảm (% hoặc số tiền cố định)
+    @Column(name = "discount_value")
+    private Double discountValue;
 
-    @Field("min_order_amount")
-    private Double minOrderAmount; // Giá trị đơn hàng tối thiểu để áp dụng
+    @Column(name = "min_order_amount")
+    private Double minOrderAmount;
 
-    @Field("valid_hours")
-    private Integer validHours; // Số giờ có hiệu lực từ khi phát, null = dùng startDate/endDate
+    @Column(name = "valid_hours")
+    private Integer validHours;
 
-    @Field("start_date")
-    private LocalDate startDate; // Ngày bắt đầu có hiệu lực (nếu không dùng validHours)
+    @Column(name = "start_date")
+    private LocalDate startDate;
 
-    @Field("end_date")
-    private LocalDate endDate; // Ngày kết thúc có hiệu lực (nếu không dùng validHours)
+    @Column(name = "end_date")
+    private LocalDate endDate;
 
-    @Field("is_active")
+    @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;
 
     // ============ Cấu hình phát coupon tự động ============
 
-    @Field("is_auto_on_upgrade")
+    @Column(name = "is_auto_on_upgrade")
     @Builder.Default
-    private Boolean isAutoOnUpgrade = false; // Tự động phát khi user nâng hạng lên segment này
+    private Boolean isAutoOnUpgrade = false;
 
-    @Field("schedule_frequency")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "schedule_frequency", length = 50)
     @Builder.Default
     private ScheduleFrequency scheduleFrequency = ScheduleFrequency.NONE;
 
-    @Field("schedule_day_of_week")
-    private DayOfWeek scheduleDayOfWeek; // Cho WEEKLY: thứ mấy (MONDAY, TUESDAY...)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "schedule_day_of_week", length = 20)
+    private DayOfWeek scheduleDayOfWeek;
 
-    @Field("schedule_day_of_month")
-    private Integer scheduleDayOfMonth; // Cho MONTHLY: ngày bao nhiêu (1-31)
+    @Column(name = "schedule_day_of_month")
+    private Integer scheduleDayOfMonth;
 
-    @Field("schedule_month_day")
-    private String scheduleMonthDay; // Cho YEARLY: format "MM-DD" (VD: "01-01" cho ngày 1/1)
+    @Column(name = "schedule_month_day", length = 10)
+    private String scheduleMonthDay;
 
-    @Field("schedule_time")
+    @Column(name = "schedule_time")
     @Builder.Default
-    private LocalTime scheduleTime = LocalTime.of(0, 0); // Giờ phát trong ngày
+    private LocalTime scheduleTime = LocalTime.of(0, 0);
 
-    @Field("next_scheduled_date")
-    private LocalDateTime nextScheduledDate; // Lần phát tiếp theo
+    @Column(name = "next_scheduled_date")
+    private LocalDateTime nextScheduledDate;
 
-    @Field("max_uses_per_user")
-    private Integer maxUsesPerUser; // Số lần tối đa 1 user có thể nhận coupon này, null = unlimited
+    @Column(name = "max_uses_per_user")
+    private Integer maxUsesPerUser;
 
-    @CreatedDate
-    @Field("created_at")
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @LastModifiedDate
-    @Field("updated_at")
+    @UpdateTimestamp
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    // ==================== Backward-compatible ID accessors ====================
+
+    @JsonProperty("id")
+    public String getId() {
+        return uuid != null ? uuid.toString() : null;
+    }
+
+    @JsonIgnore
+    public void setId(String id) {
+        this.uuid = id != null ? UUID.fromString(id) : null;
+    }
 }
 
