@@ -143,7 +143,8 @@ public class DummyDataService implements CommandLineRunner {
         List<User> allUsers = new ArrayList<>();
         
         // Admin
-        User admin = userRepository.findByEmail("admin@gmail.com").orElseGet(() -> userRepository.save(User.builder()
+        User admin = userRepository.findByEmail("admin@gmail.com").orElseGet(() -> {
+            User u = User.builder()
                 .fullName("Admin User")
                 .email("admin@gmail.com")
                 .password(passwordEncoder.encode("123"))
@@ -151,13 +152,16 @@ public class DummyDataService implements CommandLineRunner {
                 .avatarUrl(AVATAR_URL)
                 .role(Role.ADMIN)
                 .isActive(true)
-                .totalSpend(0.0)
-                .address(sampleUserAddress())
-                .build()));
+                .totalSpendDecimal(java.math.BigDecimal.ZERO)
+                .build();
+            u.setAddress(sampleUserAddress());
+            return userRepository.save(u);
+        });
         allUsers.add(admin);
 
         // Vendor
-        User vendor = userRepository.findByEmail("vendor@gmail.com").orElseGet(() -> userRepository.save(User.builder()
+        User vendor = userRepository.findByEmail("vendor@gmail.com").orElseGet(() -> {
+            User u = User.builder()
                 .fullName("Vendor User")
                 .email("vendor@gmail.com")
                 .password(passwordEncoder.encode("123"))
@@ -165,13 +169,16 @@ public class DummyDataService implements CommandLineRunner {
                 .avatarUrl(AVATAR_URL)
                 .role(Role.VENDOR)
                 .isActive(true)
-                .totalSpend(0.0)
-                .address(sampleUserAddress())
-                .build()));
+                .totalSpendDecimal(java.math.BigDecimal.ZERO)
+                .build();
+            u.setAddress(sampleUserAddress());
+            return userRepository.save(u);
+        });
         allUsers.add(vendor);
 
         // Normal User
-        User normalUser = userRepository.findByEmail("user@gmail.com").orElseGet(() -> userRepository.save(User.builder()
+        User normalUser = userRepository.findByEmail("user@gmail.com").orElseGet(() -> {
+            User u = User.builder()
                 .fullName("Normal User")
                 .email("user@gmail.com")
                 .password(passwordEncoder.encode("123"))
@@ -179,9 +186,11 @@ public class DummyDataService implements CommandLineRunner {
                 .avatarUrl(AVATAR_URL)
                 .role(Role.USER)
                 .isActive(true)
-                .totalSpend(randomBetween(0, 5_000_000))
-                .address(sampleUserAddress())
-                .build()));
+                .totalSpendDecimal(java.math.BigDecimal.valueOf(randomBetween(0, 5_000_000)))
+                .build();
+            u.setAddress(sampleUserAddress());
+            return userRepository.save(u);
+        });
         allUsers.add(normalUser);
 
         // Create additional vendors
@@ -192,7 +201,8 @@ public class DummyDataService implements CommandLineRunner {
         for (int i = 0; i < vendorNames.length - 1; i++) {
             String email = "vendor" + (i + 2) + "@gmail.com";
             int finalI = i;
-            User v = userRepository.findByEmail(email).orElseGet(() -> userRepository.save(User.builder()
+            User v = userRepository.findByEmail(email).orElseGet(() -> {
+                User u = User.builder()
                     .fullName("Vendor " + (finalI + 2))
                     .email(email)
                     .password(passwordEncoder.encode("123"))
@@ -200,9 +210,11 @@ public class DummyDataService implements CommandLineRunner {
                     .avatarUrl(AVATAR_URL)
                     .role(Role.VENDOR)
                     .isActive(true)
-                    .totalSpend(0.0)
-                    .address(sampleUserAddress())
-                    .build()));
+                    .totalSpendDecimal(java.math.BigDecimal.ZERO)
+                    .build();
+                u.setAddress(sampleUserAddress());
+                return userRepository.save(u);
+            });
             vendors.add(v);
             allUsers.add(v);
         }
@@ -216,18 +228,21 @@ public class DummyDataService implements CommandLineRunner {
             String suffix = userSuffixes[i % userSuffixes.length];
             String email = "user" + (i + 2) + "@gmail.com";
             
-            User u = userRepository.findByEmail(email).orElseGet(() -> userRepository.save(User.builder()
+            User u2 = userRepository.findByEmail(email).orElseGet(() -> {
+                User u = User.builder()
                     .fullName(prefix + " " + suffix)
                     .email(email)
                     .password(passwordEncoder.encode("123"))
                     .phoneNumber(randomPhone())
                     .avatarUrl(AVATAR_URL)
                     .role(Role.USER)
-                    .isActive(ThreadLocalRandom.current().nextDouble() > 0.1) // 90% active
-                    .totalSpend(randomBetween(0, 10_000_000))
-                    .address(sampleUserAddress())
-                    .build()));
-            allUsers.add(u);
+                    .isActive(ThreadLocalRandom.current().nextDouble() > 0.1)
+                    .totalSpendDecimal(java.math.BigDecimal.valueOf(randomBetween(0, 10_000_000)))
+                    .build();
+                u.setAddress(sampleUserAddress());
+                return userRepository.save(u);
+            });
+            allUsers.add(u2);
         }
 
         // Create shops for all vendors

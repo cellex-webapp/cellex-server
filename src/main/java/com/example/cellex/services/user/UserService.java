@@ -8,6 +8,7 @@ import com.example.cellex.enums.Role;
 import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.models.user.User;
+import com.example.cellex.models.jpa.UserAddressEntity;
 import com.example.cellex.models.segment.CustomerSegment;
 import com.example.cellex.repositories.user.UserRepository;
 import com.example.cellex.services.S3Service;
@@ -24,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,6 +39,21 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final CustomerSegmentService customerSegmentService;
     private final ChatService chatService;
+
+    // ==================== Helper: String ID → UUID ====================
+
+    private UUID parseUserId(String userId) {
+        try {
+            return UUID.fromString(userId);
+        } catch (IllegalArgumentException e) {
+            throw new AppException(ErrorCode.USER_NOT_FOUND);
+        }
+    }
+
+    private User findUserById(String userId) {
+        return userRepository.findById(parseUserId(userId))
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+    }
 
     @Transactional
     public User createAccount(CreateUserDataRequest request, MultipartFile avatar) {
@@ -69,17 +86,21 @@ public class UserService {
             }
         }
 
+        User user = userBuilder.build();
+
         // Handle address if provided
         if (request.getProvinceCode() != null || request.getCommuneCode() != null ||
             request.getDetailAddress() != null) {
 
             User.Address address = buildAddress(request.getProvinceCode(),
                     request.getCommuneCode(), request.getDetailAddress());
-            userBuilder.address(address);
+            // Create a UserAddressEntity for the default address
+            UserAddressEntity addressEntity = createAddressEntity(user, address, true);
+            user.getAddresses().add(addressEntity);
             log.debug("Address set for new user: {}", address.getFullAddress());
         }
 
-        User savedUser = userRepository.save(userBuilder.build());
+        User savedUser = userRepository.save(user);
         log.info("Account created successfully for email: {} with role: {}",
                 savedUser.getEmail(), savedUser.getRole());
 
@@ -142,9 +163,24 @@ public class UserService {
         return addressBuilder.build();
     }
 
+    /**
+     * Create a UserAddressEntity from Address inner class.
+     */
+    private UserAddressEntity createAddressEntity(User user, User.Address address, boolean isDefault) {
+        UserAddressEntity entity = new UserAddressEntity();
+        entity.setUser(user);
+        entity.setProvinceCode(address.getProvinceCode());
+        entity.setProvinceName(address.getProvinceName());
+        entity.setCommuneCode(address.getCommuneCode());
+        entity.setCommuneName(address.getCommuneName());
+        entity.setDetailAddress(address.getDetailAddress());
+        entity.setFullAddress(address.getFullAddress());
+        entity.setDefault(isDefault);
+        return entity;
+    }
+
     public UserResponse updateProfile(String userId, UpdateUserRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+        User user = findUserById(userId);
 
         String oldFullName = user.getFullName();
         String oldAvatarUrl = user.getAvatarUrl();
@@ -258,21 +294,18 @@ public class UserService {
     }
 
     public UserResponse getUserById(String userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        User user = findUserById(userId);
         return mapToUserResponse(user);
     }
 
     public UserResponse getCurrentUser(String userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        User user = findUserById(userId);
         return mapToUserResponse(user);
     }
 
     // Upload/Update user avatar
     public UserResponse uploadUserAvatar(String userId, MultipartFile avatar) throws IOException {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        User user = findUserById(userId);
 
         if (avatar == null || avatar.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT);
@@ -293,8 +326,7 @@ public class UserService {
 
     // Update profile with JSON data only
     public UserResponse updateProfile(String userId, UpdateUserDataRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        User user = findUserById(userId);
 
         String oldFullName = user.getFullName();
         boolean fullNameChanged = false;
@@ -336,9 +368,9 @@ public class UserService {
     }
 
     // Ban user account
+    @Transactional
     public UserResponse banUser(String userId, String banReason, String adminId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        User user = findUserById(userId);
 
         // Kiểm tra không thể ban chính mình
         if (userId.equals(adminId)) {
@@ -368,9 +400,9 @@ public class UserService {
     }
 
     // Unban user account
+    @Transactional
     public UserResponse unbanUser(String userId, String adminId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        User user = findUserById(userId);
 
         // Kiểm tra tài khoản có bị ban không
         if (!user.isBanned()) {
@@ -408,12 +440,6 @@ public class UserService {
             avatarUrl = s3Service.uploadFile(avatar, "avatars");
         }
 
-        // Build address if provided
-        User.Address address = null;
-        if (provinceCode != null || communeCode != null || detailAddress != null) {
-            address = buildAddressFromCodes(provinceCode, communeCode, detailAddress);
-        }
-
         // Build user
         User user = User.builder()
                 .fullName(fullName)
@@ -422,9 +448,15 @@ public class UserService {
                 .phoneNumber(phoneNumber)
                 .role(Role.valueOf(role.toUpperCase()))
                 .avatarUrl(avatarUrl)
-                .address(address)
                 .isActive(true)
                 .build();
+
+        // Build address if provided
+        if (provinceCode != null || communeCode != null || detailAddress != null) {
+            User.Address address = buildAddressFromCodes(provinceCode, communeCode, detailAddress);
+            UserAddressEntity addressEntity = createAddressEntity(user, address, true);
+            user.getAddresses().add(addressEntity);
+        }
 
         User savedUser = userRepository.save(user);
         log.info("Account created successfully for email: {}", email);
@@ -436,8 +468,7 @@ public class UserService {
     public UserResponse updateProfileMultipart(String userId, String fullName, String phoneNumber,
                                              String provinceCode, String communeCode,
                                              String detailAddress, MultipartFile avatar) throws IOException {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        User user = findUserById(userId);
 
         String oldFullName = user.getFullName();
         String oldAvatarUrl = user.getAvatarUrl();
@@ -604,7 +635,7 @@ public class UserService {
                 .avatarUrl(user.getAvatarUrl())
                 .role(user.getRole())
                 .address(mapToAddressResponse(user.getAddress()))
-                .customerSegmentInfo(segmentInfo) // Thay đổi từ customerSegmentId
+                .customerSegmentInfo(segmentInfo)
                 .isActive(user.isEnabled())
                 .isBanned(user.isBanned())
                 .banReason(user.getBanReason())
@@ -627,7 +658,7 @@ public class UserService {
                 .street(address.getDetailAddress())
                 .commune(address.getCommuneName())
                 .province(address.getProvinceName())
-                .country("Việt Nam") // Mặc định là Vietnam
+                .country("Việt Nam")
                 .fullAddress(address.getFullAddress())
                 .isDefault(true)
                 .build();

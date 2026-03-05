@@ -67,34 +67,17 @@ public class CustomerSegmentationService {
             // CẬP NHẬT SEGMENT MỚI VÀO USER
             user.setCustomerSegmentId(newSegment.getId());
 
-            // Lưu vào lịch sử
-            if (user.getSegmentHistory() == null) {
-                user.setSegmentHistory(new ArrayList<>());
-            }
-
-            // Đóng segment cũ trong lịch sử
-            if (oldSegmentId != null) {
-                user.getSegmentHistory().stream()
-                        .filter(h -> h.getSegmentId().equals(oldSegmentId) && h.getTo() == null)
-                        .forEach(h -> h.setTo(LocalDateTime.now()));
-            }
-
-            // Thêm segment mới vào lịch sử
+            // Note: Segment history is now managed in the user_segment_history table (PostgreSQL).
+            // TODO: Implement UserSegmentHistoryRepository when segment module is migrated.
             String note = "Initial";
             if (oldSegment != null && newSegment.getLevel() != null && oldSegment.getLevel() != null) {
                 note = newSegment.getLevel() > oldSegment.getLevel() ? "Upgraded" : "Downgraded";
             } else if (oldSegmentId != null) {
                 note = "Changed";
             }
-
-            User.SegmentHistory newHistory = User.SegmentHistory.builder()
-                    .segmentId(newSegment.getId())
-                    .segmentName(newSegment.getName())
-                    .from(LocalDateTime.now())
-                    .to(null)
-                    .note(note)
-                    .build();
-            user.getSegmentHistory().add(newHistory);
+            log.info("User {} segment history: {} → {} ({})", userId,
+                    oldSegmentId != null ? oldSegmentId : "null",
+                    newSegment.getId(), note);
 
             // Lưu user với segment mới
             userRepository.save(user);

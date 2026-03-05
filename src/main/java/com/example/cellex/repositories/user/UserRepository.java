@@ -2,70 +2,111 @@ package com.example.cellex.repositories.user;
 
 import com.example.cellex.enums.Role;
 import com.example.cellex.models.user.User;
-import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.mongodb.repository.Query;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
+/**
+ * JPA Repository for User entity (PostgreSQL/Supabase).
+ * Migrated from MongoRepository. Maintains the same method signatures
+ * where possible for backward compatibility with all dependent services.
+ */
 @Repository
-// This interface handles database operations for the User entity.
-public interface UserRepository extends MongoRepository<User, String> {
+public interface UserRepository extends JpaRepository<User, UUID> {
+
     // Custom query method to find a user by their email address.
     Optional<User> findByEmail(String email);
-    
+
     // Find all users in a specific customer segment
     List<User> findByCustomerSegmentId(String customerSegmentId);
 
     // ==================== Analytics Methods ====================
 
     /**
-     * Đếm số user theo role
+     * Count users by role enum
      */
     long countByRole(Role role);
 
     /**
-     * Đếm số user được tạo trong khoảng thời gian
+     * Count users created between dates
      */
-    @Query(value = "{'created_at': {$gte: ?0, $lte: ?1}}", count = true)
-    long countByCreatedAtBetween(LocalDateTime startDate, LocalDateTime endDate);
+    @Query("SELECT COUNT(u) FROM User u WHERE u.createdAt BETWEEN :startDate AND :endDate")
+    long countByCreatedAtBetween(@Param("startDate") LocalDateTime startDate,
+                                 @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Đếm số user đang active
+     * Count active users
      */
     long countByIsActiveTrue();
 
     /**
-     * Đếm số user không bị banned
+     * Count non-banned users
      */
     long countByIsBannedFalse();
 
     /**
-     * Đếm số user theo role và khoảng thời gian tạo
+     * Count users by role and created between dates
      */
-    @Query(value = "{'role': ?0, 'created_at': {$gte: ?1, $lte: ?2}}", count = true)
-    long countByRoleAndCreatedAtBetween(Role role, LocalDateTime startDate, LocalDateTime endDate);
+    @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role AND u.createdAt BETWEEN :startDate AND :endDate")
+    long countByRoleAndCreatedAtBetween(@Param("role") Role role,
+                                        @Param("startDate") LocalDateTime startDate,
+                                        @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Đếm số user theo role và tạo trước thời điểm
+     * Count users by role created before a date
      */
-    @Query(value = "{'role': ?0, 'created_at': {$lte: ?1}}", count = true)
-    long countByRoleAndCreatedAtBefore(Role role, LocalDateTime beforeDate);
+    @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role AND u.createdAt <= :beforeDate")
+    long countByRoleAndCreatedAtBefore(@Param("role") Role role,
+                                       @Param("beforeDate") LocalDateTime beforeDate);
 
     /**
-     * Tìm users theo role và khoảng thời gian tạo
+     * Find users by role and created between dates
      */
-    @Query("{'role': ?0, 'created_at': {$gte: ?1, $lte: ?2}}")
-    List<User> findByRoleAndCreatedAtBetween(Role role, LocalDateTime startDate, LocalDateTime endDate);
+    @Query("SELECT u FROM User u WHERE u.role = :role AND u.createdAt BETWEEN :startDate AND :endDate")
+    List<User> findByRoleAndCreatedAtBetween(@Param("role") Role role,
+                                              @Param("startDate") LocalDateTime startDate,
+                                              @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Tìm users theo role với phân trang
+     * Find users by role with pagination
      */
-    List<User> findByRole(Role role, org.springframework.data.domain.Pageable pageable);
+    List<User> findByRole(Role role, Pageable pageable);
 
     /**
-     * Tìm users theo tên (case insensitive) với phân trang
+     * Search users by name (case insensitive) with pagination
      */
-    org.springframework.data.domain.Page<User> findByFullNameContainingIgnoreCase(String name, org.springframework.data.domain.Pageable pageable);
+    Page<User> findByFullNameContainingIgnoreCase(String name, Pageable pageable);
+
+    /**
+     * Check if email exists
+     */
+    boolean existsByEmail(String email);
+
+    /**
+     * Find by UUID (convenience for String-to-UUID conversion in services).
+     */
+    @Query("SELECT u FROM User u WHERE u.uuid = :uuid")
+    Optional<User> findByUuid(@Param("uuid") UUID uuid);
+
+    /**
+     * Backward-compatible findById accepting String ID.
+     * Converts String to UUID and delegates to the standard findById(UUID).
+     * This ensures all existing services that pass String IDs still compile and work.
+     */
+    default Optional<User> findById(String id) {
+        if (id == null || id.isEmpty()) return Optional.empty();
+        try {
+            return findById(UUID.fromString(id));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
+    }
 }

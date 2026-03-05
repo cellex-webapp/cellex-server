@@ -1,10 +1,7 @@
-package com.example.cellex.models.auth;
+package com.example.cellex.models.jpa;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
@@ -12,21 +9,22 @@ import java.util.UUID;
 
 /**
  * JPA Entity for the 'otps' table in PostgreSQL (Supabase).
- * Migrated from MongoDB @Document to JPA @Entity.
+ * Stores OTP codes for signup verification and password reset.
+ * Temporarily holds registration data until verification succeeds.
  */
 @Entity
 @Table(name = "otps")
 @EntityListeners(AuditingEntityListener.class)
 @Data
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
-public class Otp {
+@AllArgsConstructor
+public class OtpEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
-    private UUID uuid;
+    private UUID id;
 
     @Column(name = "code", nullable = false, length = 6)
     private String code;
@@ -53,18 +51,4 @@ public class Otp {
 
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
-
-    // ==================== Backward-compatible ID accessor ====================
-
-    /**
-     * Returns id as String for backward compatibility.
-     */
-    @Transient
-    public String getId() {
-        return uuid != null ? uuid.toString() : null;
-    }
-
-    public void setId(String id) {
-        this.uuid = (id != null && !id.isEmpty()) ? UUID.fromString(id) : null;
-    }
 }
