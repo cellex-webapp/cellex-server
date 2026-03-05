@@ -45,6 +45,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -670,9 +671,9 @@ public class DummyDataService implements CommandLineRunner {
                         .productId(product.getId())
                         .productName(product.getName())
                         .productImage(product.getImages().isEmpty() ? "" : product.getImages().get(0))
-                        .price(price)
+                        .priceDecimal(BigDecimal.valueOf(price))
                         .quantity(quantity)
-                        .subtotal(price * quantity)
+                        .subtotalDecimal(BigDecimal.valueOf(price * quantity))
                         .build();
                 
                 items.add(item);
@@ -697,15 +698,14 @@ public class DummyDataService implements CommandLineRunner {
             
             Order order = Order.builder()
                     .orderCode("ORD" + System.currentTimeMillis() + i)
-                    .userId(user.getId())
-                    .shopId(shop.getId())
+                    .userUuid(UUID.fromString(user.getId()))
+                    .shopUuid(UUID.fromString(shop.getId()))
                     .shopName(shop.getShopName())
-                    .items(items)
                     .shippingAddress(convertToOrderAddress(user.getAddress()))
-                    .subtotal(subtotal)
-                    .shippingFee(shippingFee)
-                    .discountAmount(discountAmount)
-                    .totalAmount(totalAmount)
+                    .subtotalDecimal(BigDecimal.valueOf(subtotal))
+                    .shippingFeeDecimal(BigDecimal.valueOf(shippingFee))
+                    .discountAmountDecimal(BigDecimal.valueOf(discountAmount))
+                    .totalAmountDecimal(BigDecimal.valueOf(totalAmount))
                     .paymentMethod(paymentMethod)
                     .isPaid(paymentMethod == PaymentMethod.VNPAY || status == OrderStatus.DELIVERED)
                     .paidAt(paymentMethod == PaymentMethod.VNPAY ? createdAt.plusMinutes(5) : null)
@@ -715,6 +715,10 @@ public class DummyDataService implements CommandLineRunner {
                     .createdAt(createdAt)
                     .updatedAt(LocalDateTime.now())
                     .build();
+
+            // Set bidirectional relationship for JPA
+            for (OrderItem item : items) { item.setOrder(order); }
+            order.setItems(items);
             
             if (status == OrderStatus.DELIVERED) {
                 order.setDeliveredAt(createdAt.plusDays(ThreadLocalRandom.current().nextInt(3, 10)));

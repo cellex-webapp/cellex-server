@@ -37,6 +37,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -99,9 +100,9 @@ public class OrderService {
                 .productName(product.getName())
                 .productImage(product.getImages() != null && !product.getImages().isEmpty()
                     ? product.getImages().get(0) : null)
-                .price(product.getFinalPrice())
+                .priceDecimal(BigDecimal.valueOf(product.getFinalPrice()))
                 .quantity(it.getQuantity())
-                .subtotal(product.getFinalPrice() * it.getQuantity())
+                .subtotalDecimal(BigDecimal.valueOf(product.getFinalPrice() * it.getQuantity()))
                 .build();
 
             orderItems.add(orderItem);
@@ -118,20 +119,23 @@ public class OrderService {
         // Tạo đơn hàng (không lưu note ở bước tạo)
         Order order = Order.builder()
             .orderCode(generateOrderCode())
-            .userId(userId)
-            .shopId(shop.getId())
+            .userUuid(UUID.fromString(userId))
+            .shopUuid(UUID.fromString(shop.getId()))
             .shopName(shop.getShopName())
-            .items(orderItems)
-            .subtotal(subtotal)
-            .shippingFee(shippingFee)
-            .discountAmount(0.0)
-            .totalAmount(totalAmount)
+            .subtotalDecimal(BigDecimal.valueOf(subtotal))
+            .shippingFeeDecimal(BigDecimal.valueOf(shippingFee))
+            .discountAmountDecimal(BigDecimal.ZERO)
+            .totalAmountDecimal(BigDecimal.valueOf(totalAmount))
             .status(OrderStatus.PENDING)
             // .note omitted here; note will be set on checkout
             .statusHistory(new ArrayList<>())
             .isPaid(false)
             .isFromCart(false)
             .build();
+
+        // Set bidirectional relationship for JPA
+        for (OrderItem item : orderItems) { item.setOrder(order); }
+        order.setItems(orderItems);
 
         // Thêm lịch sử trạng thái
         addStatusHistory(order, OrderStatus.PENDING, "Đơn hàng được tạo", userId);
@@ -210,9 +214,9 @@ public class OrderService {
                     .productName(product.getName())
                     .productImage(product.getImages() != null && !product.getImages().isEmpty()
                             ? product.getImages().get(0) : null)
-                    .price(product.getFinalPrice())
+                    .priceDecimal(BigDecimal.valueOf(product.getFinalPrice()))
                     .quantity(qty)
-                    .subtotal(product.getFinalPrice() * qty)
+                    .subtotalDecimal(BigDecimal.valueOf(product.getFinalPrice() * qty))
                     .build();
 
             orderItems.add(orderItem);
@@ -225,20 +229,23 @@ public class OrderService {
 
         Order order = Order.builder()
                 .orderCode(generateOrderCode())
-                .userId(userId)
-                .shopId(shop.getId())
+                .userUuid(UUID.fromString(userId))
+                .shopUuid(UUID.fromString(shop.getId()))
                 .shopName(shop.getShopName())
-                .items(orderItems)
-                .subtotal(subtotal)
-                .shippingFee(shippingFee)
-                .discountAmount(0.0)
-                .totalAmount(totalAmount)
+                .subtotalDecimal(BigDecimal.valueOf(subtotal))
+                .shippingFeeDecimal(BigDecimal.valueOf(shippingFee))
+                .discountAmountDecimal(BigDecimal.ZERO)
+                .totalAmountDecimal(BigDecimal.valueOf(totalAmount))
                 .status(OrderStatus.PENDING)
                 // .note omitted here; note will be set on checkout
                 .statusHistory(new ArrayList<>())
                 .isPaid(false)
                 .isFromCart(true) // Đánh dấu đơn hàng từ giỏ hàng
                 .build();
+
+        // Set bidirectional relationship for JPA
+        for (OrderItem item : orderItems) { item.setOrder(order); }
+        order.setItems(orderItems);
 
         addStatusHistory(order, OrderStatus.PENDING, "Đơn hàng được tạo", userId);
 

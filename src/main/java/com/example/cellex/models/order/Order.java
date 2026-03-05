@@ -2,157 +2,241 @@ package com.example.cellex.models.order;
 
 import com.example.cellex.enums.OrderStatus;
 import com.example.cellex.enums.PaymentMethod;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
+/**
+ * JPA Entity for the 'orders' table in PostgreSQL (Supabase).
+ * Migrated from MongoDB @Document. Same package and class name
+ * to preserve backward compatibility across 18+ dependent files.
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "orders")
+@Entity
+@Table(name = "orders", indexes = {
+        @Index(name = "idx_orders_user_id", columnList = "user_id"),
+        @Index(name = "idx_orders_shop_id", columnList = "shop_id"),
+        @Index(name = "idx_orders_status", columnList = "status"),
+        @Index(name = "idx_orders_order_code", columnList = "order_code"),
+        @Index(name = "idx_orders_created_at", columnList = "created_at")
+})
+@EntityListeners(AuditingEntityListener.class)
 public class Order {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
+    @JsonIgnore
+    private UUID uuid;
 
-    @Indexed(unique = true, sparse = true)
-    @Field("order_code")
+    @Column(name = "order_code", unique = true)
     private String orderCode;
 
-    @Indexed
-    @Field("user_id")
-    private String userId;
+    @Column(name = "user_id", nullable = false)
+    @JsonIgnore
+    private UUID userUuid;
 
-    @Indexed
-    @Field("shop_id")
-    private String shopId;
+    @Column(name = "shop_id", nullable = false)
+    @JsonIgnore
+    private UUID shopUuid;
 
-    @Field("shop_name")
+    @Column(name = "shop_name")
     private String shopName;
 
-    @Field("items")
-    private List<OrderItem> items;
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @Builder.Default
+    private List<OrderItem> items = new ArrayList<>();
 
-    // Địa chỉ giao hàng
-    @Field("shipping_address")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "shipping_address_json", columnDefinition = "jsonb")
     private ShippingAddress shippingAddress;
 
-    // Thông tin giá
-    @Field("subtotal")
-    private Double subtotal; // Tổng tiền sản phẩm
+    // Money fields — BigDecimal internally, Double backward-compat getters
+    @Column(name = "subtotal", precision = 15, scale = 2)
+    @JsonIgnore
+    private BigDecimal subtotalDecimal;
 
-    @Field("shipping_fee")
+    @Column(name = "shipping_fee", precision = 15, scale = 2)
+    @JsonIgnore
     @Builder.Default
-    private Double shippingFee = 0.0; // Phí vận chuyển
+    private BigDecimal shippingFeeDecimal = BigDecimal.ZERO;
 
-    @Field("discount_amount")
+    @Column(name = "discount_amount", precision = 15, scale = 2)
+    @JsonIgnore
     @Builder.Default
-    private Double discountAmount = 0.0; // Số tiền giảm giá từ coupon
+    private BigDecimal discountAmountDecimal = BigDecimal.ZERO;
 
-    @Field("total_amount")
-    private Double totalAmount; // Tổng tiền phải trả
+    @Column(name = "total_amount", precision = 15, scale = 2)
+    @JsonIgnore
+    private BigDecimal totalAmountDecimal;
 
-    // Thông tin coupon
-    @Field("coupon_code")
+    @Column(name = "coupon_code", length = 50)
     private String couponCode;
 
-    @Field("user_coupon_id")
+    @Column(name = "user_coupon_id", length = 50)
     private String userCouponId;
 
-    // Thông tin thanh toán
-    @Field("payment_method")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method", length = 20)
     private PaymentMethod paymentMethod;
 
-    @Field("is_paid")
+    @Column(name = "is_paid")
     @Builder.Default
     private Boolean isPaid = false;
 
-    @Field("paid_at")
+    @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
-    // VNPay payment information
-    @Field("vnpay_transaction_id")
-    private String vnpayTransactionId; // VNPay transaction number
+    // VNPay payment fields
+    @Column(name = "vnpay_transaction_id", length = 100)
+    private String vnpayTransactionId;
 
-    @Field("vnpay_response_code")
-    private String vnpayResponseCode; // VNPay response code
+    @Column(name = "vnpay_response_code", length = 20)
+    private String vnpayResponseCode;
 
-    @Field("vnpay_bank_code")
-    private String vnpayBankCode; // Bank code used for payment
+    @Column(name = "vnpay_bank_code", length = 20)
+    private String vnpayBankCode;
 
-    @Field("vnpay_pay_date")
-    private String vnpayPayDate; // Payment date from VNPay
+    @Column(name = "vnpay_pay_date", length = 50)
+    private String vnpayPayDate;
 
-    // Trạng thái đơn hàng
-    @Field("status")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
     private OrderStatus status = OrderStatus.PENDING;
 
-    @Field("status_history")
-    private List<StatusHistory> statusHistory;
-
-    @Field("note")
-    private String note; // Ghi chú từ khách hàng
-
-    @Field("is_from_cart")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "status_history_json", columnDefinition = "jsonb")
     @Builder.Default
-    private Boolean isFromCart = false; // Đánh dấu đơn hàng được tạo từ giỏ hàng
+    private List<StatusHistory> statusHistory = new ArrayList<>();
 
-    @Field("cancel_reason")
-    private String cancelReason; // Lý do hủy đơn
+    @Column(name = "note", columnDefinition = "TEXT")
+    private String note;
 
-    @Field("cancelled_at")
+    @Column(name = "is_from_cart")
+    @Builder.Default
+    private Boolean isFromCart = false;
+
+    @Column(name = "cancel_reason", columnDefinition = "TEXT")
+    private String cancelReason;
+
+    @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
 
-    @Field("confirmed_at")
+    @Column(name = "confirmed_at")
     private LocalDateTime confirmedAt;
 
-    @Field("shipping_at")
+    @Column(name = "shipping_at")
     private LocalDateTime shippingAt;
 
-    @Field("delivered_at")
+    @Column(name = "delivered_at")
     private LocalDateTime deliveredAt;
 
     @CreatedDate
-    @Field("created_at")
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @LastModifiedDate
-    @Field("updated_at")
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    // ==================== Backward-compatible ID accessors ====================
+
+    @JsonProperty("id")
+    public String getId() {
+        return uuid != null ? uuid.toString() : null;
+    }
+
+    public void setId(String id) {
+        this.uuid = (id != null && !id.isBlank()) ? UUID.fromString(id) : null;
+    }
+
+    @JsonProperty("userId")
+    public String getUserId() {
+        return userUuid != null ? userUuid.toString() : null;
+    }
+
+    public void setUserId(String userId) {
+        this.userUuid = (userId != null && !userId.isBlank()) ? UUID.fromString(userId) : null;
+    }
+
+    @JsonProperty("shopId")
+    public String getShopId() {
+        return shopUuid != null ? shopUuid.toString() : null;
+    }
+
+    public void setShopId(String shopId) {
+        this.shopUuid = (shopId != null && !shopId.isBlank()) ? UUID.fromString(shopId) : null;
+    }
+
+    // ==================== Backward-compatible money accessors ====================
+
+    @JsonProperty("subtotal")
+    public Double getSubtotal() {
+        return subtotalDecimal != null ? subtotalDecimal.doubleValue() : null;
+    }
+
+    public void setSubtotal(Double subtotal) {
+        this.subtotalDecimal = subtotal != null ? BigDecimal.valueOf(subtotal) : null;
+    }
+
+    @JsonProperty("shippingFee")
+    public Double getShippingFee() {
+        return shippingFeeDecimal != null ? shippingFeeDecimal.doubleValue() : null;
+    }
+
+    public void setShippingFee(Double shippingFee) {
+        this.shippingFeeDecimal = shippingFee != null ? BigDecimal.valueOf(shippingFee) : null;
+    }
+
+    @JsonProperty("discountAmount")
+    public Double getDiscountAmount() {
+        return discountAmountDecimal != null ? discountAmountDecimal.doubleValue() : null;
+    }
+
+    public void setDiscountAmount(Double discountAmount) {
+        this.discountAmountDecimal = discountAmount != null ? BigDecimal.valueOf(discountAmount) : null;
+    }
+
+    @JsonProperty("totalAmount")
+    public Double getTotalAmount() {
+        return totalAmountDecimal != null ? totalAmountDecimal.doubleValue() : null;
+    }
+
+    public void setTotalAmount(Double totalAmount) {
+        this.totalAmountDecimal = totalAmount != null ? BigDecimal.valueOf(totalAmount) : null;
+    }
+
+    // ==================== Inner classes (JSONB serialized) ====================
 
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ShippingAddress {
-        @Field("province_code")
         private String provinceCode;
-
-        @Field("province_name")
         private String provinceName;
-
-        @Field("commune_code")
         private String communeCode;
-
-        @Field("commune_name")
         private String communeName;
-
-        @Field("detail_address")
         private String detailAddress;
-
-        @Field("full_address")
         private String fullAddress;
     }
 
@@ -161,16 +245,9 @@ public class Order {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class StatusHistory {
-        @Field("status")
         private OrderStatus status;
-
-        @Field("note")
         private String note;
-
-        @Field("updated_by")
-        private String updatedBy; // user_id hoặc vendor_id
-
-        @Field("updated_at")
+        private String updatedBy;
         private LocalDateTime updatedAt;
     }
 }
