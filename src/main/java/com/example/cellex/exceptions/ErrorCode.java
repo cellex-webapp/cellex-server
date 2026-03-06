@@ -43,6 +43,11 @@ public enum ErrorCode {
     REQUIRED_ATTRIBUTE_MISSING(2011, "Thiếu thuộc tính bắt buộc", HttpStatus.BAD_REQUEST),
     INVALID_ATTRIBUTE_VALUE(2012, "Giá trị thuộc tính không hợp lệ", HttpStatus.BAD_REQUEST),
 
+    // Product Comparison Errors
+    CATEGORY_MISMATCH(2013, "Các sản phẩm phải thuộc cùng một danh mục để so sánh", HttpStatus.BAD_REQUEST),
+    COMPARISON_LIMIT_EXCEEDED(2014, "Chỉ được so sánh tối đa 4 sản phẩm", HttpStatus.BAD_REQUEST),
+    COMPARISON_MINIMUM_REQUIRED(2015, "Cần ít nhất 2 sản phẩm để so sánh", HttpStatus.BAD_REQUEST),
+
     // File Upload Errors
     INVALID_INPUT(3001, "Dữ liệu đầu vào không hợp lệ", HttpStatus.BAD_REQUEST),
     FILE_UPLOAD_FAILED(3002, "Tải lên file thất bại", HttpStatus.INTERNAL_SERVER_ERROR),

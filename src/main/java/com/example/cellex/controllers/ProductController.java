@@ -2,8 +2,10 @@ package com.example.cellex.controllers;
 
 import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.PageResponse;
+import com.example.cellex.dtos.response.product.ProductComparisonResponse;
 import com.example.cellex.dtos.response.product.ProductResponse;
 import com.example.cellex.models.user.User;
+import com.example.cellex.services.product.ProductComparisonService;
 import com.example.cellex.services.product.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -26,6 +28,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/products")
@@ -34,6 +37,7 @@ import java.io.IOException;
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductComparisonService productComparisonService;
 
     // CREATE - Multipart Form Data
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -222,6 +226,30 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
                 .code(1000)
                 .message("Tạo sản phẩm thành công")
+                .result(response)
+                .build());
+    }
+
+    @GetMapping("/compare")
+    @Operation(
+            summary = "So sánh sản phẩm",
+            description = """
+                    **Mục đích:** So sánh thông số kỹ thuật giữa các sản phẩm cùng danh mục.
+                    
+                    **Lưu ý:**
+                    - Tối thiểu 2 và tối đa 4 sản phẩm
+                    - Tất cả sản phẩm phải thuộc cùng một danh mục
+                    - Response bao gồm: thông tin cơ bản, bảng so sánh thông số, đánh dấu khác biệt, best-in-class
+                    """
+    )
+    public ResponseEntity<ApiResponse<ProductComparisonResponse>> compareProducts(
+            @Parameter(description = "Danh sách ID sản phẩm cần so sánh (2-4 ID, phân tách bằng dấu phẩy)")
+            @RequestParam List<String> ids) {
+
+        ProductComparisonResponse response = productComparisonService.getComparison(ids);
+        return ResponseEntity.ok(ApiResponse.<ProductComparisonResponse>builder()
+                .code(1000)
+                .message("So sánh sản phẩm thành công")
                 .result(response)
                 .build());
     }

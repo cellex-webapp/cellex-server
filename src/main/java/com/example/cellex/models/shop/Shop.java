@@ -77,7 +77,7 @@ public class Shop {
     @Builder.Default
     private ShopStatus status = ShopStatus.PENDING;
 
-    @Column(name = "rating", precision = 3, scale = 2)
+    @Column(name = "rating")
     @Builder.Default
     private Double rating = 0.0;
 
