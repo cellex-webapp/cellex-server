@@ -50,6 +50,9 @@ public class UserAddressEntity {
     @Column(name = "full_address", columnDefinition = "TEXT")
     private String fullAddress;
 
+    @Column(name = "tag", length = 50)
+    private String tag;
+
     @Column(name = "is_default")
     @Builder.Default
     private boolean isDefault = false;

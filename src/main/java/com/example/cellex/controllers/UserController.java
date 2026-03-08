@@ -228,7 +228,8 @@ public class UserController {
     // UPDATE - Multipart Form Data
     @Operation(
             summary = "Update user profile",
-            description = "Updates the current user's profile information using multipart form data with optional avatar upload."
+            description = "Updates the current user's profile information (full name, phone number, avatar only). " +
+                    "Address management is handled separately via /api/v1/users/me/addresses endpoints."
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -262,22 +263,12 @@ public class UserController {
             @Parameter(description = "Số điện thoại")
             @RequestPart(value = "phoneNumber", required = false) String phoneNumber,
 
-            @Parameter(description = "Mã tỉnh/thành phố")
-            @RequestPart(value = "provinceCode", required = false) String provinceCode,
-
-            @Parameter(description = "Mã xã/phường")
-            @RequestPart(value = "communeCode", required = false) String communeCode,
-
-            @Parameter(description = "Địa chỉ chi tiết")
-            @RequestPart(value = "detailAddress", required = false) String detailAddress,
-
             @Parameter(description = "Ảnh đại diện mới")
             @RequestPart(value = "avatar", required = false) MultipartFile avatar) throws IOException {
 
         User currentUser = (User) authentication.getPrincipal();
         UserResponse updatedUser = userService.updateProfileMultipart(
-                currentUser.getId(), fullName, phoneNumber,
-                provinceCode, communeCode, detailAddress, avatar);
+                currentUser.getId(), fullName, phoneNumber, avatar);
 
         return ApiResponse.<UserResponse>builder()
                 .result(updatedUser)

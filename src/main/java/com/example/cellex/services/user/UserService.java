@@ -186,9 +186,14 @@ public class UserService {
         String oldAvatarUrl = user.getAvatarUrl();
         boolean profileChanged = false;
 
-        // Update basic info (removed email)
+        // Update basic info (profile fields only)
         if (request.getFullName() != null) {
             user.setFullName(request.getFullName());
+            profileChanged = true;
+        }
+
+        if (request.getPhoneNumber() != null) {
+            user.setPhoneNumber(request.getPhoneNumber());
             profileChanged = true;
         }
 
@@ -201,51 +206,6 @@ public class UserService {
             } catch (IOException e) {
                 throw new RuntimeException("Tải ảnh đại diện thất bại", e);
             }
-        }
-
-        // Handle address update
-        if (request.getProvinceCode() != null || request.getCommuneCode() != null ||
-                request.getDetailAddress() != null) {
-
-            User.Address currentAddress = user.getAddress();
-            if (currentAddress == null) {
-                currentAddress = User.Address.builder().build();
-            }
-
-            if (request.getProvinceCode() != null) {
-                currentAddress.setProvinceCode(request.getProvinceCode());
-                var province = addressService.getProvinceByCode(request.getProvinceCode());
-                if (province != null) {
-                    currentAddress.setProvinceName(province.getName());
-                }
-            }
-
-            if (request.getCommuneCode() != null) {
-                currentAddress.setCommuneCode(request.getCommuneCode());
-                var commune = addressService.getCommuneByCode(request.getCommuneCode());
-                if (commune != null) {
-                    currentAddress.setCommuneName(commune.getName());
-                }
-            }
-
-            if (request.getDetailAddress() != null) {
-                currentAddress.setDetailAddress(request.getDetailAddress());
-            }
-
-            // Generate full address
-            StringBuilder fullAddress = new StringBuilder();
-            if (request.getDetailAddress() != null && !request.getDetailAddress().trim().isEmpty()) {
-                fullAddress.append(request.getDetailAddress().trim()).append(", ");
-            }
-            if (currentAddress.getCommuneName() != null) {
-                fullAddress.append(currentAddress.getCommuneName()).append(", ");
-            }
-            if (currentAddress.getProvinceName() != null) {
-                fullAddress.append(currentAddress.getProvinceName());
-            }
-            currentAddress.setFullAddress(fullAddress.toString());
-
-            user.setAddress(currentAddress);
         }
 
         User savedUser = userRepository.save(user);
@@ -324,7 +284,7 @@ public class UserService {
         return mapToUserResponse(savedUser);
     }
 
-    // Update profile with JSON data only
+    // Update profile with JSON data only (profile fields only, no address)
     public UserResponse updateProfile(String userId, UpdateUserDataRequest request) {
         User user = findUserById(userId);
 
@@ -342,15 +302,6 @@ public class UserService {
 
         if (request.getPhoneNumber() != null && !request.getPhoneNumber().trim().isEmpty()) {
             user.setPhoneNumber(request.getPhoneNumber().trim());
-        }
-
-        // Handle address update
-        if (request.getProvinceCode() != null || request.getCommuneCode() != null ||
-                request.getDetailAddress() != null) {
-
-            User.Address address = buildAddress(request.getProvinceCode(),
-                    request.getCommuneCode(), request.getDetailAddress());
-            user.setAddress(address);
         }
 
         User savedUser = userRepository.save(user);
@@ -463,11 +414,10 @@ public class UserService {
         return savedUser;
     }
 
-    // UPDATE MULTIPART - Phương thức mới để hỗ trợ multipart form data
+    // UPDATE MULTIPART - Profile only (no address logic)
     @Transactional
     public UserResponse updateProfileMultipart(String userId, String fullName, String phoneNumber,
-                                             String provinceCode, String communeCode,
-                                             String detailAddress, MultipartFile avatar) throws IOException {
+                                             MultipartFile avatar) throws IOException {
         User user = findUserById(userId);
 
         String oldFullName = user.getFullName();
@@ -486,13 +436,11 @@ public class UserService {
 
         // Update phone number if provided
         if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
+            // Validate phone format
+            if (!phoneNumber.matches("^(\\+84|84|0)([3|5|7|8|9])([0-9]{8})$")) {
+                throw new AppException(ErrorCode.INVALID_PHONE_FORMAT);
+            }
             user.setPhoneNumber(phoneNumber);
-        }
-
-        // Update address if any address field is provided
-        if (provinceCode != null || communeCode != null || detailAddress != null) {
-            User.Address newAddress = buildAddressFromCodes(provinceCode, communeCode, detailAddress);
-            user.setAddress(newAddress);
         }
 
         // Update avatar if provided
@@ -522,6 +470,19 @@ public class UserService {
         }
         
         return mapToUserResponse(updatedUser);
+    }
+
+    /**
+     * @deprecated Use {@link #updateProfileMultipart(String, String, String, MultipartFile)} instead.
+     * Kept for backward compatibility — address logic should use UserAddressService.
+     */
+    @Deprecated
+    @Transactional
+    public UserResponse updateProfileMultipart(String userId, String fullName, String phoneNumber,
+                                             String provinceCode, String communeCode,
+                                             String detailAddress, MultipartFile avatar) throws IOException {
+        // Delegate to profile-only method, ignoring address fields
+        return updateProfileMultipart(userId, fullName, phoneNumber, avatar);
     }
 
     // Helper method để xây dựng address từ codes

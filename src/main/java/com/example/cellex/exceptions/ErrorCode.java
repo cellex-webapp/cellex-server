@@ -106,6 +106,10 @@ public enum ErrorCode {
     // Address Errors
     ADDRESS_NOT_FOUND(11001, "Không tìm thấy địa chỉ", HttpStatus.NOT_FOUND),
     ADDRESS_REQUIRED(11002, "Vui lòng thêm địa chỉ giao hàng", HttpStatus.BAD_REQUEST),
+    ADDRESS_NOT_OWNED(11003, "Địa chỉ không thuộc về bạn", HttpStatus.FORBIDDEN),
+    ADDRESS_LIMIT_EXCEEDED(11004, "Số lượng địa chỉ đã đạt giới hạn tối đa", HttpStatus.BAD_REQUEST),
+    INVALID_PROVINCE_CODE(11005, "Mã tỉnh/thành phố không hợp lệ", HttpStatus.BAD_REQUEST),
+    INVALID_COMMUNE_CODE(11006, "Mã phường/xã không hợp lệ", HttpStatus.BAD_REQUEST),
 
     // Order Errors
     ORDER_NOT_FOUND(12001, "Không tìm thấy đơn hàng", HttpStatus.NOT_FOUND),

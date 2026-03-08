@@ -13,7 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Update user profile request")
+@Schema(description = "Update user profile request (profile fields only, address managed separately)")
 public class UpdateUserRequest {
 
     @Schema(description = "User's full name", example = "Nguyen Van A")
@@ -29,16 +29,4 @@ public class UpdateUserRequest {
 
     @Schema(description = "User's avatar image file", type = "string", format = "binary")
     private MultipartFile avatar;
-
-    @Schema(description = "Province code", example = "01")
-    @Size(max = 10, message = "Province code cannot exceed 10 characters")
-    private String provinceCode;
-
-    @Schema(description = "Commune code", example = "00001")
-    @Size(max = 10, message = "Commune code cannot exceed 10 characters")
-    private String communeCode;
-
-    @Schema(description = "Detail address", example = "123 Main Street")
-    @Size(max = 500, message = "Detail address cannot exceed 500 characters")
-    private String detailAddress;
 }

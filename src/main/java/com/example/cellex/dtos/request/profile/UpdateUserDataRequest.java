@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "User data for update operations")
+@Schema(description = "User data for update operations (profile fields only, address managed separately)")
 public class UpdateUserDataRequest {
 
     @Size(min = 2, max = 100, message = "Full name must be between 2 and 100 characters")
@@ -25,16 +25,4 @@ public class UpdateUserDataRequest {
     )
     @Schema(description = "Số điện thoại theo định dạng Việt Nam", example = "0987654321")
     private String phoneNumber;
-
-    @Size(max = 10, message = "Province code cannot exceed 10 characters")
-    @Schema(description = "Province code", example = "01")
-    private String provinceCode;
-
-    @Size(max = 10, message = "Commune code cannot exceed 10 characters")
-    @Schema(description = "Commune code", example = "00001")
-    private String communeCode;
-
-    @Size(max = 500, message = "Detail address cannot exceed 500 characters")
-    @Schema(description = "Detail address", example = "123 Đường Lê Lợi")
-    private String detailAddress;
 }

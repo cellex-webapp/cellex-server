@@ -19,7 +19,7 @@ public class UserAddressResponse {
     @JsonProperty("user_id")
     private String userId;
 
-    private String label;
+    private String tag;
 
     private String street; // detailAddress
 
