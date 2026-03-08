@@ -113,22 +113,9 @@ public class ProductService {
     }
 
     public PageResponse<ProductResponse> getProductsByCategory(String categoryId, Pageable pageable) {
-        // Chỉ lấy sản phẩm đã xuất bản
+        // Chỉ lọc theo category + published. Shop/category được lookup an toàn khi map response.
         Page<Product> products = productRepository.findByCategoryIdAndIsPublishedTrue(categoryId, pageable);
-
-        // Map to ProductResponse
-        Page<ProductResponse> productResponsePage = products.map(product -> {
-            Shop shop = product.getShopId() != null 
-                ? shopRepository.findById(product.getShopId()).orElse(null) 
-                : null;
-            if (shop == null || shop.getStatus() != ShopStatus.APPROVED) {
-                return null;
-            }
-            Category category = product.getCategoryId() != null 
-                ? categoryRepository.findById(product.getCategoryId()).orElse(null) 
-                : null;
-            return mapToResponse(product, shop, category);
-        });
+        Page<ProductResponse> productResponsePage = products.map(this::mapToResponseWithLookup);
 
         return PageResponse.of(productResponsePage);
     }

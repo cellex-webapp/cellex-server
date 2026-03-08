@@ -14,6 +14,9 @@ public interface ProductRepository extends MongoRepository<Product, String> {
 
     Page<Product> findByCategoryIdAndIsPublishedTrue(String categoryId, Pageable pageable);
 
+    @Query("{'categoryId': ?0, 'isPublished': true, 'shopId': {$in: ?1}}")
+    Page<Product> findByCategoryIdAndIsPublishedTrueAndShopIdIn(String categoryId, List<String> shopIds, Pageable pageable);
+
     Page<Product> findByShopIdAndIsPublishedTrue(String shopId, Pageable pageable);
 
     Page<Product> findByShopId(String shopId, Pageable pageable);
