@@ -23,6 +23,9 @@ public class CreateOrderFromCartRequest {
     @Valid
     private List<Item> items;
 
+    @Schema(description = "ID của phiên Livestream (Nếu khách mua từ phòng Live)", example = "uuid-session-123", nullable = true)
+    private String livestreamSessionId;
+
     @Data
     @Builder
     @NoArgsConstructor

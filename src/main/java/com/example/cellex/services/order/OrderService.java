@@ -26,6 +26,7 @@ import com.example.cellex.repositories.order.OrderRepository;
 import com.example.cellex.repositories.product.ProductRepository;
 import com.example.cellex.repositories.shop.ShopRepository;
 import com.example.cellex.repositories.user.UserRepository;
+import com.example.cellex.services.livestream.LivestreamEventPublisher;
 import com.example.cellex.services.user.UserService;
 import com.example.cellex.services.shop.ShopService;
 import com.example.cellex.services.payment.vnpay.VnpayService;
@@ -57,10 +58,12 @@ public class OrderService {
     private final ShopService shopService;
     private final VnpayService vnpayService;
     private final NotificationHelper notificationHelper;
+    private final LivestreamEventPublisher livestreamEventPublisher;
 
     @Transactional
     public OrderResponse createOrderFromProduct(String userId, CreateOrderRequest request) {
         log.info("Creating order from product for user: {}", userId);
+        User user = userRepository.findById(userId).orElse(null);
 
         if (request.getItems() == null || request.getItems().isEmpty()) {
             throw new AppException(ErrorCode.NO_PRODUCTS_SELECTED);
@@ -143,12 +146,28 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
         log.info("Order created from product successfully: {}", savedOrder.getId());
 
+        // Broadcast FOMO event if the order was created from livestream room.
+        if (request.getLivestreamSessionId() != null && !request.getLivestreamSessionId().trim().isEmpty()) {
+            try {
+                String maskedName = maskCustomerName(user != null ? user.getFullName() : null);
+                String productName = !savedOrder.getItems().isEmpty()
+                        ? savedOrder.getItems().get(0).getProductName()
+                        : "sản phẩm";
+                String message = "🎉 Khách hàng " + maskedName + " vừa đặt mua " + productName + "!";
+                livestreamEventPublisher.broadcastNewOrder(request.getLivestreamSessionId(), message);
+                log.info("Broadcasted FOMO event for Livestream session: {}", request.getLivestreamSessionId());
+            } catch (Exception e) {
+                log.error("Failed to broadcast livestream FOMO event", e);
+            }
+        }
+
         return mapToResponse(savedOrder);
     }
 
     @Transactional
     public OrderResponse createOrderFromCart(String userId, CreateOrderRequest request) {
         log.info("Creating order from cart for user: {}", userId);
+        User user = userRepository.findById(userId).orElse(null);
 
         // Lấy giỏ hàng
         Cart cart = cartRepository.findByUserId(userId)
@@ -251,6 +270,19 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
         log.info("Order created from cart successfully: {}", savedOrder.getId());
+
+        // Broadcast FOMO event if checkout was initiated from livestream room.
+        if (request.getLivestreamSessionId() != null && !request.getLivestreamSessionId().trim().isEmpty()) {
+            try {
+                String maskedName = maskCustomerName(user != null ? user.getFullName() : null);
+                String message = "🔥 Khách hàng " + maskedName + " vừa chốt đơn thành công "
+                        + savedOrder.getItems().size() + " sản phẩm!";
+                livestreamEventPublisher.broadcastNewOrder(request.getLivestreamSessionId(), message);
+                log.info("Broadcasted FOMO event for Livestream session: {}", request.getLivestreamSessionId());
+            } catch (Exception e) {
+                log.error("Failed to broadcast livestream FOMO event", e);
+            }
+        }
 
         return mapToResponse(savedOrder);
     }
@@ -978,6 +1010,24 @@ public class OrderService {
         String timestamp = LocalDateTime.now().format(formatter);
         int randomSuffix = new java.util.Random().nextInt(9000) + 1000; // 4-digit random number (1000-9999)
         return String.format("ORD%s-%04d", timestamp, randomSuffix);
+    }
+
+    private String maskCustomerName(String fullName) {
+        if (fullName == null || fullName.trim().isEmpty()) {
+            return "Một khách hàng";
+        }
+
+        String[] parts = fullName.trim().split("\\s+");
+        if (parts.length == 1) {
+            return parts[0].substring(0, 1) + "***";
+        }
+
+        StringBuilder maskedName = new StringBuilder(parts[0]);
+        for (int i = 1; i < parts.length - 1; i++) {
+            maskedName.append(" ***");
+        }
+        maskedName.append(" ").append(parts[parts.length - 1].substring(0, 1)).append("***");
+        return maskedName.toString();
     }
 
     /**

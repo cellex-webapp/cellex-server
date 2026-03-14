@@ -24,5 +24,8 @@ public class CreateOrderFromProductRequest {
     @Min(value = 1, message = "Số lượng phải lớn hơn 0")
     private Integer quantity;
 
+    @Schema(description = "ID của phiên Livestream (Nếu khách mua từ phòng Live)", example = "uuid-session-123", nullable = true)
+    private String livestreamSessionId;
+
     // Note removed: note should be provided at checkout via CheckoutOrderRequest
 }

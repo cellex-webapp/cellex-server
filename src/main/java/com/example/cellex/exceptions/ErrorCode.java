@@ -153,7 +153,13 @@ public enum ErrorCode {
 
     // Analytics Errors
     MSG32_ACCESS_DENIED(15032, "Bạn không có quyền truy cập dữ liệu của cửa hàng này", HttpStatus.FORBIDDEN),
-    INVALID_DATE_RANGE(15033, "Khoảng thời gian không hợp lệ", HttpStatus.BAD_REQUEST);
+    INVALID_DATE_RANGE(15033, "Khoảng thời gian không hợp lệ", HttpStatus.BAD_REQUEST),
+
+    // Livestream Errors (LIVE codes)
+    LIVE_SESSION_NOT_FOUND(16001, "Không tìm thấy phiên Livestream", HttpStatus.NOT_FOUND),
+    NOT_HOST_OF_SESSION(16002, "Bạn không phải là chủ phòng (Host) của phiên Live này", HttpStatus.FORBIDDEN),
+    PRODUCT_NOT_IN_LIVE_BAG(16003, "Sản phẩm không có trong túi hàng của phiên Live", HttpStatus.BAD_REQUEST),
+    LIVE_SESSION_ALREADY_ENDED(16004, "Phiên Livestream này đã kết thúc", HttpStatus.BAD_REQUEST);
 
     private final int code;
     private final String message;
