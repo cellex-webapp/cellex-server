@@ -13,6 +13,7 @@ import com.example.cellex.models.shop.Shop;
 import com.example.cellex.repositories.cart.CartRepository;
 import com.example.cellex.repositories.product.ProductRepository;
 import com.example.cellex.repositories.shop.ShopRepository;
+import com.example.cellex.services.recommendation.UserInteractionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ public class CartService {
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
     private final ShopRepository shopRepository;
+    private final UserInteractionService userInteractionService;
 
     /**
      * Get all carts with pagination (for admin)
@@ -124,6 +126,7 @@ public class CartService {
 
         Cart savedCart = cartRepository.save(cart);
         log.info("Cart updated successfully for user {}", userId);
+        userInteractionService.recordAddToCart(userId, product.getId(), product.getCategoryId());
 
         return mapToCartResponse(savedCart);
     }

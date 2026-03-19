@@ -30,6 +30,7 @@ import com.example.cellex.services.user.UserService;
 import com.example.cellex.services.shop.ShopService;
 import com.example.cellex.services.payment.vnpay.VnpayService;
 import com.example.cellex.services.notification.NotificationHelper;
+import com.example.cellex.services.recommendation.UserInteractionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -57,6 +58,7 @@ public class OrderService {
     private final ShopService shopService;
     private final VnpayService vnpayService;
     private final NotificationHelper notificationHelper;
+    private final UserInteractionService userInteractionService;
 
     @Transactional
     public OrderResponse createOrderFromProduct(String userId, CreateOrderRequest request) {
@@ -717,6 +719,10 @@ public class OrderService {
 
         order.setStatus(OrderStatus.DELIVERED);
         order.setDeliveredAt(LocalDateTime.now());
+        for (OrderItem item : order.getItems()) {
+            productRepository.findById(item.getProductId())
+                    .ifPresent(product -> userInteractionService.recordPurchase(userId, item.getProductId(), product.getCategoryId()));
+        }
 
         // Nếu phương thức thanh toán là COD, cập nhật is_paid và paid_at
         if (order.getPaymentMethod() == PaymentMethod.COD) {

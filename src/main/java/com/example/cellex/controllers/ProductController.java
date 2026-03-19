@@ -7,6 +7,7 @@ import com.example.cellex.dtos.response.product.ProductResponse;
 import com.example.cellex.models.user.User;
 import com.example.cellex.services.product.ProductComparisonService;
 import com.example.cellex.services.product.ProductService;
+import com.example.cellex.services.recommendation.UserInteractionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -38,6 +39,7 @@ public class ProductController {
 
     private final ProductService productService;
     private final ProductComparisonService productComparisonService;
+    private final UserInteractionService userInteractionService;
 
     // CREATE - Multipart Form Data
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -260,9 +262,13 @@ public class ProductController {
             description = "Lấy thông tin chi tiết sản phẩm bằng ID"
     )
     public ResponseEntity<ApiResponse<ProductResponse>> getProductById(
+            Authentication authentication,
             @Parameter(description = "ID của sản phẩm") @PathVariable String productId) {
 
         ProductResponse response = productService.getProductById(productId);
+        if (authentication != null && authentication.getPrincipal() instanceof User currentUser) {
+            userInteractionService.recordView(currentUser.getId(), productId, response.getCategoryId());
+        }
         return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
                 .code(1000)
                 .message("Lấy thông tin sản phẩm thành công")

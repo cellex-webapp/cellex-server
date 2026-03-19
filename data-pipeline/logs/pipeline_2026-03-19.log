@@ -1,0 +1,28 @@
+2026-03-19 15:52:03.741 | INFO     | __main__:run_crawler:75 - ============================================================
+2026-03-19 15:52:03.742 | INFO     | __main__:run_crawler:76 - STEP 1: Running Scrapy Crawler
+2026-03-19 15:52:03.742 | INFO     | __main__:run_crawler:77 - ============================================================
+2026-03-19 15:52:05.017 | INFO     | __main__:run_crawler:104 - Crawler completed in 1.28 seconds
+2026-03-19 15:52:05.018 | INFO     | __main__:_print_summary:368 - ************************************************************
+2026-03-19 15:52:05.018 | INFO     | __main__:_print_summary:369 - PIPELINE SUMMARY
+2026-03-19 15:52:05.018 | INFO     | __main__:_print_summary:370 - ************************************************************
+2026-03-19 15:52:05.018 | INFO     | __main__:_print_summary:377 -   ✓ CRAWL: success (1.28s)
+2026-03-19 15:52:05.019 | INFO     | __main__:_print_summary:387 - ------------------------------------------------------------
+2026-03-19 15:52:05.019 | INFO     | __main__:_print_summary:388 - Total Duration: 1.28 seconds
+2026-03-19 15:52:05.019 | INFO     | __main__:_print_summary:389 - Overall Status: SUCCESS
+2026-03-19 15:52:05.019 | INFO     | __main__:_print_summary:390 - ************************************************************
+2026-03-19 15:54:20.495 | INFO     | __main__:run_crawler:76 - ============================================================
+2026-03-19 15:54:20.495 | INFO     | __main__:run_crawler:77 - STEP 1: Running Scrapy Crawler
+2026-03-19 15:54:20.495 | INFO     | __main__:run_crawler:78 - ============================================================
+2026-03-19 15:54:21.417 | INFO     | scraper.crawler.pipelines:open_spider:116 - Connecting to MongoDB: cellex_prod/raw_products
+2026-03-19 15:54:21.977 | INFO     | scraper.crawler.pipelines:open_spider:126 - MongoDB connection successful
+2026-03-19 15:54:22.032 | INFO     | scraper.crawler.pipelines:open_spider:135 - Created index on (external_id, source)
+2026-03-19 15:54:22.733 | INFO     | scraper.crawler.pipelines:close_spider:150 - Spider closed. Total items saved: 15
+2026-03-19 15:54:22.735 | INFO     | __main__:run_crawler:110 - Crawler completed in 2.24 seconds
+2026-03-19 15:54:22.735 | INFO     | __main__:_print_summary:374 - ************************************************************
+2026-03-19 15:54:22.735 | INFO     | __main__:_print_summary:375 - PIPELINE SUMMARY
+2026-03-19 15:54:22.735 | INFO     | __main__:_print_summary:376 - ************************************************************
+2026-03-19 15:54:22.735 | INFO     | __main__:_print_summary:383 -   ✓ CRAWL: success (2.24s)
+2026-03-19 15:54:22.735 | INFO     | __main__:_print_summary:393 - ------------------------------------------------------------
+2026-03-19 15:54:22.736 | INFO     | __main__:_print_summary:394 - Total Duration: 2.24 seconds
+2026-03-19 15:54:22.736 | INFO     | __main__:_print_summary:395 - Overall Status: SUCCESS
+2026-03-19 15:54:22.736 | INFO     | __main__:_print_summary:396 - ************************************************************

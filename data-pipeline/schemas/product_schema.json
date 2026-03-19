@@ -1,0 +1,117 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Product Schema",
+  "description": "Schema cho san pham trong data pipeline. Su dung cho Bronze, Silver, va Gold layers.",
+  "type": "object",
+  "required": ["product_id", "external_id", "title", "source"],
+  "properties": {
+    "product_id": {
+      "type": "integer",
+      "description": "ID noi bo cua san pham trong PostgreSQL (Gold layer)"
+    },
+    "external_id": {
+      "type": "string",
+      "description": "ID cua san pham tu nguon goc (vd: SKU tu website)",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "source": {
+      "type": "string",
+      "description": "Nguon crawl cua san pham",
+      "minLength": 1,
+      "maxLength": 50
+    },
+    "title": {
+      "type": "string",
+      "description": "Ten san pham",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "brand": {
+      "type": ["string", "null"],
+      "description": "Thuong hieu san pham",
+      "maxLength": 100
+    },
+    "category": {
+      "type": ["string", "null"],
+      "description": "Danh muc san pham",
+      "maxLength": 100
+    },
+    "price": {
+      "type": ["number", "null"],
+      "description": "Gia hien tai cua san pham (VND)",
+      "minimum": 0
+    },
+    "original_price": {
+      "type": ["number", "null"],
+      "description": "Gia goc truoc khi giam gia (VND)",
+      "minimum": 0
+    },
+    "stock": {
+      "type": "integer",
+      "description": "So luong ton kho",
+      "minimum": 0,
+      "default": 0
+    },
+    "rating": {
+      "type": ["number", "null"],
+      "description": "Diem danh gia trung binh (0-5)",
+      "minimum": 0,
+      "maximum": 5
+    },
+    "review_count": {
+      "type": "integer",
+      "description": "So luong danh gia",
+      "minimum": 0,
+      "default": 0
+    },
+    "description": {
+      "type": ["string", "null"],
+      "description": "Mo ta chi tiet san pham"
+    },
+    "image_urls": {
+      "type": "array",
+      "description": "Danh sach URL hinh anh san pham",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "default": []
+    },
+    "specifications": {
+      "type": "object",
+      "description": "Thong so ky thuat san pham (key-value)",
+      "additionalProperties": {
+        "type": ["string", "number", "boolean"]
+      },
+      "default": {}
+    },
+    "source_url": {
+      "type": ["string", "null"],
+      "description": "URL goc cua san pham tren website nguon",
+      "format": "uri",
+      "maxLength": 1000
+    },
+    "crawl_time": {
+      "type": ["string", "null"],
+      "description": "Thoi gian crawl (ISO 8601 format)",
+      "format": "date-time"
+    },
+    "cleaned_at": {
+      "type": ["string", "null"],
+      "description": "Thoi gian lam sach du lieu (ISO 8601 format)",
+      "format": "date-time"
+    },
+    "loaded_at": {
+      "type": ["string", "null"],
+      "description": "Thoi gian load vao PostgreSQL (ISO 8601 format)",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": ["string", "null"],
+      "description": "Thoi gian cap nhat cuoi cung (ISO 8601 format)",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}
