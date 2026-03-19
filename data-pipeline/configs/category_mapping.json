@@ -1,0 +1,208 @@
+{
+  "version": "1.0.0",
+  "description": "Category mapping configuration cho data pipeline. Map raw category names sang canonical categories.",
+
+  "canonical_categories": [
+    "Điện thoại",
+    "Laptop",
+    "Máy tính bảng",
+    "Tai nghe",
+    "Đồng hồ thông minh",
+    "Loa",
+    "Camera",
+    "Phụ kiện",
+    "Thiết bị mạng",
+    "Thiết bị lưu trữ",
+    "Gaming",
+    "Smart Home",
+    "Khác"
+  ],
+
+  "category_mappings": {
+    "Điện thoại": [
+      "dien thoai",
+      "điện thoại",
+      "smartphone",
+      "phone",
+      "mobile",
+      "iphone",
+      "android phone",
+      "cell phone"
+    ],
+    "Laptop": [
+      "laptop",
+      "may tinh xach tay",
+      "máy tính xách tay",
+      "notebook",
+      "macbook",
+      "ultrabook",
+      "gaming laptop",
+      "business laptop"
+    ],
+    "Máy tính bảng": [
+      "may tinh bang",
+      "máy tính bảng",
+      "tablet",
+      "ipad",
+      "android tablet",
+      "e-reader"
+    ],
+    "Tai nghe": [
+      "tai nghe",
+      "headphone",
+      "headphones",
+      "earphone",
+      "earphones",
+      "earbuds",
+      "airpods",
+      "wireless earbuds",
+      "gaming headset",
+      "headset"
+    ],
+    "Đồng hồ thông minh": [
+      "dong ho thong minh",
+      "đồng hồ thông minh",
+      "smartwatch",
+      "smart watch",
+      "apple watch",
+      "galaxy watch",
+      "fitness tracker",
+      "fitness band"
+    ],
+    "Loa": [
+      "loa",
+      "speaker",
+      "speakers",
+      "bluetooth speaker",
+      "loa bluetooth",
+      "soundbar",
+      "portable speaker",
+      "smart speaker"
+    ],
+    "Camera": [
+      "camera",
+      "may anh",
+      "máy ảnh",
+      "action camera",
+      "gopro",
+      "webcam",
+      "dslr",
+      "mirrorless",
+      "security camera"
+    ],
+    "Phụ kiện": [
+      "phu kien",
+      "phụ kiện",
+      "accessory",
+      "accessories",
+      "charger",
+      "sac",
+      "sạc",
+      "cable",
+      "cap",
+      "cáp",
+      "case",
+      "op lung",
+      "ốp lưng",
+      "screen protector",
+      "power bank",
+      "pin du phong",
+      "pin dự phòng",
+      "adapter",
+      "mount",
+      "tripod",
+      "gimbal",
+      "memory card",
+      "the nho",
+      "thẻ nhớ"
+    ],
+    "Thiết bị mạng": [
+      "thiet bi mang",
+      "thiết bị mạng",
+      "router",
+      "modem",
+      "wifi router",
+      "mesh wifi",
+      "access point",
+      "network switch",
+      "extender",
+      "range extender"
+    ],
+    "Thiết bị lưu trữ": [
+      "thiet bi luu tru",
+      "thiết bị lưu trữ",
+      "storage",
+      "ssd",
+      "hdd",
+      "hard drive",
+      "external hard drive",
+      "usb drive",
+      "flash drive",
+      "nas",
+      "o cung",
+      "ổ cứng"
+    ],
+    "Gaming": [
+      "gaming",
+      "game",
+      "console",
+      "playstation",
+      "xbox",
+      "nintendo",
+      "gaming accessories",
+      "game controller",
+      "tay cam choi game",
+      "tay cầm chơi game"
+    ],
+    "Smart Home": [
+      "smart home",
+      "nha thong minh",
+      "nhà thông minh",
+      "smart bulb",
+      "smart plug",
+      "smart lock",
+      "smart doorbell",
+      "home automation",
+      "iot device"
+    ]
+  },
+
+  "brand_normalization": {
+    "Apple": ["apple", "APPLE", "Apple Inc", "Apple Inc."],
+    "Samsung": ["samsung", "SAMSUNG", "Samsung Electronics"],
+    "Sony": ["sony", "SONY", "Sony Corporation"],
+    "Dell": ["dell", "DELL", "Dell Technologies"],
+    "ASUS": ["asus", "ASUS", "ASUSTek"],
+    "Xiaomi": ["xiaomi", "XIAOMI", "Xiaomi Corporation", "Mi"],
+    "Lenovo": ["lenovo", "LENOVO", "Lenovo Group"],
+    "HP": ["hp", "HP", "Hewlett-Packard", "Hewlett Packard"],
+    "Anker": ["anker", "ANKER", "Anker Innovations"],
+    "JBL": ["jbl", "JBL", "JBL Professional"],
+    "Bose": ["bose", "BOSE", "Bose Corporation"],
+    "GoPro": ["gopro", "GoPro", "GOPRO"],
+    "DJI": ["dji", "DJI", "Da-Jiang Innovations"]
+  },
+
+  "default_category": "Khác",
+
+  "price_tiers": {
+    "budget": {
+      "max_price": 5000000,
+      "label": "Phân khúc bình dân"
+    },
+    "mid-range": {
+      "min_price": 5000000,
+      "max_price": 15000000,
+      "label": "Phân khúc tầm trung"
+    },
+    "premium": {
+      "min_price": 15000000,
+      "max_price": 30000000,
+      "label": "Phân khúc cao cấp"
+    },
+    "luxury": {
+      "min_price": 30000000,
+      "label": "Phân khúc siêu cao cấp"
+    }
+  }
+}

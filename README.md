@@ -167,7 +167,7 @@ Render là một nền tảng cloud deployment đơn giản và miễn phí cho 
 
 ### 🐳 Local Development với Docker
 ```bash
-# Chạy tất cả services (Backend + MongoDB + Mongo Express)
+# Chạy tất cả services (Backend + ML Service + MongoDB + Mongo Express)
 docker-compose up -d
 
 # Xem logs
@@ -176,6 +176,69 @@ docker-compose logs -f
 # Stop
 docker-compose down
 ```
+
+### 🤖 ML Service (SVD++ Recommendation Engine)
+
+Cellex bao gồm một **Python FastAPI microservice** chứa mô hình **SVD++ recommendation** được train từ dữ liệu `user_interactions` trong MongoDB.
+
+#### Khởi động ML Service (Dev)
+
+```bash
+cd ml-service
+
+# Tạo virtual environment
+python -m venv venv
+venv\Scripts\activate                    # Windows
+# hoặc source venv/bin/activate          # Linux/macOS
+
+# Cài đặt dependencies
+pip install -r requirements.txt
+
+# Copy cấu hình mẫu
+cp .env.example .env
+# Sửa MONGO_URI nếu cần (mặc định: mongodb://admin:admin123@localhost:27017/cellex?authSource=admin)
+
+# Chạy service
+uvicorn app.main:app --reload --port 8000
+```
+
+Service sẽ chạy tại: **http://localhost:8000**
+Swagger UI: **http://localhost:8000/docs**
+
+#### Pipeline Recommendation (Đầu tiên lần chạy)
+
+```bash
+# 1. Sinh mock data (200 users, 0.08 density)
+curl -X POST "http://localhost:8000/api/v1/ml/mock-data?n_users=200&density=0.08&clear=true"
+
+# 2. Train SVD++ model
+curl -X POST http://localhost:8000/api/v1/ml/train
+
+# 3. Lấy gợi ý cho user
+curl "http://localhost:8000/api/v1/ml/recommendations/mock_user_0001?limit=10"
+
+# 4. Đánh giá model (Precision@K, Recall@K, NDCG@K)
+curl http://localhost:8000/api/v1/ml/metrics
+```
+
+#### ML Service Endpoints
+
+| Method | Path | Mô tả |
+|---|---|---|
+| `POST` | `/api/v1/ml/train` | Train SVD++ từ user_interactions |
+| `GET` | `/api/v1/ml/recommendations/{userId}` | Top-N gợi ý cho user |
+| `GET` | `/api/v1/ml/similar/{productId}` | Sản phẩm tương tự (latent factors) |
+| `GET` | `/api/v1/ml/metrics` | Evaluation metrics (Precision@K, NDCG@K...) |
+| `POST` | `/api/v1/ml/mock-data` | Sinh dữ liệu tương tác giả |
+| `GET` | `/api/v1/ml/model-info` | Thông tin mô hình hiện tại |
+| `GET` | `/health` | Health check |
+
+#### Tệp cấu hình quan trọng
+
+- `ml-service/.env.example` - Cấu hình mẫu (MONGO_URI, PORT, hyperparameters)
+- `ml-service/requirements.txt` - Dependencies (fastapi, scikit-surprise, pymongo...)
+- `ml-service/Dockerfile` - Multi-stage build cho production
+- `docker-compose.yml` - Service ml-service đã được thêm vào
 
 ### 💰 Chi phí
 - **Free tier**: $0/tháng (development/testing)

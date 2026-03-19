@@ -1,0 +1,39 @@
+# ==================================================
+# Data Pipeline Requirements - Python 3.13.3 Compatible
+# ==================================================
+# All versions verified for Python 3.13.3 compatibility
+# Last updated: 2026-03-19
+
+# Core
+python-dotenv==1.0.1
+
+# Database - MongoDB
+pymongo==4.10.1
+
+# Database - PostgreSQL (using psycopg v3, NOT psycopg2)
+# Version 3.3.3 is required for Python 3.13 support
+psycopg[binary]==3.3.3
+
+# Data Processing
+# NumPy 2.2.x series supports Python 3.13
+numpy==2.2.0
+# Pandas 2.2.3 is compatible with NumPy 2.2.x
+pandas==2.2.3
+
+# Fuzzy Matching (NOT fuzzywuzzy - use rapidfuzz for Python 3.13)
+rapidfuzz==3.10.1
+
+# Web Crawling
+scrapy==2.11.2
+twisted==24.7.0
+
+# HTTP Client (fallback for simple requests)
+requests==2.32.3
+
+# Logging and Progress Bar
+loguru==0.7.3
+tqdm==4.67.1
+
+# Additional dependencies for Scrapy
+itemadapter==0.9.0
+protego==0.3.1

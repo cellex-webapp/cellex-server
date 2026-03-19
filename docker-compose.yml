@@ -87,6 +87,33 @@ services:
       - cellex-network
     restart: unless-stopped
 
+  # Python ML Recommendation Service (SVD++)
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: cellex-ml-service
+    ports:
+      - "8000:8000"
+    environment:
+      MONGO_URI: mongodb://admin:admin123@mongodb:27017/cellex?authSource=admin
+      PORT: 8000
+      MODEL_DIR: /app/trained_models
+      RETRAIN_ON_STARTUP: "false"
+    volumes:
+      - ml-models:/app/trained_models
+    depends_on:
+      - mongodb
+    networks:
+      - cellex-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   # Mongo Express (Web UI for MongoDB)
   mongo-express:
     image: mongo-express:latest
@@ -109,6 +136,8 @@ volumes:
   mongodb-data:
     driver: local
   mongodb-config:
+    driver: local
+  ml-models:
     driver: local
 
 networks:

@@ -40,3 +40,7 @@ build/
 firebase-service-account.json
 
 *.md
+.github
+scripts/
+
+venv/

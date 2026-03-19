@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Interaction Schema",
+  "description": "Schema cho user interactions. Su dung cho recommendation va analytics.",
+  "type": "object",
+  "required": ["user_id", "product_id", "event_type", "timestamp"],
+  "properties": {
+    "interaction_id": {
+      "type": "string",
+      "description": "ID duy nhat cua interaction (MongoDB ObjectId hoac UUID)"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID cua user thuc hien interaction",
+      "minLength": 1
+    },
+    "product_id": {
+      "type": ["string", "integer"],
+      "description": "ID cua san pham duoc tuong tac"
+    },
+    "event_type": {
+      "type": "string",
+      "description": "Loai su kien tuong tac",
+      "enum": ["view", "click", "add_to_cart", "remove_from_cart", "purchase", "review", "wishlist"]
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "Thoi gian xay ra interaction (ISO 8601 format)",
+      "format": "date-time"
+    },
+    "session_id": {
+      "type": ["string", "null"],
+      "description": "ID phien lam viec cua user"
+    },
+    "device_type": {
+      "type": ["string", "null"],
+      "description": "Loai thiet bi",
+      "enum": ["desktop", "mobile", "tablet", null]
+    },
+    "referrer": {
+      "type": ["string", "null"],
+      "description": "Nguon tham chieu (vd: search, homepage, category)"
+    },
+    "duration_seconds": {
+      "type": ["integer", "null"],
+      "description": "Thoi gian tuong tac (seconds) - ap dung cho view events",
+      "minimum": 0
+    },
+    "quantity": {
+      "type": ["integer", "null"],
+      "description": "So luong san pham (ap dung cho add_to_cart, purchase)",
+      "minimum": 1
+    },
+    "price_at_event": {
+      "type": ["number", "null"],
+      "description": "Gia san pham tai thoi diem tuong tac",
+      "minimum": 0
+    },
+    "rating_value": {
+      "type": ["number", "null"],
+      "description": "Diem danh gia (ap dung cho review event)",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "review_text": {
+      "type": ["string", "null"],
+      "description": "Noi dung danh gia (ap dung cho review event)"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Du lieu bo sung (vd: campaign_id, ab_test_variant)",
+      "additionalProperties": true,
+      "default": {}
+    }
+  },
+  "additionalProperties": false,
+
+  "definitions": {
+    "event_weights": {
+      "description": "Trong so cua cac loai event cho recommendation",
+      "type": "object",
+      "properties": {
+        "view": { "const": 1 },
+        "click": { "const": 2 },
+        "add_to_cart": { "const": 3 },
+        "wishlist": { "const": 3 },
+        "review": { "const": 4 },
+        "purchase": { "const": 5 }
+      }
+    }
+  }
+}
