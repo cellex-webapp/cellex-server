@@ -1,16 +1,17 @@
 """
 data_loader.py
 ~~~~~~~~~~~~~~
-Reads user_interactions from MongoDB and converts to a Surprise-compatible
-Dataset for model training.
+Reads user_interactions from MongoDB and converts to sparse matrices
+for the implicit ALS model training.
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Tuple
 
+import numpy as np
 import pandas as pd
+from scipy import sparse
 from pymongo import MongoClient
-from surprise import Dataset, Reader
 
 from app.config import settings
 
@@ -31,7 +32,7 @@ def load_interactions_df() -> pd.DataFrame:
         user_id | product_id | rating
 
     ``rating`` is the ``total_score`` field which is the pre-computed weighted
-    score  (view*1 + cart*3 + purchase*5 + review*4).
+    score (view*1 + cart*3 + purchase*5 + review*4).
 
     Rows with total_score <= 0 are dropped.
     """
@@ -58,29 +59,53 @@ def load_interactions_df() -> pd.DataFrame:
     return df
 
 
-def load_surprise_dataset(df: Optional[pd.DataFrame] = None) -> Dataset:
+def build_sparse_matrix(
+    df: Optional[pd.DataFrame] = None
+) -> Tuple[sparse.csr_matrix, dict, dict, dict, dict]:
     """
-    Convert the interactions DataFrame to a Surprise Dataset.
+    Build a sparse user-item interaction matrix for the implicit library.
 
-    ``total_score`` is used as the implicit rating.
-    The rating scale is [1, max_score] — Surprise needs explicit bounds.
+    Returns:
+        user_item_matrix: CSR sparse matrix (users x items)
+        user_to_idx: Mapping from user_id to matrix row index
+        idx_to_user: Reverse mapping
+        item_to_idx: Mapping from product_id to matrix column index
+        idx_to_item: Reverse mapping
     """
     if df is None:
         df = load_interactions_df()
 
     if df.empty:
-        raise ValueError("Cannot build Surprise Dataset: no interaction data.")
+        raise ValueError("Cannot build sparse matrix: no interaction data.")
 
-    min_rating = float(df["rating"].min())
-    max_rating = float(df["rating"].max())
+    # Create mappings
+    unique_users = df["user_id"].unique()
+    unique_items = df["product_id"].unique()
 
-    # Avoid collapsed scale if all scores are identical
-    if min_rating == max_rating:
-        max_rating = min_rating + 1.0
+    user_to_idx = {user: idx for idx, user in enumerate(unique_users)}
+    idx_to_user = {idx: user for user, idx in user_to_idx.items()}
+    item_to_idx = {item: idx for idx, item in enumerate(unique_items)}
+    idx_to_item = {idx: item for item, idx in item_to_idx.items()}
 
-    reader = Reader(rating_scale=(min_rating, max_rating))
-    dataset = Dataset.load_from_df(df[["user_id", "product_id", "rating"]], reader)
-    return dataset
+    # Build sparse matrix
+    row_indices = df["user_id"].map(user_to_idx).values
+    col_indices = df["product_id"].map(item_to_idx).values
+    values = df["rating"].values.astype(np.float32)
+
+    user_item_matrix = sparse.csr_matrix(
+        (values, (row_indices, col_indices)),
+        shape=(len(unique_users), len(unique_items))
+    )
+
+    logger.info(
+        "Built sparse matrix: %d users x %d items, %d interactions (density: %.4f%%)",
+        user_item_matrix.shape[0],
+        user_item_matrix.shape[1],
+        user_item_matrix.nnz,
+        100 * user_item_matrix.nnz / (user_item_matrix.shape[0] * user_item_matrix.shape[1])
+    )
+
+    return user_item_matrix, user_to_idx, idx_to_user, item_to_idx, idx_to_item
 
 
 def load_products_map() -> dict:

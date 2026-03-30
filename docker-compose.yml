@@ -50,7 +50,20 @@ services:
       # OpenAI (Optional)
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODERATION_ENABLED: false
-    
+
+      # Gemini AI (Optional)
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+
+      # ML Service Configuration
+      ML_SERVICE_BASE_URL: http://ml-service:8000
+      ML_SERVICE_TIMEOUT_SECONDS: 30
+      ML_SERVICE_ENABLED: true
+
+      # Supabase PostgreSQL
+      SUPABASE_DB_URL: ${SUPABASE_DB_URL}
+      SUPABASE_DB_USERNAME: ${SUPABASE_DB_USERNAME}
+      SUPABASE_DB_PASSWORD: ${SUPABASE_DB_PASSWORD}
+
     volumes:
       # Mount firebase config if exists
       - ./src/main/resources/firebase-service-account.json:/app/firebase-service-account.json:ro
