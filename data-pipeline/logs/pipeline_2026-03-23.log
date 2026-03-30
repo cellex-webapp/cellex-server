@@ -1,0 +1,16 @@
+2026-03-23 17:44:52.302 | INFO     | __main__:run_crawler:76 - ============================================================
+2026-03-23 17:44:52.302 | INFO     | __main__:run_crawler:77 - STEP 1: Running Scrapy Crawler
+2026-03-23 17:44:52.302 | INFO     | __main__:run_crawler:78 - ============================================================
+2026-03-23 17:44:54.081 | INFO     | scraper.crawler.pipelines:open_spider:116 - Connecting to MongoDB: cellex_prod/raw_products
+2026-03-23 17:44:55.004 | INFO     | scraper.crawler.pipelines:open_spider:126 - MongoDB connection successful
+2026-03-23 17:44:55.067 | INFO     | scraper.crawler.pipelines:open_spider:135 - Created index on (external_id, source)
+2026-03-23 17:44:56.153 | INFO     | scraper.crawler.pipelines:close_spider:150 - Spider closed. Total items saved: 15
+2026-03-23 17:44:56.156 | INFO     | __main__:run_crawler:110 - Crawler completed in 3.85 seconds
+2026-03-23 17:44:56.156 | INFO     | __main__:_print_summary:374 - ************************************************************
+2026-03-23 17:44:56.156 | INFO     | __main__:_print_summary:375 - PIPELINE SUMMARY
+2026-03-23 17:44:56.156 | INFO     | __main__:_print_summary:376 - ************************************************************
+2026-03-23 17:44:56.157 | INFO     | __main__:_print_summary:383 -   ✓ CRAWL: success (3.85s)
+2026-03-23 17:44:56.157 | INFO     | __main__:_print_summary:393 - ------------------------------------------------------------
+2026-03-23 17:44:56.157 | INFO     | __main__:_print_summary:394 - Total Duration: 3.85 seconds
+2026-03-23 17:44:56.157 | INFO     | __main__:_print_summary:395 - Overall Status: SUCCESS
+2026-03-23 17:44:56.157 | INFO     | __main__:_print_summary:396 - ************************************************************

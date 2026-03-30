@@ -1,5 +1,6 @@
 package com.example.cellex.services.recommendation;
 
+import com.example.cellex.dtos.response.ml.MLRecommendationItem;
 import com.example.cellex.dtos.response.recommendation.RecommendationResponse;
 import com.example.cellex.models.product.Product;
 import com.example.cellex.models.recommendation.ProductSimilarity;
@@ -32,32 +33,45 @@ public class RecommendationService {
     private final CollaborativeFilteringService cfService;
     private final ColdStartService coldStartService;
     private final UserInteractionService userInteractionService;
+    private final MLRecommendationService mlRecommendationService;
 
     /**
      * Lấy recommendations cho user (API endpoint)
+     * Flow: ML service (hybrid) -> CF -> Cold-start
      */
     public List<RecommendationResponse> getRecommendationsForUser(String userId, String categoryId, Integer limit) {
         int finalLimit = limit != null ? limit : 20;
-        
+
         log.info("Getting recommendations for user: {}, category: {}, limit: {}", userId, categoryId, finalLimit);
-        
+
         // Kiểm tra user có lịch sử tương tác không
         boolean hasHistory = userInteractionService.hasUserInteractions(userId);
-        
-        List<Product> recommendedProducts;
-        String reason;
-        String explanation;
-        
+
+        // Nếu user có history, thử gọi ML service trước
         if (hasHistory) {
-            // User có lịch sử -> dùng Collaborative Filtering
-            log.debug("User has interaction history. Using CF-based recommendations.");
-            recommendedProducts = getCollaborativeFilteringRecommendations(userId, categoryId, finalLimit);
-            reason = "COLLABORATIVE_FILTERING";
-            explanation = "Dựa trên lịch sử mua hàng và sản phẩm tương tự mà bạn đã quan tâm";
+            log.debug("User has interaction history. Trying ML service first...");
+
+            var mlRecommendations = mlRecommendationService.getHybridRecommendations(userId, finalLimit, categoryId);
+
+            if (mlRecommendations.isPresent() && !mlRecommendations.get().isEmpty()) {
+                log.info("Using ML-based recommendations for user: {}", userId);
+                return convertMLRecommendationsToResponses(mlRecommendations.get());
+            }
+
+            log.info("ML service unavailable or returned empty. Falling back to rule-based CF.");
+
+            // Fallback to rule-based CF
+            List<Product> recommendedProducts = getCollaborativeFilteringRecommendations(userId, categoryId, finalLimit);
+            return convertToRecommendationResponses(recommendedProducts, "COLLABORATIVE_FILTERING",
+                    "Dựa trên lịch sử mua hàng và sản phẩm tương tự mà bạn đã quan tâm");
         } else {
             // User mới -> dùng Cold-start handling
             log.debug("New user detected. Using cold-start recommendations.");
-            
+
+            List<Product> recommendedProducts;
+            String reason;
+            String explanation;
+
             if (categoryId != null) {
                 recommendedProducts = coldStartService.getPopularProductsByCategory(categoryId, finalLimit);
                 reason = "POPULAR_IN_CATEGORY";
@@ -67,10 +81,9 @@ public class RecommendationService {
                 reason = "TRENDING";
                 explanation = "Sản phẩm đang được yêu thích nhất";
             }
+
+            return convertToRecommendationResponses(recommendedProducts, reason, explanation);
         }
-        
-        // Chuyển đổi sang RecommendationResponse
-        return convertToRecommendationResponses(recommendedProducts, reason, explanation);
     }
 
     /**
@@ -281,5 +294,26 @@ public class RecommendationService {
         }
         
         return responses;
+    }
+
+    /**
+     * Convert MLRecommendationItem (from ML service) to RecommendationResponse
+     */
+    private List<RecommendationResponse> convertMLRecommendationsToResponses(List<MLRecommendationItem> mlItems) {
+        return mlItems.stream()
+                .map(item -> RecommendationResponse.builder()
+                        .productId(item.getProductId())
+                        .productName(item.getProductName())
+                        .productImage(item.getProductImage())
+                        .price(item.getPrice())
+                        .finalPrice(item.getFinalPrice())
+                        .averageRating(item.getAverageRating())
+                        .reviewCount(item.getReviewCount())
+                        .recommendationScore(item.getScore())
+                        .recommendationReason(item.getRecommendationReason())
+                        .explanation(item.getExplanation())
+                        .rank(item.getRank())
+                        .build())
+                .collect(Collectors.toList());
     }
 }
