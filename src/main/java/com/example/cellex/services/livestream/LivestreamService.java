@@ -64,6 +64,7 @@ public class LivestreamService {
         sessionRepository.save(session);
     }
 
+    @Transactional(readOnly = true)
     public List<LivestreamSessionResponse> getActiveSessions() {
         return sessionRepository.findByStatus(LivestreamStatus.LIVE).stream()
                 .map(session -> mapToResponse(session, null))

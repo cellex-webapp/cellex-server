@@ -5,14 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.Cipher;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,86 +20,41 @@ public class ZegoTokenService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    /**
-     * Sinh Token thực tế của ZegoCloud (Chuẩn Token04)
-     * @param roomId ID phòng (mã phiên Live)
-     * @param userId ID của người dùng (Host hoặc Viewer)
-     * @param isHost Quyền hạn (true nếu là Host, false nếu là Viewer)
-     */
     public String generateToken(String roomId, String userId, boolean isHost) {
-        log.info("Generating Zego Token04 for Room: {}, User: {}, isHost: {}", roomId, userId, isHost);
-
-        // Token có hiệu lực trong 24 giờ
-        int effectiveTimeInSeconds = 3600 * 24; 
-
         try {
-            // ==========================================================
-            // 1. TẠO PAYLOAD PHÂN QUYỀN (PRIVILEGE) THEO CHUẨN ZEGO
-            // ==========================================================
-            Map<String, Integer> privilege = new HashMap<>();
-            privilege.put("1", 1); // Quyền đăng nhập phòng (1 = Cho phép)
-            privilege.put("2", isHost ? 1 : 0); // Quyền phát video (Host = 1, Viewer = 0)
+            int effectiveTimeInSeconds = 3600; // 1 tiếng
 
+            // 1. Chỉ cần tạo Payload quyền hạn theo chuẩn Zego
             Map<String, Object> payloadData = new HashMap<>();
             payloadData.put("room_id", roomId);
+            Map<String, Integer> privilege = new HashMap<>();
+            privilege.put("1", 1); // Quyền vào phòng
+            privilege.put("2", isHost ? 1 : 0); // Quyền phát sóng (Mic/Camera)
             payloadData.put("privilege", privilege);
             payloadData.put("stream_id_list", null);
+            String payloadString = objectMapper.writeValueAsString(payloadData);
 
-            String payload = objectMapper.writeValueAsString(payloadData);
+            // 2. Giao toàn bộ việc mã hóa phức tạp cho file chính chủ của Zego
+            TokenServerAssistant.TokenInfo tokenInfo = TokenServerAssistant.generateToken04(
+                    appId, 
+                    userId, 
+                    serverSecret, 
+                    effectiveTimeInSeconds, 
+                    payloadString
+            );
 
-            // ==========================================================
-            // 2. TẠO NỘI DUNG TOKEN (JSON BODY)
-            // ==========================================================
-            long createTime = System.currentTimeMillis() / 1000;
-            long expireTime = createTime + effectiveTimeInSeconds;
-            long nonce = Math.abs(new SecureRandom().nextLong());
-
-            Map<String, Object> tokenInfo = new HashMap<>();
-            tokenInfo.put("app_id", appId);
-            tokenInfo.put("user_id", userId);
-            tokenInfo.put("nonce", nonce);
-            tokenInfo.put("ctime", createTime);
-            tokenInfo.put("expire", expireTime);
-            tokenInfo.put("payload", payload);
-
-            String jsonBody = objectMapper.writeValueAsString(tokenInfo);
-
-            // ==========================================================
-            // 3. MÃ HÓA AES-256-CBC
-            // ==========================================================
-            byte[] iv = new byte[16];
-            new SecureRandom().nextBytes(iv); // Khởi tạo vector ngẫu nhiên (IV)
-
-            if (serverSecret.length() != 32) {
-                log.warn("CẢNH BÁO: Zego Server Secret thường có đúng 32 ký tự!");
+            // 3. Kiểm tra xem có lỗi sinh token không
+            if (tokenInfo.error.code != TokenServerAssistant.ErrorCode.SUCCESS) {
+                log.error("Zego Error: {}", tokenInfo.error.message);
+                throw new RuntimeException("Lỗi từ thư viện Zego: " + tokenInfo.error.message);
             }
 
-            SecretKeySpec keySpec = new SecretKeySpec(serverSecret.getBytes(StandardCharsets.UTF_8), "AES");
-            IvParameterSpec ivSpec = new IvParameterSpec(iv);
-            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-            cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivSpec);
-
-            byte[] encryptedBody = cipher.doFinal(jsonBody.getBytes(StandardCharsets.UTF_8));
-
-            // ==========================================================
-            // 4. ĐÓNG GÓI THÀNH BYTE BUFFER (ZEGO TOKEN04 FORMAT)
-            // ==========================================================
-            ByteBuffer buffer = ByteBuffer.allocate(28 + encryptedBody.length);
-            buffer.order(ByteOrder.BIG_ENDIAN);
-            buffer.put("04".getBytes(StandardCharsets.UTF_8)); // Token Version = "04"
-            buffer.putShort((short) 16); // Độ dài IV
-            buffer.put(iv); // Dữ liệu IV
-            buffer.putShort((short) encryptedBody.length); // Độ dài phần mã hóa
-            buffer.put(encryptedBody); // Dữ liệu mã hóa
-
-            // ==========================================================
-            // 5. TRẢ VỀ CHUỖI BASE64
-            // ==========================================================
-            return Base64.getEncoder().encodeToString(buffer.array());
+            // Trả về chuỗi token hoàn hảo (đã có sẵn prefix 04)
+            return tokenInfo.data;
 
         } catch (Exception e) {
-            log.error("Failed to generate Zego Token", e);
-            throw new RuntimeException("Lỗi hệ thống khi sinh Token Livestream: " + e.getMessage());
+            log.error("Lỗi hệ thống khi sinh Token ZegoCloud", e);
+            throw new RuntimeException("Lỗi hệ thống khi sinh Token Livestream");
         }
     }
 }
