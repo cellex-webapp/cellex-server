@@ -2,11 +2,14 @@
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 
-# Data processing & ML
+# Data processing (for recommendation system only)
 pandas==2.2.3
-numpy==2.0.2
+numpy<2.0,>=1.19.0
 scipy==1.14.1
 joblib==1.4.2
+
+# Recommendation system (optional - only if using SVD++)
+# scikit-surprise==1.1.4  # Commented out - only needed for recommendation training
 
 # Database
 pymongo==4.10.1
@@ -15,6 +18,22 @@ pymongo==4.10.1
 python-dotenv==1.0.1
 pydantic==2.10.3
 pydantic-settings==2.7.0
+
+# Chatbot - LLM & Agent Framework (with Gemini)
+langchain>=0.3.13,<0.4.0
+langchain-community>=0.3.13,<0.4.0
+langchain-core>=0.3.26,<0.4.0
+
+# Chatbot - Vector Store & Embeddings
+chromadb==0.5.23
+sentence-transformers==3.3.1
+
+# Chatbot - Utilities
+tenacity==9.0.0
+jsonschema==4.23.0
+
+# Logging
+loguru==0.7.2
 
 # Testing (dev dependencies)
 pytest==8.3.4

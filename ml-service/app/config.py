@@ -51,6 +51,32 @@ class Settings(BaseSettings):
     # Model versioning
     max_model_versions: int = 5
 
+    # Chatbot - LLM Configuration (Gemini)
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.5-flash"
+    gemini_temperature: float = 0.8
+    gemini_max_tokens: int = 16384
+    gemini_top_k: int = 40
+    gemini_top_p: float = 0.95
+
+    # Chatbot - RAG Configuration
+    embedding_model: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    vector_store_path: str = "./vector_store"
+    chunk_size: int = 500
+    chunk_overlap: int = 50
+    top_k_retrieval: int = 5
+
+    # Chatbot - Agent Configuration
+    max_tool_iterations: int = 5
+    enable_streaming: bool = True
+    conversation_memory_size: int = 10
+
+    # Chatbot - Security & Guardrails
+    enable_rbac: bool = True
+    enable_pii_masking: bool = True
+    max_response_length: int = 2000
+    rate_limit_per_minute: int = 60
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
