@@ -3,12 +3,12 @@ package com.example.cellex.controllers;
 import com.example.cellex.dtos.request.livestream.AddProductToLiveBagRequest;
 import com.example.cellex.dtos.request.livestream.CreateLivestreamRequest;
 import com.example.cellex.dtos.response.ApiResponse;
+import com.example.cellex.dtos.response.livestream.LivestreamProductResponse;
 import com.example.cellex.dtos.response.livestream.LivestreamSessionResponse;
 import com.example.cellex.models.user.User;
 import com.example.cellex.services.livestream.LivestreamEventPublisher;
 import com.example.cellex.services.livestream.LivestreamService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -78,6 +78,13 @@ public class LivestreamController {
                 .message("Đã thêm sản phẩm vào túi hàng")
                 .build();
     }
+
+        @GetMapping("/sessions/{id}/products")
+        public ApiResponse<List<LivestreamProductResponse>> getSessionProducts(@PathVariable String id) {
+                return ApiResponse.<List<LivestreamProductResponse>>builder()
+                                .result(livestreamService.getSessionProducts(id))
+                                .build();
+        }
 
     // API để Vendor ghim sản phẩm (Sẽ bắn WebSocket xuống cho Viewers)
     @PostMapping("/sessions/{id}/products/{productId}/pin")
