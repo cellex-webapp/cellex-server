@@ -63,11 +63,23 @@ public class User implements UserDetails {
     private Role role = Role.USER;
 
     /**
-     * Cross-database reference: String for MongoDB ObjectId compatibility.
-     * Will become UUID FK when customer_segments migrates to PostgreSQL.
+     * Cross-database reference to customer segment.
+     * Stored as PostgreSQL UUID in the users table.
      */
-    @Column(name = "customer_segment_id", length = 50)
-    private String customerSegmentId;
+    @JsonIgnore
+    @Column(name = "customer_segment_id")
+    private UUID customerSegmentId;
+
+    @JsonProperty("customerSegmentId")
+    public String getCustomerSegmentId() {
+        return customerSegmentId != null ? customerSegmentId.toString() : null;
+    }
+
+    public void setCustomerSegmentId(String customerSegmentId) {
+        this.customerSegmentId = (customerSegmentId != null && !customerSegmentId.isEmpty())
+                ? UUID.fromString(customerSegmentId)
+                : null;
+    }
 
     @Column(name = "total_spend", precision = 15, scale = 2)
     @Builder.Default

@@ -26,7 +26,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
 
     // Find all users in a specific customer segment
-    List<User> findByCustomerSegmentId(String customerSegmentId);
+    List<User> findByCustomerSegmentId(UUID customerSegmentId);
 
     // ==================== Analytics Methods ====================
 

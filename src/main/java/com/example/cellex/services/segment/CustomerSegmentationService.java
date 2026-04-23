@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -138,7 +139,7 @@ public class CustomerSegmentationService {
         for (SegmentCoupon coupon : dueCoupons) {
             try {
                 // Tìm tất cả users thuộc segment này
-                List<User> eligibleUsers = userRepository.findByCustomerSegmentId(coupon.getSegmentId());
+                List<User> eligibleUsers = userRepository.findByCustomerSegmentId(UUID.fromString(coupon.getSegmentId()));
 
                 int issuedCount = 0;
                 for (User user : eligibleUsers) {
