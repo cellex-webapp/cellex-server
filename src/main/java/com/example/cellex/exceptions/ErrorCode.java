@@ -159,7 +159,9 @@ public enum ErrorCode {
     LIVE_SESSION_NOT_FOUND(16001, "Không tìm thấy phiên Livestream", HttpStatus.NOT_FOUND),
     NOT_HOST_OF_SESSION(16002, "Bạn không phải là chủ phòng (Host) của phiên Live này", HttpStatus.FORBIDDEN),
     PRODUCT_NOT_IN_LIVE_BAG(16003, "Sản phẩm không có trong túi hàng của phiên Live", HttpStatus.BAD_REQUEST),
-    LIVE_SESSION_ALREADY_ENDED(16004, "Phiên Livestream này đã kết thúc", HttpStatus.BAD_REQUEST);
+    LIVE_SESSION_ALREADY_ENDED(16004, "Phiên Livestream này đã kết thúc", HttpStatus.BAD_REQUEST),
+    LIVE_ZEGO_CONFIG_INVALID(16005, "Cấu hình Zego Cloud chưa hợp lệ", HttpStatus.SERVICE_UNAVAILABLE),
+    LIVE_TOKEN_GENERATION_FAILED(16006, "Không thể sinh token Livestream", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final int code;
     private final String message;

@@ -559,7 +559,7 @@ public class UserService {
         UserResponse.CustomerSegmentInfo segmentInfo = null;
         if (user.getCustomerSegmentId() != null) {
             try {
-                CustomerSegment segment = customerSegmentService.getSegmentEntityById(user.getCustomerSegmentId());
+                CustomerSegment segment = customerSegmentService.getSegmentEntityById(String.valueOf(user.getCustomerSegmentId()));
                 segmentInfo = UserResponse.CustomerSegmentInfo.builder()
                         .id(segment.getId())
                         .name(segment.getName())

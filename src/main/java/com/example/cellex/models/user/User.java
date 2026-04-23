@@ -1,5 +1,6 @@
 package com.example.cellex.models.user;
 
+import com.example.cellex.config.StringUuidConverter;
 import com.example.cellex.enums.Role;
 import com.example.cellex.models.jpa.RoleEntity;
 import com.example.cellex.models.jpa.UserAddressEntity;
@@ -67,6 +68,7 @@ public class User implements UserDetails {
      * Will become UUID FK when customer_segments migrates to PostgreSQL.
      */
     @Column(name = "customer_segment_id", length = 50)
+    @Convert(converter = StringUuidConverter.class)
     private String customerSegmentId;
 
     @Column(name = "total_spend", precision = 15, scale = 2)

@@ -17,6 +17,13 @@ import com.example.cellex.models.recommendation.Recommendation;
 import com.example.cellex.models.recommendation.UserInteraction;
 import com.example.cellex.models.review.Review;
 import com.example.cellex.models.review.VendorResponse;
+import com.example.cellex.seeder.ChatConversationSeeder;
+import com.example.cellex.seeder.InteractionMatrixSeeder;
+import com.example.cellex.seeder.OrderLifecycleSeeder;
+import com.example.cellex.seeder.ProductPopularityTracker;
+import com.example.cellex.seeder.ReviewSeeder;
+import com.example.cellex.seeder.SegmentRecalculationSeeder;
+import com.example.cellex.seeder.UserBehaviorSimulator;
 import com.example.cellex.models.segment.CustomerSegment;
 import com.example.cellex.models.shop.Shop;
 import com.example.cellex.models.user.User;
@@ -38,6 +45,7 @@ import com.example.cellex.repositories.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.javafaker.Faker;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.boot.CommandLineRunner;
@@ -73,12 +81,25 @@ public class DummyDataService implements CommandLineRunner {
     private final UserInteractionRepository userInteractionRepository;
     private final ProductSimilarityRepository productSimilarityRepository;
     private final RecommendationRepository recommendationRepository;
+    private final UserBehaviorSimulator userBehaviorSimulator;
+    private final ProductPopularityTracker productPopularityTracker;
+    private final OrderLifecycleSeeder orderLifecycleSeeder;
+    private final ReviewSeeder reviewSeeder;
+    private final InteractionMatrixSeeder interactionMatrixSeeder;
+    private final ChatConversationSeeder chatConversationSeeder;
+    private final SegmentRecalculationSeeder segmentRecalculationSeeder;
     private final PasswordEncoder passwordEncoder;
     private final MongoTemplate mongoTemplate;
+
+    private static final int TARGET_USERS = 150;
+    private static final int TARGET_PRODUCTS = 180;
 
     private static final String AVATAR_URL = "https://res.cloudinary.com/dr8ez6ua8/image/upload/v1761917096/avatar_pz0phg.avif";
     private static final String CATEGORY_IMAGE_URL = "https://res.cloudinary.com/dr8ez6ua8/image/upload/v1761917097/smartphone_yvztzo.png";
     private static final String PRODUCT_IMAGE_URL = "https://res.cloudinary.com/dr8ez6ua8/image/upload/v1761917096/ihpone_blgear.jpg";
+
+    private final Faker faker = new Faker();
+    private final Faker viFaker = new Faker(new Locale("vi"));
 
     @Override
     public void run(String... args) {
@@ -101,13 +122,22 @@ public class DummyDataService implements CommandLineRunner {
         seedSegmentCoupons(segmentsByName);
         seedCouponCampaign();
         seedUserCoupons();
-        
-        // Seed important data
-        List<Order> orders = seedOrders(users, shops, products);
-        seedReviews(users, shops, products, orders);
-        seedUserInteractions(users, products);
-        seedProductSimilarities(products);
-        seedRecommendations(users, products);
+
+        userBehaviorSimulator.assignArchetypes(users, categoryRepository.findAll());
+        productPopularityTracker.initialize(products);
+
+        List<Order> allOrders = new ArrayList<>();
+        for (User user : users) {
+            if (user == null || user.getRole() == Role.VENDOR || user.getRole() == Role.ADMIN) {
+                continue;
+            }
+            allOrders.addAll(orderLifecycleSeeder.seedOrdersForUser(user, shops, products));
+        }
+
+        List<Review> allReviews = reviewSeeder.seedReviewsFromOrders(allOrders, users);
+        interactionMatrixSeeder.seedInteractions(users, products, allOrders, allReviews);
+        chatConversationSeeder.seedConversations(users, products);
+        segmentRecalculationSeeder.recalculate(users);
     }
 
     private boolean hasExistingDummyData() {
@@ -220,18 +250,14 @@ public class DummyDataService implements CommandLineRunner {
             allUsers.add(v);
         }
 
-        // Create additional normal users (20-25 users)
-        String[] userPrefixes = {"Nguyễn Văn", "Trần Thị", "Lê Văn", "Phạm Thị", "Hoàng Văn", "Vũ Thị", "Đặng Văn", "Bùi Thị"};
-        String[] userSuffixes = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"};
-        
-        for (int i = 0; i < 20; i++) {
-            String prefix = userPrefixes[i % userPrefixes.length];
-            String suffix = userSuffixes[i % userSuffixes.length];
+        int additionalUserCount = Math.max(120, TARGET_USERS - allUsers.size());
+        for (int i = 0; i < additionalUserCount; i++) {
             String email = "user" + (i + 2) + "@gmail.com";
+            final String generatedName = viFaker.name().fullName();
             
             User u2 = userRepository.findByEmail(email).orElseGet(() -> {
                 User u = User.builder()
-                    .fullName(prefix + " " + suffix)
+                    .fullName(generatedName)
                     .email(email)
                     .password(passwordEncoder.encode("123"))
                     .phoneNumber(randomPhone())
@@ -366,16 +392,15 @@ public class DummyDataService implements CommandLineRunner {
         List<Category> categories = categoryRepository.findAll();
         List<Product> products = new ArrayList<>();
 
-        String[] phoneNames = {"iPhone 14 Pro", "Samsung Galaxy S23", "Xiaomi 13 Pro", "Oppo Find X6", "Vivo X90", "Realme GT 3", "iPhone 13", "Samsung A54"};
-        String[] tabletNames = {"iPad Pro 2023", "Samsung Tab S8", "Xiaomi Pad 6", "Lenovo Tab P11"};
-        String[] laptopNames = {"MacBook Pro M2", "Dell XPS 15", "HP Pavilion 15", "Asus ROG Strix", "Lenovo ThinkPad X1", "Acer Swift 3"};
-        String[] smartwatchNames = {"Apple Watch Series 8", "Samsung Galaxy Watch 5", "Xiaomi Mi Watch", "Amazfit GTR 4"};
-        String[] headphoneNames = {"AirPods Pro", "Sony WH-1000XM5", "JBL Tune 500BT", "Samsung Buds Pro"};
+        int categoryCount = Math.max(1, categories.size());
+        int basePerCategory = Math.max(1, TARGET_PRODUCTS / categoryCount);
+        int remainder = TARGET_PRODUCTS % categoryCount;
 
-        for (Category category : categories) {
+        for (int categoryIndex = 0; categoryIndex < categories.size(); categoryIndex++) {
+            Category category = categories.get(categoryIndex);
             List<CategoryAttribute> attrs = attributesByCategoryId.getOrDefault(category.getId(), Collections.emptyList());
-            String[] productNames = getProductNames(category.getName());
-            int productCount = productNames.length;
+            String[] predefinedNames = getProductNames(category.getName());
+            int productCount = basePerCategory + (categoryIndex < remainder ? 1 : 0);
             
             for (int i = 0; i < productCount; i++) {
                 Shop shop = shops.get(ThreadLocalRandom.current().nextInt(shops.size()));
@@ -383,6 +408,9 @@ public class DummyDataService implements CommandLineRunner {
                 double saleOff = ThreadLocalRandom.current().nextBoolean() ? randomBetween(0, 30) : 0;
                 double finalPrice = Math.round(price * (100 - saleOff)) / 100.0;
                 List<String> images = List.of(PRODUCT_IMAGE_URL);
+                String productName = i < predefinedNames.length
+                        ? predefinedNames[i]
+                        : buildGeneratedProductName(category.getName(), i + 1);
 
                 List<Product.ProductAttributeValue> values = attrs.stream().map(a -> Product.ProductAttributeValue.builder()
                         .attributeId(a.getId())
@@ -396,8 +424,8 @@ public class DummyDataService implements CommandLineRunner {
                 Product p = Product.builder()
                         .shopId(shop.getId())
                         .categoryId(category.getId())
-                        .name(productNames[i])
-                        .description("Sản phẩm " + productNames[i] + " chính hãng, đầy đủ phụ kiện")
+                    .name(productName)
+                    .description(buildGeneratedDescription(category.getName(), productName))
                         .images(images)
                         .price(price)
                         .saleOff(saleOff)
@@ -412,21 +440,35 @@ public class DummyDataService implements CommandLineRunner {
                 products.add(p);
             }
         }
-        productRepository.saveAll(products);
+
+        for (int i = 0; i < products.size(); i += 100) {
+            int end = Math.min(i + 100, products.size());
+            productRepository.saveAll(products.subList(i, end));
+        }
+
         return products;
     }
     
     private String[] getProductNames(String categoryName) {
         return switch (categoryName) {
-            case "Điện thoại" -> new String[]{"iPhone 14 Pro", "Samsung Galaxy S23", "Xiaomi 13 Pro", "Oppo Find X6", "Vivo X90", "Realme GT 3", "iPhone 13", "Samsung A54", "iPhone 15", "Xiaomi 14"};
-            case "Máy tính bảng" -> new String[]{"iPad Pro 2023", "Samsung Tab S8", "Xiaomi Pad 6", "Lenovo Tab P11", "iPad Air", "Samsung Tab A8"};
-            case "Laptop" -> new String[]{"MacBook Pro M2", "Dell XPS 15", "HP Pavilion 15", "Asus ROG Strix", "Lenovo ThinkPad X1", "Acer Swift 3", "MSI Gaming GF63", "MacBook Air M2"};
-            case "Đồng hồ thông minh" -> new String[]{"Apple Watch Series 8", "Samsung Galaxy Watch 5", "Xiaomi Mi Watch", "Amazfit GTR 4", "Huawei Watch GT 3"};
-            case "Tai nghe" -> new String[]{"AirPods Pro", "Sony WH-1000XM5", "JBL Tune 500BT", "Samsung Buds Pro", "Bose QuietComfort", "Beats Studio 3"};
-            case "Sạc dự phòng" -> new String[]{"Anker 20000mAh", "Xiaomi 10000mAh", "Samsung 25W", "Baseus 30000mAh"};
-            case "Camera" -> new String[]{"Camera Ezviz C6N", "Camera Xiaomi 360", "Camera Imou Ranger 2", "Camera Hikvision"};
-            default -> new String[]{"Phụ kiện điện thoại", "Ốp lưng chống sốc", "Cáp sạc nhanh", "Miếng dán màn hình"};
+            case "Điện thoại" -> new String[]{"iPhone 14 Pro", "Samsung Galaxy S23", "Xiaomi 13 Pro", "Oppo Find X6", "Vivo X90", "Realme GT 3", "iPhone 13", "Samsung A54", "iPhone 15", "Xiaomi 14", "Google Pixel 8", "OnePlus 12", "Nokia X30", "Honor Magic 6", "Sony Xperia 1V", "Asus Zenfone 11", "Samsung Z Flip5", "iPhone 15 Pro Max"};
+            case "Phụ kiện" -> new String[]{"Cáp USB-C 100W", "Củ sạc nhanh 67W", "Ốp lưng chống sốc", "Kính cường lực 9H", "Giá đỡ điện thoại", "Hub USB-C 8 trong 1", "Đế sạc không dây", "Bàn phím Bluetooth mini", "Chuột không dây silent", "Miếng dán màn hình chống nhìn trộm", "Bao da máy tính bảng", "Túi chống sốc laptop"};
+            case "Máy tính bảng" -> new String[]{"iPad Pro 2023", "Samsung Tab S8", "Xiaomi Pad 6", "Lenovo Tab P11", "iPad Air", "Samsung Tab A8", "Huawei MatePad 11", "Nokia T21", "Honor Pad X9", "Microsoft Surface Go"};
+            case "Laptop" -> new String[]{"MacBook Pro M2", "Dell XPS 15", "HP Pavilion 15", "Asus ROG Strix", "Lenovo ThinkPad X1", "Acer Swift 3", "MSI Gaming GF63", "MacBook Air M2", "Asus Vivobook 14", "Dell Inspiron 14", "HP Envy 13", "Lenovo Legion 5", "Acer Nitro 5", "MSI Modern 14", "Razer Blade 14"};
+            case "Đồng hồ thông minh" -> new String[]{"Apple Watch Series 8", "Samsung Galaxy Watch 5", "Xiaomi Mi Watch", "Amazfit GTR 4", "Huawei Watch GT 3", "Garmin Venu 3", "Fitbit Sense 2", "Redmi Watch 4", "TicWatch Pro 5"};
+            case "Tai nghe" -> new String[]{"AirPods Pro", "Sony WH-1000XM5", "JBL Tune 500BT", "Samsung Buds Pro", "Bose QuietComfort", "Beats Studio 3", "SoundPEATS Air4", "Anker Soundcore Liberty 4", "Sennheiser Momentum 4", "Marshall Major IV"};
+            case "Sạc dự phòng" -> new String[]{"Anker 20000mAh", "Xiaomi 10000mAh", "Samsung 25W", "Baseus 30000mAh", "Energizer 20000mAh", "Aukey 10000mAh", "Zendure SuperMini", "UGreen 145W 25000mAh"};
+            case "Camera" -> new String[]{"Camera Ezviz C6N", "Camera Xiaomi 360", "Camera Imou Ranger 2", "Camera Hikvision", "GoPro Hero 12", "DJI Osmo Action 4", "Canon EOS R50", "Sony ZV-E10", "Fujifilm X-S20"};
+            default -> new String[]{"Phu kien dien tu"};
         };
+    }
+
+    private String buildGeneratedProductName(String categoryName, int index) {
+        return categoryName + " " + faker.commerce().productName() + " " + index;
+    }
+
+    private String buildGeneratedDescription(String categoryName, String productName) {
+        return "Dong " + categoryName + " " + faker.commerce().productName() + " cho " + productName + ".";
     }
     
     private double getPriceRange(String categoryName) {
