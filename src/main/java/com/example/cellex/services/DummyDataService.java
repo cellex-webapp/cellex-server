@@ -23,6 +23,7 @@ import com.example.cellex.seeder.OrderLifecycleSeeder;
 import com.example.cellex.seeder.ProductPopularityTracker;
 import com.example.cellex.seeder.ReviewSeeder;
 import com.example.cellex.seeder.SegmentRecalculationSeeder;
+import com.example.cellex.seeder.UnsplashImageService;
 import com.example.cellex.seeder.UserBehaviorSimulator;
 import com.example.cellex.models.segment.CustomerSegment;
 import com.example.cellex.models.shop.Shop;
@@ -88,6 +89,7 @@ public class DummyDataService implements CommandLineRunner {
     private final InteractionMatrixSeeder interactionMatrixSeeder;
     private final ChatConversationSeeder chatConversationSeeder;
     private final SegmentRecalculationSeeder segmentRecalculationSeeder;
+    private final UnsplashImageService unsplashImageService;
     private final PasswordEncoder passwordEncoder;
     private final MongoTemplate mongoTemplate;
 
@@ -109,9 +111,6 @@ public class DummyDataService implements CommandLineRunner {
          if (hasExistingDummyData()) {
            return;
          }
-
-        // Drop toàn bộ database trước khi seed (khi chưa có dummy data)
-        mongoTemplate.getDb().drop();
 
         List<User> users = seedUsersAndShop();
         List<Shop> shops = shopRepository.findAll();
@@ -371,6 +370,54 @@ public class DummyDataService implements CommandLineRunner {
                 CategoryAttribute.builder().categoryUuid(UUID.fromString(headphoneCategoryId)).attributeName("Chống ồn").attributeKey("noise_cancelling").dataType("SELECT").selectOptions(List.of("Có", "Không")).isRequired(false).isHighlight(true).sortOrder(2).build()
         );
 
+        String powerBankCategoryId = categoryIdByName.get("Sạc dự phòng");
+        List<CategoryAttribute> powerBankAttrs = List.of(
+            CategoryAttribute.builder()
+                .categoryUuid(UUID.fromString(powerBankCategoryId))
+                .attributeName("Dung lượng pin").attributeKey("capacity")
+                .dataType("NUMBER").unit("mAh").isRequired(true).isHighlight(true).sortOrder(1)
+                .description("Dung lượng tích điện").isActive(true).build(),
+            CategoryAttribute.builder()
+                .categoryUuid(UUID.fromString(powerBankCategoryId))
+                .attributeName("Công suất sạc").attributeKey("wattage")
+                .dataType("NUMBER").unit("W").isRequired(false).isHighlight(true).sortOrder(2)
+                .isActive(true).build(),
+            CategoryAttribute.builder()
+                .categoryUuid(UUID.fromString(powerBankCategoryId))
+                .attributeName("Số cổng sạc").attributeKey("ports")
+                .dataType("NUMBER").isRequired(false).isHighlight(false).sortOrder(3)
+                .isActive(true).build(),
+            CategoryAttribute.builder()
+                .categoryUuid(UUID.fromString(powerBankCategoryId))
+                .attributeName("Loại kết nối").attributeKey("connector_type")
+                .dataType("SELECT").selectOptions(List.of("USB-C", "Micro-USB", "Lightning", "USB-A"))
+                .isRequired(false).isHighlight(false).sortOrder(4).isActive(true).build()
+        );
+
+        String cameraCategoryId = categoryIdByName.get("Camera");
+        List<CategoryAttribute> cameraAttrs = List.of(
+            CategoryAttribute.builder()
+                .categoryUuid(UUID.fromString(cameraCategoryId))
+                .attributeName("Độ phân giải").attributeKey("resolution")
+                .dataType("NUMBER").unit("MP").isRequired(true).isHighlight(true).sortOrder(1)
+                .description("Megapixel của cảm biến").isActive(true).build(),
+            CategoryAttribute.builder()
+                .categoryUuid(UUID.fromString(cameraCategoryId))
+                .attributeName("Loại camera").attributeKey("camera_type")
+                .dataType("SELECT").selectOptions(List.of("Action Camera", "DSLR", "Mirrorless", "Security", "Dashcam", "360 Camera"))
+                .isRequired(true).isHighlight(true).sortOrder(2).isActive(true).build(),
+            CategoryAttribute.builder()
+                .categoryUuid(UUID.fromString(cameraCategoryId))
+                .attributeName("Chống nước").attributeKey("waterproof")
+                .dataType("SELECT").selectOptions(List.of("Có", "Không"))
+                .isRequired(false).isHighlight(false).sortOrder(3).isActive(true).build(),
+            CategoryAttribute.builder()
+                .categoryUuid(UUID.fromString(cameraCategoryId))
+                .attributeName("Chống rung").attributeKey("stabilization")
+                .dataType("SELECT").selectOptions(List.of("EIS", "OIS", "Không có"))
+                .isRequired(false).isHighlight(false).sortOrder(4).isActive(true).build()
+        );
+
         List<CategoryAttribute> all = new ArrayList<>();
         all.addAll(phoneAttrs);
         all.addAll(accessoryAttrs);
@@ -378,6 +425,8 @@ public class DummyDataService implements CommandLineRunner {
         all.addAll(laptopAttrs);
         all.addAll(smartwatchAttrs);
         all.addAll(headphoneAttrs);
+        all.addAll(powerBankAttrs);
+        all.addAll(cameraAttrs);
         categoryAttributeRepository.saveAll(all);
         all.forEach(attr -> result.computeIfAbsent(attr.getCategoryId(), k -> new ArrayList<>()).add(attr));
         return result;
@@ -407,10 +456,11 @@ public class DummyDataService implements CommandLineRunner {
                 double price = getPriceRange(category.getName());
                 double saleOff = ThreadLocalRandom.current().nextBoolean() ? randomBetween(0, 30) : 0;
                 double finalPrice = Math.round(price * (100 - saleOff)) / 100.0;
-                List<String> images = List.of(PRODUCT_IMAGE_URL);
                 String productName = i < predefinedNames.length
                         ? predefinedNames[i]
                         : buildGeneratedProductName(category.getName(), i + 1);
+                String imageUrl = unsplashImageService.fetchBestImageUrl(productName, category.getName());
+                List<String> images = List.of(imageUrl);
 
                 List<Product.ProductAttributeValue> values = attrs.stream().map(a -> Product.ProductAttributeValue.builder()
                         .attributeId(a.getId())
@@ -671,6 +721,14 @@ public class DummyDataService implements CommandLineRunner {
         if (key.equals("water_resistance")) return (List.of("IP67", "IP68", "5ATM", "10ATM")).get(ThreadLocalRandom.current().nextInt(4));
         if (key.equals("connection_type")) return (List.of("Bluetooth", "Có dây", "USB-C")).get(ThreadLocalRandom.current().nextInt(3));
         if (key.equals("noise_cancelling")) return (List.of("Có", "Không")).get(ThreadLocalRandom.current().nextInt(2));
+        if (key.equals("capacity")) return String.valueOf((List.of(5000, 10000, 20000, 30000)).get(ThreadLocalRandom.current().nextInt(4)));
+        if (key.equals("wattage")) return String.valueOf((List.of(18, 25, 45, 65, 100)).get(ThreadLocalRandom.current().nextInt(5)));
+        if (key.equals("ports")) return String.valueOf(ThreadLocalRandom.current().nextInt(1, 4));
+        if (key.equals("connector_type")) return (List.of("USB-C", "Micro-USB", "USB-A")).get(ThreadLocalRandom.current().nextInt(3));
+        if (key.equals("resolution")) return String.valueOf((List.of(12, 24, 48, 64, 108)).get(ThreadLocalRandom.current().nextInt(5)));
+        if (key.equals("camera_type")) return (List.of("Action Camera", "Security", "Dashcam", "Mirrorless")).get(ThreadLocalRandom.current().nextInt(4));
+        if (key.equals("waterproof")) return (List.of("Có", "Không")).get(ThreadLocalRandom.current().nextInt(2));
+        if (key.equals("stabilization")) return (List.of("EIS", "OIS", "Không có")).get(ThreadLocalRandom.current().nextInt(3));
         return "N/A";
     }
     
