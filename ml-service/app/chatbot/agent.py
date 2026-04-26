@@ -3,6 +3,11 @@ Chatbot Agent
 -------------
 Main orchestrator cho LLM + RAG + Tool-calling chatbot.
 Uses Gemini API (Google Generative AI).
+
+Cap nhat:
+- Them tools moi: GetShopHealthTool, GetAnomaliesReportTool, SuggestCouponStrategyTool, AnalyzeInventoryTool
+- Them role_map_header cho Spring Boot integration
+- Fix inject shop_id cho tat ca SELLER tools
 """
 
 from typing import List, Dict, Any, Optional
@@ -24,13 +29,21 @@ from .tools.product_tools import (
     GetTopSellingTool,
 )
 from .tools.order_tools import GetMyOrdersTool, GetOrderStatusTool
-from .tools.kpi_tools import GetShopKPITool, GetSystemMetricsTool, GetBestsellersTool
+from .tools.kpi_tools import (
+    GetShopKPITool,
+    GetSystemMetricsTool,
+    GetBestsellersTool,
+    GetShopHealthTool,
+    GetAnomaliesReportTool,
+    SuggestCouponStrategyTool,
+    AnalyzeInventoryTool,
+)
 
 
 class ChatbotAgent:
     """
     Main chatbot agent voi LLM + RAG + Tool-calling.
-    Uses Gemini 2.5 Flash model.
+    Uses Gemini model.
     """
 
     def __init__(
@@ -38,71 +51,50 @@ class ChatbotAgent:
         mongo_client: MongoClient,
         vector_store: Optional[VectorStore] = None,
     ):
-        """
-        Khoi tao chatbot agent.
-
-        Args:
-            mongo_client: MongoDB client
-            vector_store: VectorStore instance (optional)
-        """
         self.mongo_client = mongo_client
         self.vector_store = vector_store or VectorStore(settings.vector_store_path)
         self.retriever = Retriever(
             self.vector_store, mongo_client, settings.mongo_db
         )
-
-        # Gemini client
         self.gemini_client = GeminiClient()
-
-        # Initialize tools
         self.tools = self._init_tools()
-
-        # Conversation memory
-        self.conversations = {}  # session_id -> messages
+        self.conversations: Dict[str, list] = {}  # session_id -> messages
 
         logger.info("ChatbotAgent initialized with Gemini API")
 
     def _init_tools(self) -> Dict[str, Any]:
-        """
-        Khoi tao tools cho cac roles.
-
-        Returns:
-            Dict mapping tool_name -> tool instance
-        """
-        tools = {
-            # Product tools (BUYER, SELLER, ADMIN)
+        """Khoi tao tat ca tools."""
+        return {
+            # ── Product tools (ALL roles) ───────────────────────────────
             "search_products": SearchProductsTool(self.retriever),
             "get_product_details": GetProductDetailsTool(self.retriever),
             "compare_products": CompareProductsTool(self.retriever),
             "get_top_selling": GetTopSellingTool(self.retriever),
-            # Order tools (BUYER)
+
+            # ── Order tools (BUYER) ─────────────────────────────────────
             "get_my_orders": GetMyOrdersTool(self.retriever),
             "get_order_status": GetOrderStatusTool(self.retriever),
-            # KPI tools (SELLER, ADMIN)
+
+            # ── KPI tools (SELLER) ──────────────────────────────────────
             "get_shop_kpi": GetShopKPITool(self.retriever),
             "get_bestsellers": GetBestsellersTool(self.retriever),
+            "suggest_coupon_strategy": SuggestCouponStrategyTool(self.retriever),
+            "analyze_inventory": AnalyzeInventoryTool(self.retriever),
+
+            # ── Admin tools (ADMIN) ─────────────────────────────────────
             "get_system_metrics": GetSystemMetricsTool(self.retriever),
+            "get_shop_health": GetShopHealthTool(self.retriever),
+            "get_anomalies_report": GetAnomaliesReportTool(self.retriever),
         }
 
-        return tools
-
     def get_available_tools_for_role(self, role: Role) -> List[Dict[str, Any]]:
-        """
-        Lay danh sach tools ma role co the su dung.
-
-        Args:
-            role: User role
-
-        Returns:
-            List tool schemas (Gemini function declarations format)
-        """
+        """Lay danh sach tools ma role co the su dung (Gemini function declarations format)."""
         available_tool_names = RBACGuard.get_available_tools(role)
         schemas = []
 
         for tool_name in available_tool_names:
             if tool_name in self.tools:
                 tool = self.tools[tool_name]
-                # Convert to Gemini format
                 schemas.append(tool.to_gemini_function())
 
         return schemas
@@ -113,57 +105,37 @@ class ChatbotAgent:
         user_context: UserContext,
         session_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """
-        Main chat interface.
-
-        Args:
-            user_message: User's message
-            user_context: User context (user_id, role, etc)
-            session_id: Optional session ID for conversation memory
-
-        Returns:
-            Response dict
-        """
+        """Main chat interface."""
         try:
-            # Get or create conversation history
             if not session_id:
                 session_id = f"{user_context.user_id}_{user_context.role.value}"
 
             if session_id not in self.conversations:
                 self.conversations[session_id] = []
 
-            # System prompt
             system_prompt = get_system_prompt(user_context.role.value)
 
-            # Messages
             messages = [{"role": "system", "content": system_prompt}]
-
-            ## Add conversation history
             messages.extend(self.conversations[session_id])
-
-            # Add user message
             messages.append({"role": "user", "content": user_message})
 
-            # Get tools cho role nay
             available_tools = self.get_available_tools_for_role(user_context.role)
 
-            # Call Gemini
             response = await self._call_llm(
                 messages, available_tools, user_context, system_prompt
             )
 
-            # Update conversation memory
             self.conversations[session_id].append(
                 {"role": "user", "content": user_message}
             )
             self.conversations[session_id].append(
-                {"role": "assistant", "content": response["message"]}
+                {"role": "assistant", "content": response.get("message", "")}
             )
 
             # Truncate conversation memory
             if len(self.conversations[session_id]) > settings.conversation_memory_size * 2:
                 self.conversations[session_id] = self.conversations[session_id][
-                    -settings.conversation_memory_size * 2 :
+                    -settings.conversation_memory_size * 2:
                 ]
 
             return response
@@ -185,20 +157,7 @@ class ChatbotAgent:
         iteration: int = 0,
         gemini_formatted: bool = False,
     ) -> Dict[str, Any]:
-        """
-        Goi Gemini LLM voi tool calling - format follows AIService.java.
-
-        Args:
-            messages: Conversation messages
-            tools: Available tools (Gemini function declarations)
-            user_context: User context
-            system_prompt: System instruction
-            iteration: Current iteration (prevent infinite loops)
-            gemini_formatted: If True, messages are already in Gemini format
-
-        Returns:
-            Response dict
-        """
+        """Goi Gemini LLM voi tool calling."""
         if iteration >= settings.max_tool_iterations:
             return {
                 "message": "Da vuot qua so lan goi tool toi da.",
@@ -206,27 +165,20 @@ class ChatbotAgent:
             }
 
         try:
-            # Format messages for Gemini if not already formatted
             if gemini_formatted:
-                # Messages already in Gemini format (from function calling)
                 gemini_messages = [msg for msg in messages if msg["role"] != "system"]
             else:
-                # Extract history (exclude system prompt) and format for Gemini
                 history_messages = [msg for msg in messages if msg["role"] != "system"]
-                user_message = history_messages[-1]["content"]  # Current user message
-                history = history_messages[:-1]  # Previous messages
-
-                # Format messages for Gemini
+                user_message = history_messages[-1]["content"]
+                history = history_messages[:-1]
                 gemini_messages = GeminiClient.format_messages(history, user_message)
 
-            # Call Gemini
             gemini_response = await self.gemini_client.generate_content(
                 messages=gemini_messages,
                 system_prompt=system_prompt,
                 tools=tools if tools else None,
             )
 
-            # Check if function call
             if gemini_response["function_call"]:
                 func_call = gemini_response["function_call"]
                 tool_name = func_call["name"]
@@ -241,44 +193,36 @@ class ChatbotAgent:
                         "message": format_tool_error("permission_denied"),
                     }
                 else:
-                    # Execute tool
                     tool_result = await self._execute_tool(
                         tool_name, tool_args, user_context
                     )
 
                 # Add function call to messages (Gemini format)
-                # Model message with function call (correct Gemini format)
                 gemini_messages.append({
                     "role": "model",
                     "parts": [{"functionCall": func_call}],
                 })
 
-                # Function result message
                 function_result_msg = GeminiClient.format_function_result(
                     tool_name, tool_result
                 )
                 gemini_messages.append(function_result_msg)
 
-                # Create new messages list with system prompt + formatted messages
                 new_messages = [{"role": "system", "content": system_prompt}]
                 new_messages.extend(gemini_messages)
 
-                # Recursive call - let Gemini process function result
                 return await self._call_llm(
-                    new_messages, tools, user_context, system_prompt, iteration + 1, gemini_formatted=True
+                    new_messages, tools, user_context, system_prompt,
+                    iteration + 1, gemini_formatted=True
                 )
 
             else:
-                # Final text response from Gemini
                 content = gemini_response["text"] or ""
-
-                # Sanitize output
                 sanitized = OutputValidator.sanitize_output(
                     content,
                     settings.enable_pii_masking,
                     settings.max_response_length,
                 )
-
                 return {
                     "message": sanitized,
                     "success": True,
@@ -297,17 +241,7 @@ class ChatbotAgent:
     async def _execute_tool(
         self, tool_name: str, tool_args: Dict, user_context: UserContext
     ) -> Dict[str, Any]:
-        """
-        Thuc thi tool.
-
-        Args:
-            tool_name: Tool name
-            tool_args: Tool arguments
-            user_context: User context
-
-        Returns:
-            Tool execution result
-        """
+        """Thuc thi tool."""
         if tool_name not in self.tools:
             return {
                 "success": False,
@@ -316,10 +250,7 @@ class ChatbotAgent:
 
         tool = self.tools[tool_name]
 
-        # Validate parameters
-        is_valid, error_msg = OutputValidator.validate_tool_params(
-            tool_name, tool_args
-        )
+        is_valid, error_msg = OutputValidator.validate_tool_params(tool_name, tool_args)
         if not is_valid:
             return {
                 "success": False,
@@ -327,15 +258,21 @@ class ChatbotAgent:
             }
 
         try:
-            # Inject user_id cho order tools
+            # Inject user_id cho BUYER tools
             if tool_name in ["get_my_orders", "get_order_status"]:
                 tool_args["user_id"] = user_context.user_id
 
-            # Inject shop_id cho seller tools (from metadata)
-            if tool_name in ["get_shop_kpi", "get_bestsellers"]:
-                tool_args["shop_id"] = user_context.metadata.get(
-                    "shop_id", "default_shop"
-                )
+            # Inject shop_id cho tat ca SELLER tools
+            if tool_name in [
+                "get_shop_kpi", "get_bestsellers",
+                "suggest_coupon_strategy", "analyze_inventory",
+                "get_shop_health",  # ADMIN cung co the goi voi shop_id cu the
+            ]:
+                if "shop_id" not in tool_args or not tool_args.get("shop_id"):
+                    tool_args["shop_id"] = user_context.metadata.get(
+                        "shop_id",
+                        user_context.metadata.get("shopId", ""),
+                    )
 
             result = await tool.execute(**tool_args)
             return result
@@ -349,18 +286,10 @@ class ChatbotAgent:
             }
 
     async def index_products(self, limit: Optional[int] = None) -> int:
-        """
-        Index products tu MongoDB vao vector store.
-
-        Args:
-            limit: Gioi han so luong products (None = all)
-
-        Returns:
-            So luong products da index
-        """
+        """Index products tu MongoDB vao vector store."""
         try:
             db = self.mongo_client[settings.mongo_db]
-            query = {}
+            query = {"isPublished": True}  # Chỉ index published products
 
             if limit:
                 products = list(db.products.find(query).limit(limit))
@@ -382,14 +311,14 @@ class ChatbotAgent:
             logger.info(f"Cleared conversation: {session_id}")
 
     def get_stats(self) -> Dict[str, Any]:
-        """
-        Lay thong tin thong ke agent.
-
-        Returns:
-            Stats dict
-        """
+        """Lay thong tin thong ke agent."""
         return {
             "active_conversations": len(self.conversations),
             "available_tools": len(self.tools),
+            "tools_by_role": {
+                "BUYER": RBACGuard.get_available_tools(Role.BUYER),
+                "SELLER": RBACGuard.get_available_tools(Role.SELLER),
+                "ADMIN": RBACGuard.get_available_tools(Role.ADMIN),
+            },
             "vector_store_stats": self.vector_store.get_collection_stats(),
         }

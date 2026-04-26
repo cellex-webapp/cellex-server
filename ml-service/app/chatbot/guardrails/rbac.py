@@ -2,6 +2,11 @@
 RBAC - Role-Based Access Control
 ---------------------------------
 Quan ly quyen han truy cap tools theo role.
+
+Role mapping voi Spring Boot enums:
+  Spring Boot Role.ADMIN  -> ChatbotRole.ADMIN
+  Spring Boot Role.VENDOR -> ChatbotRole.SELLER
+  Spring Boot Role.USER   -> ChatbotRole.BUYER
 """
 
 from enum import Enum
@@ -10,11 +15,11 @@ from pydantic import BaseModel
 
 
 class Role(str, Enum):
-    """User roles trong he thong."""
+    """User roles cho chatbot (khop voi Spring Boot Role enum qua mapping)."""
 
-    BUYER = "BUYER"
-    SELLER = "SELLER"
-    ADMIN = "ADMIN"
+    BUYER = "BUYER"    # maps to Spring Boot Role.USER
+    SELLER = "SELLER"  # maps to Spring Boot Role.VENDOR
+    ADMIN = "ADMIN"    # maps to Spring Boot Role.ADMIN
 
 
 class Permission(str, Enum):
@@ -35,6 +40,7 @@ class Permission(str, Enum):
     VIEW_SHOP_KPI = "view_shop_kpi"
     VIEW_SYSTEM_KPI = "view_system_kpi"
     ANALYZE_SHOP_HEALTH = "analyze_shop_health"
+    VIEW_ANOMALIES = "view_anomalies"
 
     # Coupon permissions
     VIEW_COUPONS = "view_coupons"
@@ -46,29 +52,30 @@ class Permission(str, Enum):
 
 
 # Tool -> Required Permission mapping
-TOOL_PERMISSIONS = {
-    # BUYER tools
+TOOL_PERMISSIONS: dict[str, Permission] = {
+    # ── BUYER tools ────────────────────────────────────
     "search_products": Permission.SEARCH_PRODUCTS,
     "get_product_details": Permission.VIEW_PRODUCT_DETAILS,
     "compare_products": Permission.COMPARE_PRODUCTS,
     "get_top_selling": Permission.GET_TOP_SELLING,
     "get_my_orders": Permission.VIEW_OWN_ORDERS,
     "get_order_status": Permission.VIEW_OWN_ORDERS,
-    # SELLER tools
+
+    # ── SELLER tools ───────────────────────────────────
     "get_shop_kpi": Permission.VIEW_SHOP_KPI,
     "get_bestsellers": Permission.VIEW_SHOP_KPI,
-    "analyze_inventory": Permission.ANALYZE_STOCKOUT_RISK,
     "suggest_coupon_strategy": Permission.SUGGEST_COUPON_STRATEGY,
-    # ADMIN tools
+    "analyze_inventory": Permission.ANALYZE_STOCKOUT_RISK,
+
+    # ── ADMIN tools ────────────────────────────────────
     "get_system_metrics": Permission.VIEW_SYSTEM_KPI,
     "get_shop_health": Permission.ANALYZE_SHOP_HEALTH,
-    "get_all_orders": Permission.VIEW_ALL_ORDERS,
-    "analyze_order_issues": Permission.ANALYZE_ORDERS,
+    "get_anomalies_report": Permission.VIEW_ANOMALIES,
 }
 
 
 # Role -> Permissions mapping
-ROLE_PERMISSIONS = {
+ROLE_PERMISSIONS: dict[Role, list[Permission]] = {
     Role.BUYER: [
         Permission.SEARCH_PRODUCTS,
         Permission.VIEW_PRODUCT_DETAILS,
@@ -90,76 +97,62 @@ ROLE_PERMISSIONS = {
         Permission.SEARCH_PRODUCTS,
         Permission.VIEW_PRODUCT_DETAILS,
         Permission.COMPARE_PRODUCTS,
+        Permission.GET_TOP_SELLING,
         Permission.VIEW_ALL_ORDERS,
         Permission.ANALYZE_ORDERS,
         Permission.VIEW_SYSTEM_KPI,
         Permission.ANALYZE_SHOP_HEALTH,
         Permission.VIEW_INVENTORY,
+        Permission.VIEW_ANOMALIES,
+        Permission.VIEW_COUPONS,
+        Permission.SUGGEST_COUPON_STRATEGY,
+        Permission.ANALYZE_STOCKOUT_RISK,
     ],
 }
 
 
 class RBACGuard:
-    """
-    RBAC Guard de kiem tra permissions.
-    """
+    """RBAC Guard de kiem tra permissions."""
 
     @staticmethod
     def has_permission(role: Role, permission: Permission) -> bool:
-        """
-        Kiem tra role co permission hay khong.
-
-        Args:
-            role: User role
-            permission: Required permission
-
-        Returns:
-            True neu co quyen, False neu khong
-        """
         allowed_permissions = ROLE_PERMISSIONS.get(role, [])
         return permission in allowed_permissions
 
     @staticmethod
     def can_use_tool(role: Role, tool_name: str) -> bool:
-        """
-        Kiem tra role co the su dung tool hay khong.
-
-        Args:
-            role: User role
-            tool_name: Ten cua tool
-
-        Returns:
-            True neu co quyen, False neu khong
-        """
         required_permission = TOOL_PERMISSIONS.get(tool_name)
         if required_permission is None:
-            # Tool khong yeu cau permission (public)
-            return True
-
+            return True  # Public tool
         return RBACGuard.has_permission(role, required_permission)
 
     @staticmethod
     def get_available_tools(role: Role) -> list[str]:
-        """
-        Lay danh sach tools ma role co the su dung.
-
-        Args:
-            role: User role
-
-        Returns:
-            List cac tool names
-        """
         available = []
-        for tool_name in TOOL_PERMISSIONS.keys():
-            if RBACGuard.can_use_tool(role, tool_name):
+        for tool_name, permission in TOOL_PERMISSIONS.items():
+            if RBACGuard.has_permission(role, permission):
                 available.append(tool_name)
         return available
 
+    @staticmethod
+    def map_spring_boot_role(spring_role: str) -> Role:
+        """
+        Map Spring Boot Role enum to chatbot Role.
+        Spring Boot: ADMIN, VENDOR, USER
+        """
+        mapping = {
+            "ADMIN": Role.ADMIN,
+            "VENDOR": Role.SELLER,
+            "USER": Role.BUYER,
+            # Direct mappings (if frontend sends chatbot roles)
+            "SELLER": Role.SELLER,
+            "BUYER": Role.BUYER,
+        }
+        return mapping.get(spring_role.upper() if spring_role else "USER", Role.BUYER)
+
 
 class UserContext(BaseModel):
-    """
-    Context cua user trong conversation.
-    """
+    """Context cua user trong conversation."""
 
     user_id: str
     role: Role

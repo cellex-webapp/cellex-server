@@ -2,6 +2,8 @@
 Product Tools
 -------------
 Tools de truy van thong tin san pham.
+Cap nhat: dung dung field names cua Product.java (MongoDB):
+  name, description, images, price, finalPrice, averageRating, reviewCount, shopId, categoryId
 """
 
 from typing import Any, Dict, List, Optional
@@ -30,16 +32,69 @@ class SearchProductsTool(BaseTool):
             required=False,
             default=5,
         ),
+        ToolParameter(
+            name="min_price",
+            type="number",
+            description="Gia thap nhat",
+            required=False,
+        ),
+        ToolParameter(
+            name="max_price",
+            type="number",
+            description="Gia cao nhat",
+            required=False,
+        ),
+        ToolParameter(
+            name="category_id",
+            type="string",
+            description="ID danh muc",
+            required=False,
+        ),
+        ToolParameter(
+            name="brand",
+            type="string",
+            description="Thuong hieu (vd: 'Apple', 'Samsung')",
+            required=False,
+        ),
     ]
 
     def __init__(self, retriever: Retriever):
         super().__init__()
         self.retriever = retriever
 
-    async def execute(self, query: str, limit: int = 5, **kwargs) -> Dict[str, Any]:
+    async def execute(
+        self,
+        query: str,
+        limit: int = 5,
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        category_id: Optional[str] = None,
+        brand: Optional[str] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
         """Tim kiem san pham."""
         try:
-            products = self.retriever.retrieve_products(query, top_k=limit)
+            # Construct filters for ChromaDB
+            filters = {}
+            filter_list = []
+            
+            if min_price is not None:
+                filter_list.append({"final_price": {"$gte": min_price}})
+            if max_price is not None:
+                filter_list.append({"final_price": {"$lte": max_price}})
+            if category_id:
+                filter_list.append({"category_id": category_id})
+            if brand:
+                filter_list.append({"brand": brand})
+                
+            if len(filter_list) > 1:
+                filters = {"$and": filter_list}
+            elif len(filter_list) == 1:
+                filters = filter_list[0]
+            else:
+                filters = None
+
+            products = self.retriever.retrieve_products(query, top_k=limit, filters=filters)
 
             if not products:
                 return {
@@ -48,27 +103,26 @@ class SearchProductsTool(BaseTool):
                     "products": [],
                 }
 
-            # Format response
-            formatted_products = []
+            formatted = []
             for p in products:
-                formatted_products.append(
-                    {
-                        "id": str(p.get("_id", "")),
-                        "title": p.get("title", ""),
-                        "brand": p.get("brand", ""),
-                        "category": p.get("category", ""),
-                        "price": p.get("price", 0),
-                        "original_price": p.get("original_price"),
-                        "rating": p.get("rating", 0),
-                        "review_count": p.get("review_count", 0),
-                        "relevance_score": p.get("relevance_score", 0),
-                    }
-                )
+                formatted.append({
+                    "id": p.get("id", ""),
+                    "name": p.get("name", ""),
+                    "price": p.get("price"),
+                    "finalPrice": p.get("finalPrice"),
+                    "averageRating": p.get("averageRating", 0),
+                    "reviewCount": p.get("reviewCount", 0),
+                    "purchaseCount": p.get("purchaseCount", 0),
+                    "image": p.get("image"),
+                    "shopId": p.get("shopId"),
+                    "categoryId": p.get("categoryId"),
+                    "relevance_score": round(p.get("relevance_score", 0), 3),
+                })
 
             return {
                 "success": True,
-                "message": f"Tim thay {len(formatted_products)} san pham",
-                "products": formatted_products,
+                "message": f"Tim thay {len(formatted)} san pham",
+                "products": formatted,
             }
 
         except Exception as e:
@@ -105,24 +159,35 @@ class GetProductDetailsTool(BaseTool):
                     "message": "Khong tim thay san pham",
                 }
 
-            product = context["product"]
+            p = context["product"]
 
             return {
                 "success": True,
                 "product": {
-                    "id": str(product.get("_id")),
-                    "title": product.get("title"),
-                    "brand": product.get("brand"),
-                    "category": product.get("category"),
-                    "price": product.get("price"),
-                    "description": product.get("description"),
-                    "specifications": product.get("specifications", {}),
-                    "rating": product.get("rating"),
-                    "review_count": product.get("review_count"),
-                    "stock": product.get("stock", 0),
+                    "id": p.get("id", ""),
+                    "name": p.get("name", ""),
+                    "description": p.get("description", ""),
+                    "price": p.get("price"),
+                    "finalPrice": p.get("finalPrice"),
+                    "averageRating": p.get("averageRating", 0),
+                    "reviewCount": p.get("reviewCount", 0),
+                    "purchaseCount": p.get("purchaseCount", 0),
+                    "stockQuantity": p.get("stockQuantity"),
+                    "shopId": p.get("shopId"),
+                    "categoryId": p.get("categoryId"),
+                    "images": p.get("images", []),
+                    "attributeValues": p.get("attributeValues", []),
                 },
                 "reviews_count": len(context["reviews"]),
-                "similar_products_count": len(context["similar_products"]),
+                "similar_products": [
+                    {
+                        "id": s.get("id", ""),
+                        "name": s.get("name", ""),
+                        "finalPrice": s.get("finalPrice"),
+                        "averageRating": s.get("averageRating", 0),
+                    }
+                    for s in context["similar_products"][:3]
+                ],
             }
 
         except Exception as e:
@@ -170,19 +235,18 @@ class CompareProductsTool(BaseTool):
                     "message": "Khong du san pham de so sanh",
                 }
 
-            # Format comparison
             comparison = []
             for p in products:
-                comparison.append(
-                    {
-                        "id": str(p.get("_id")),
-                        "title": p.get("title"),
-                        "brand": p.get("brand"),
-                        "price": p.get("price"),
-                        "rating": p.get("rating"),
-                        "specifications": p.get("specifications", {}),
-                    }
-                )
+                comparison.append({
+                    "id": p.get("id", ""),
+                    "name": p.get("name", ""),
+                    "price": p.get("price"),
+                    "finalPrice": p.get("finalPrice"),
+                    "averageRating": p.get("averageRating", 0),
+                    "reviewCount": p.get("reviewCount", 0),
+                    "purchaseCount": p.get("purchaseCount", 0),
+                    "stockQuantity": p.get("stockQuantity"),
+                })
 
             return {
                 "success": True,
@@ -202,9 +266,9 @@ class GetTopSellingTool(BaseTool):
     description = "Lay danh sach san pham ban chay nhat theo category hoac toan he thong."
     parameters = [
         ToolParameter(
-            name="category",
+            name="category_id",
             type="string",
-            description="Category (optional). Vi du: 'Dien thoai', 'Laptop'",
+            description="Category ID (optional). De trong de lay toan bo.",
             required=False,
         ),
         ToolParameter(
@@ -221,41 +285,41 @@ class GetTopSellingTool(BaseTool):
         self.retriever = retriever
 
     async def execute(
-        self, category: Optional[str] = None, limit: int = 10, **kwargs
+        self, category_id: Optional[str] = None, limit: int = 10, **kwargs
     ) -> Dict[str, Any]:
         """Lay top selling products."""
         try:
             db = self.retriever.db
-            query = {}
-            if category:
-                query["category"] = category
+            query: Dict = {"isPublished": True}
+            if category_id:
+                query["categoryId"] = category_id
 
-            # Sort by review_count + rating
+            # Sort by purchaseCount desc, then reviewCount desc
             products = list(
                 db.products.find(query)
-                .sort([("review_count", -1), ("rating", -1)])
+                .sort([("purchaseCount", -1), ("reviewCount", -1)])
                 .limit(limit)
             )
 
             formatted = []
             for p in products:
-                formatted.append(
-                    {
-                        "id": str(p.get("_id")),
-                        "title": p.get("title"),
-                        "brand": p.get("brand"),
-                        "category": p.get("category"),
-                        "price": p.get("price"),
-                        "rating": p.get("rating"),
-                        "review_count": p.get("review_count"),
-                    }
-                )
+                formatted.append({
+                    "id": str(p.get("_id", "")),
+                    "name": p.get("name", ""),
+                    "price": p.get("price"),
+                    "finalPrice": p.get("finalPrice"),
+                    "averageRating": p.get("averageRating", 0),
+                    "reviewCount": p.get("reviewCount", 0),
+                    "purchaseCount": p.get("purchaseCount", 0),
+                    "shopId": p.get("shopId"),
+                    "categoryId": p.get("categoryId"),
+                })
 
             return {
                 "success": True,
                 "message": f"Top {len(formatted)} san pham ban chay",
                 "products": formatted,
-                "category": category or "Tat ca",
+                "category_id": category_id or "tat_ca",
             }
 
         except Exception as e:

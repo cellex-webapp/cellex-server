@@ -9,7 +9,6 @@ import com.example.cellex.models.user.User;
 import com.example.cellex.repositories.product.ProductRepository;
 import com.example.cellex.repositories.review.ReviewRepository;
 import com.example.cellex.services.review.ReviewService;
-import com.github.javafaker.Faker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -34,8 +33,6 @@ public class ReviewSeeder {
     private final ProductRepository productRepository;
     private final UserBehaviorSimulator userBehaviorSimulator;
     private final ReviewService reviewService;
-
-    private final Faker faker = new Faker();
 
     @Transactional
     public List<Review> seedReviewsFromOrders(List<Order> allOrders, List<User> users) {
@@ -159,20 +156,41 @@ public class ReviewSeeder {
 
     private String buildComment(int rating, String productName) {
         String product = productName == null ? "san pham" : productName;
-        String sentence = faker.lorem().sentence(8, 15);
+        List<String> templates;
 
         if (rating >= 5) {
-            return "Rat hai long voi " + product + ". " + sentence;
+            templates = List.of(
+                    "Rat hai long voi %s, se ung ho lan sau.",
+                    "%s dung nhu mo ta, chat luong rat tot.",
+                    "Trai nghiem voi %s vuot ky vong cua toi."
+            );
+        } else if (rating == 4) {
+            templates = List.of(
+                    "%s dung ky vong, giao hang nhanh.",
+                    "San pham %s kha tot, dang tien.",
+                    "Hai long voi %s, shop tu van nhiet tinh."
+            );
+        } else if (rating == 3) {
+            templates = List.of(
+                    "%s o muc tam on, dung duoc.",
+                    "Trai nghiem voi %s binh thuong, khong qua noi bat.",
+                    "%s co uu diem nhung van can cai thien."
+            );
+        } else if (rating == 2) {
+            templates = List.of(
+                    "%s chua dung nhu ky vong, can cai thien chat luong.",
+                    "Dung %s tam duoc nhung van con nhieu han che.",
+                    "Trai nghiem voi %s khong on dinh."
+            );
+        } else {
+            templates = List.of(
+                    "Khong hai long voi %s, chat luong chua tot.",
+                    "%s khong nhu mo ta, trai nghiem kha te.",
+                    "San pham %s can duoc nang cap de phu hop nhu cau."
+            );
         }
-        if (rating == 4) {
-            return "San pham tot va dung ky vong. " + sentence;
-        }
-        if (rating == 3) {
-            return "Trai nghiem o muc trung binh voi " + product + ". " + sentence;
-        }
-        if (rating == 2) {
-            return "Chat luong chua nhu mong doi, can cai thien. " + sentence;
-        }
-        return "Khong hai long voi san pham va dich vu. " + sentence;
+
+        int index = ThreadLocalRandom.current().nextInt(templates.size());
+        return String.format(templates.get(index), product);
     }
 }
