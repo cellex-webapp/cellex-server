@@ -28,6 +28,7 @@ public class SecurityConfig {
             "/api/v1/address/**",  // Address endpoints (public)
             "/v3/api-docs/**",
             "/swagger-ui/**",
+            "/actuator/**",   // Allow Render health checks
             "/ws/**"  // WebSocket endpoint
     };
 
