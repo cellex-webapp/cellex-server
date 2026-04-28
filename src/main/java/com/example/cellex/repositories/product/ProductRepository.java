@@ -24,6 +24,9 @@ public interface ProductRepository extends MongoRepository<Product, String> {
     @Query("{'name': {$regex: ?0, $options: 'i'}, 'isPublished': true}")
     Page<Product> findByNameContainingIgnoreCaseAndIsPublishedTrue(String name, Pageable pageable);
 
+    @Query("{'name': {$regex: ?0, $options: 'i'}}")
+    List<Product> findByNameContainingIgnoreCase(String name);
+
     // Tìm sản phẩm theo thuộc tính cụ thể (để so sánh)
     @Query("{'categoryId': ?0, 'attributeValues.attributeKey': ?1, 'attributeValues.value': ?2, 'isPublished': true}")
     List<Product> findByCategoryAndAttributeValue(String categoryId, String attributeKey, String attributeValue);

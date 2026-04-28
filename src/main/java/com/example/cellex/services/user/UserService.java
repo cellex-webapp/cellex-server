@@ -227,6 +227,7 @@ public class UserService {
         return mapToUserResponse(savedUser);
     }
 
+    @Transactional(readOnly = true)
     public List<UserResponse> getAllUsers() {
         List<User> users = userRepository.findAll();
         return users.stream()
@@ -234,11 +235,13 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public com.example.cellex.dtos.response.PageResponse<UserResponse> getAllUsers(org.springframework.data.domain.Pageable pageable) {
         org.springframework.data.domain.Page<User> page = userRepository.findAll(pageable);
         return com.example.cellex.dtos.response.PageResponse.of(page, this::mapToUserResponse);
     }
 
+    @Transactional(readOnly = true)
     public com.example.cellex.dtos.response.PageResponse<UserResponse> getAllUsers(org.springframework.data.domain.Pageable pageable, String name) {
         org.springframework.data.domain.Page<User> page;
         
@@ -253,11 +256,13 @@ public class UserService {
         return com.example.cellex.dtos.response.PageResponse.of(page, this::mapToUserResponse);
     }
 
+    @Transactional(readOnly = true)
     public UserResponse getUserById(String userId) {
         User user = findUserById(userId);
         return mapToUserResponse(user);
     }
 
+    @Transactional(readOnly = true)
     public UserResponse getCurrentUser(String userId) {
         User user = findUserById(userId);
         return mapToUserResponse(user);

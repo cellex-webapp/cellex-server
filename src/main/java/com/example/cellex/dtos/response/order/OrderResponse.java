@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Builder
@@ -94,6 +95,15 @@ public class OrderResponse {
     public static class OrderItemResponse {
         @JsonProperty("product_id")
         private String productId;
+
+        @JsonProperty("sku_id")
+        private String skuId;
+
+        @JsonProperty("sku_code")
+        private String skuCode;
+
+        @JsonProperty("variation_data")
+        private Map<String, String> variationData;
 
         @JsonProperty("product_name")
         private String productName;

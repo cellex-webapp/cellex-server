@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Builder
@@ -31,6 +32,9 @@ public class CartResponse {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class CartItemResponse {
         private String productId;
+        private String skuId;
+        private String skuCode;
+        private Map<String, String> variationData;
         private String productName;
         private String productImage;
         private Integer quantity;
