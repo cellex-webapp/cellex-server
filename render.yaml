@@ -12,6 +12,18 @@ services:
         value: 8080
       - key: MONGO_URI
         sync: false
+      - key: SUPABASE_DB_URL
+        sync: false
+      - key: SUPABASE_DB_USERNAME
+        sync: false
+      - key: SUPABASE_DB_PASSWORD
+        sync: false
+      - key: APPLICATION_SECURITY_JWT_SECRET_KEY
+        sync: false
+      - key: APPLICATION_SECURITY_JWT_ACCESS_TOKEN_EXPIRATION
+        value: "86400000" # 24 hours in ms
+      - key: APPLICATION_SECURITY_JWT_REFRESH_TOKEN_EXPIRATION
+        value: "604800000" # 7 days in ms
       - key: EMAIL_USERNAME
         sync: false
       - key: EMAIL_PASSWORD
@@ -36,7 +48,9 @@ services:
         value: firebase-service-account.json
       - key: OPENAI_API_KEY
         sync: false
-      - key: ML_SERVICE_URL
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ML_SERVICE_BASE_URL
         fromService:
           type: web
           name: cellex-ml-service
