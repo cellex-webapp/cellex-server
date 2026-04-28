@@ -8,6 +8,12 @@ services:
     dockerContext: .
     dockerfilePath: Dockerfile.backend
     envVars:
+      - key: TZ
+        value: Asia/Ho_Chi_Minh
+      - key: APP_TIME_ZONE
+        value: Asia/Ho_Chi_Minh
+      - key: JAVA_TOOL_OPTIONS
+        value: -Duser.timezone=Asia/Ho_Chi_Minh
       - key: SERVER_PORT
         value: 8080
       - key: MONGO_URI

@@ -1031,11 +1031,22 @@ public class ProductService {
             // Validate giá trị theo dataType và validation pattern
             validateAttributeValue(attribute, requestValue.getValue());
 
+            // Chuẩn hóa giá trị Boolean nếu cần
+            String finalValue = requestValue.getValue();
+            if ("BOOLEAN".equals(attribute.getDataType())) {
+                String normalized = finalValue.trim().toLowerCase();
+                if (normalized.equals("có") || normalized.equals("1") || normalized.equals("yes") || normalized.equals("true")) {
+                    finalValue = "true";
+                } else if (normalized.equals("không") || normalized.equals("0") || normalized.equals("no") || normalized.equals("false")) {
+                    finalValue = "false";
+                }
+            }
+
             return Product.ProductAttributeValue.builder()
                     .attributeId(attribute.getId())
                     .attributeKey(attribute.getAttributeKey())
                     .attributeName(attribute.getAttributeName())
-                    .value(requestValue.getValue())
+                    .value(finalValue)
                     .unit(attribute.getUnit())
                     .dataType(attribute.getDataType())
                     .build();
@@ -1053,7 +1064,9 @@ public class ProductService {
                 }
                 break;
             case "BOOLEAN":
-                if (!"true".equalsIgnoreCase(value) && !"false".equalsIgnoreCase(value)) {
+                String normalized = value.trim().toLowerCase();
+                List<String> validBooleans = List.of("true", "false", "có", "không", "yes", "no", "1", "0");
+                if (!validBooleans.contains(normalized)) {
                     throw new AppException(ErrorCode.INVALID_ATTRIBUTE_VALUE);
                 }
                 break;
