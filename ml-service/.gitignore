@@ -15,8 +15,8 @@ env/
 *.swo
 
 # Trained models (binary, don't commit)
-trained_models/
-*.joblib
+#trained_models/
+#*.joblib
 
 # Environment
 .env
