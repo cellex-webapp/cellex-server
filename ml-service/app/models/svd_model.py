@@ -93,7 +93,8 @@ class SVDRecommender:
             "learning_rate": settings.svd_lr_all,
             "regularization": settings.svd_reg_all,
             "training_seconds": round(elapsed, 2),
-            "algorithm": "SVD++"
+            "algorithm": "SVD++",
+            "rmse": round(float(model.last_epoch_rmse), 4) if model.last_epoch_rmse is not None else None,
         }
 
         # Save model

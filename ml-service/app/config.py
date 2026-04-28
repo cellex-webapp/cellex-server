@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     mongo_uri: str = "mongodb://admin:admin123@localhost:27017/cellex?authSource=admin"
     mongo_db: str = "cellex"
 
+    # Internal automation
+    internal_train_token: str = ""
+
     # Database - PostgreSQL (Supabase)
     # Format: postgresql+psycopg2://user:pass@host:port/dbname
     # Converted from Spring Boot jdbc:postgresql:// format automatically

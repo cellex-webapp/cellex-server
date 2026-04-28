@@ -26,6 +26,8 @@ def run_training():
         logger.info("=========================================")
         logger.info("TRAIN THANH CONG!")
         logger.info(f"Thoi gian train: {meta['training_seconds']}s")
+        if meta.get("rmse") is not None:
+            logger.info(f"RMSE cuoi cung: {meta['rmse']}")
         logger.info(f"So luong tuong tac: {meta['n_interactions']}")
         logger.info(f"File model: {os.path.join(settings.model_dir, 'svdpp_model.joblib')}")
         logger.info("=========================================")

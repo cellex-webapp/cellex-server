@@ -19,6 +19,7 @@ from pymongo import MongoClient
 from app.config import settings
 from app.api.routes import router as ml_router
 from app.api.chatbot_routes import router as chatbot_router
+from app.api.internal_routes import router as internal_router
 from app.api.ml_heads_routes import router as ml_heads_router
 from app.models.svd_model import recommender
 
@@ -162,6 +163,7 @@ app.add_middleware(
 # ── Routers ───────────────────────────────────────────────────────────────
 app.include_router(ml_router, prefix="/api/v1/ml")
 app.include_router(chatbot_router)
+app.include_router(internal_router)
 app.include_router(ml_heads_router)
 
 
