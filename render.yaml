@@ -20,6 +20,8 @@ services:
         sync: false
       - key: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
         value: "3"
+      - key: SPRING_MAIN_LAZY_INITIALIZATION
+        value: "true"
       - key: APPLICATION_SECURITY_JWT_SECRET_KEY
         sync: false
       - key: APPLICATION_SECURITY_JWT_ACCESS_TOKEN_EXPIRATION
@@ -79,7 +81,7 @@ services:
       - key: GEMINI_MODEL
         value: gemini-2.0-flash
       - key: RETRAIN_ON_STARTUP
-        value: "true"
+        value: "false"
       - key: MODEL_DIR
         value: ./trained_models
       - key: VECTOR_STORE_PATH
