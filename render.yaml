@@ -5,7 +5,8 @@ services:
     runtime: docker
     plan: free
     region: singapore
-    rootDirectory: .
+    dockerContext: .
+    dockerfilePath: Dockerfile.backend
     envVars:
       - key: SERVER_PORT
         value: 8080
@@ -42,7 +43,6 @@ services:
           property: host
     healthCheckPath: /actuator/health
     autoDeploy: true
-    # Note: Disk removed for Free Tier compatibility
 
   # 2. ML Service FastAPI
   - type: web
@@ -50,9 +50,8 @@ services:
     runtime: docker
     plan: free
     region: singapore
-    # Docker context and file path for the ml-service subdirectory
     dockerContext: ml-service
-    dockerfilePath: Dockerfile
+    dockerfilePath: Dockerfile.ml
     envVars:
       - key: PORT
         value: 8000
@@ -68,11 +67,9 @@ services:
         value: gemini-2.0-flash
       - key: RETRAIN_ON_STARTUP
         value: "true"
-      # Using internal ephemeral storage for models/vector store on Free Tier
       - key: MODEL_DIR
         value: ./trained_models
       - key: VECTOR_STORE_PATH
         value: ./vector_store
     healthCheckPath: /health
     autoDeploy: true
-    # Note: Disk removed for Free Tier compatibility
