@@ -8,8 +8,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.PostConstruct;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -19,10 +22,11 @@ import java.util.stream.Collectors;
 public class LocationService {
 
     private final ObjectMapper objectMapper;
-    private Map<String, Province> provinceMap;
-    private Map<String, Commune> communeMap;
+    private Map<String, Province> provinceMap = new HashMap<>();
+    private Map<String, Commune> communeMap = new HashMap<>();
 
-    @PostConstruct
+    @Async
+    @EventListener(ApplicationReadyEvent.class)
     public void init() throws IOException {
         loadProvinces();
         loadCommunes();

@@ -49,8 +49,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.javafaker.Faker;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -64,8 +65,8 @@ import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
-@Profile({"default", "dev"})
-public class DummyDataService implements CommandLineRunner {
+@Profile("seed-only")
+public class DummyDataService {
 
     private final UserRepository userRepository;
     private final ShopRepository shopRepository;
@@ -103,8 +104,9 @@ public class DummyDataService implements CommandLineRunner {
     private final Faker faker = new Faker();
     private final Faker viFaker = new Faker(new Locale("vi"));
 
-    @Override
-    public void run(String... args) {
+    @Async
+    @EventListener(ApplicationReadyEvent.class)
+    public void runSeeding() {
         // Load địa chỉ từ file JSON
         loadLocations();
 
