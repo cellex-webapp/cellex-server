@@ -7,8 +7,11 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -40,6 +43,12 @@ public class OrderItem {
     @Column(name = "product_id", nullable = false, length = 50)
     private String productId;
 
+    @Column(name = "sku_id", length = 50)
+    private String skuId;
+
+    @Column(name = "sku_code", length = 120)
+    private String skuCode;
+
     @Column(name = "product_name", nullable = false)
     private String productName;
 
@@ -56,6 +65,10 @@ public class OrderItem {
     @Column(name = "subtotal", precision = 15, scale = 2, nullable = false)
     @JsonIgnore
     private BigDecimal subtotalDecimal;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "variation_data", columnDefinition = "jsonb")
+    private Map<String, String> variationData;
 
     // ==================== Backward-compatible money accessors ====================
 

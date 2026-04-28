@@ -167,7 +167,7 @@ public class ProductController {
                     required = true,
                     example = "29990000"
             )
-            @RequestParam("price") @NotNull @DecimalMin("0.0") String price,
+            @RequestParam(value = "price", required = false) String price,
 
             @Parameter(
                     description = "Phần trăm giảm giá (0-100)",
@@ -180,7 +180,7 @@ public class ProductController {
                     required = true,
                     example = "50"
             )
-            @RequestParam("stockQuantity") @NotNull @Min(0) String stockQuantity,
+            @RequestParam(value = "stockQuantity", required = false) String stockQuantity,
 
             @Parameter(
                     description = """
@@ -213,6 +213,16 @@ public class ProductController {
             @RequestParam(value = "isPublished", required = false) String isPublished,
 
             @Parameter(
+                    description = "Danh sach nhom bien the (JSON). Vi du: [{\"name\":\"Mau sac\",\"values\":[\"Den\",\"Trang\"]}]"
+            )
+            @RequestParam(value = "variationOptions", required = false) String variationOptions,
+
+            @Parameter(
+                    description = "Danh sach SKU (JSON). Vi du: [{\"skuCode\":\"IP15-BLACK-128\",\"variationData\":{\"Mau sac\":\"Den\",\"Dung luong\":\"128GB\"},\"price\":23990000,\"onHandStock\":30,\"reservedStock\":0,\"safetyStock\":5}]"
+            )
+            @RequestParam(value = "skus", required = false) String skus,
+
+            @Parameter(
                     description = "Ảnh sản phẩm (có thể upload nhiều file)",
                     content = @io.swagger.v3.oas.annotations.media.Content(
                             mediaType = MediaType.MULTIPART_FORM_DATA_VALUE
@@ -223,7 +233,7 @@ public class ProductController {
         String vendorId = ((User)authentication.getPrincipal()).getId();
         ProductResponse response = productService.createProductMultipart(
                 vendorId, categoryId, name, description, price, saleOff,
-                stockQuantity, attributeValues, isPublished, images);
+                stockQuantity, attributeValues, isPublished, variationOptions, skus, images);
 
         return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
                 .code(1000)
@@ -626,6 +636,16 @@ public class ProductController {
             @RequestParam(value = "isPublished", required = false) String isPublished,
 
             @Parameter(
+                    description = "Danh sach nhom bien the (JSON)"
+            )
+            @RequestParam(value = "variationOptions", required = false) String variationOptions,
+
+            @Parameter(
+                    description = "Danh sach SKU (JSON)"
+            )
+            @RequestParam(value = "skus", required = false) String skus,
+
+            @Parameter(
                     description = "Ảnh sản phẩm mới (sẽ thay thế toàn bộ ảnh cũ)",
                     content = @io.swagger.v3.oas.annotations.media.Content(
                             mediaType = MediaType.MULTIPART_FORM_DATA_VALUE
@@ -636,7 +656,7 @@ public class ProductController {
         String vendorId = ((User)authentication.getPrincipal()).getId();
         ProductResponse response = productService.updateProductMultipart(
                 vendorId, productId, categoryId, name, description, price, saleOff,
-                stockQuantity, attributeValues, isPublished, images);
+                stockQuantity, attributeValues, isPublished, variationOptions, skus, images);
 
         return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
                 .code(1000)

@@ -16,6 +16,8 @@ public class UpdateCartItemQuantityRequest {
     @NotBlank(message = "Product ID không được để trống")
     private String productId;
 
+    private String skuId;
+
     @NotNull(message = "Action không được để trống")
     private QuantityAction action;
 

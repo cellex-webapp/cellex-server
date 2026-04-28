@@ -24,7 +24,9 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
                 "com.example.cellex.repositories.segment",
                 "com.example.cellex.repositories.notification",
                 "com.example.cellex.repositories.coupon",
-                "com.example.cellex.repositories.review"
+                "com.example.cellex.repositories.review",
+                "com.example.cellex.repositories.product",
+                "com.example.cellex.repositories.inventory"
         }
 )
 public class JpaConfig {

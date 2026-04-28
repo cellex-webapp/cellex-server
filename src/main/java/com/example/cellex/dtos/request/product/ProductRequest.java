@@ -40,6 +40,12 @@ public class ProductRequest {
     @NotEmpty(message = "Phải có thông tin thuộc tính sản phẩm")
     private List<ProductAttributeValueRequest> attributeValues;
 
+    @Valid
+    private List<ProductVariationOptionRequest> variationOptions;
+
+    @Valid
+    private List<ProductSkuRequest> skus;
+
     @Data
     @Builder
     @AllArgsConstructor

@@ -12,6 +12,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Document(collection = "carts")
 @Data
@@ -54,6 +55,15 @@ public class Cart {
     public static class CartItem {
         @Field("product_id")
         private String productId;
+
+        @Field("sku_id")
+        private String skuId;
+
+        @Field("sku_code")
+        private String skuCode;
+
+        @Field("variation_data")
+        private Map<String, String> variationData;
 
         @Field("quantity")
         private Integer quantity;

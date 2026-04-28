@@ -19,6 +19,9 @@ public class CreateOrderFromProductRequest {
     @NotBlank(message = "ID sản phẩm không được để trống")
     private String productId;
 
+    @Schema(description = "ID SKU da chon (optional)", example = "3f4d9f8a-2bcd-4f0b-8f53-97e5c9a41c92")
+    private String skuId;
+
     @Schema(description = "Số lượng", example = "2")
     @NotNull(message = "Số lượng không được để trống")
     @Min(value = 1, message = "Số lượng phải lớn hơn 0")

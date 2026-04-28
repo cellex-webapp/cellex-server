@@ -1,41 +1,27 @@
 services:
-  # Backend Web Service
+  # 1. Backend Spring Boot Web Service
   - type: web
     name: cellex-backend
-    runtime: docker  # Changed to Docker
-    plan: free  # Có thể chọn: free, starter, standard, pro
-    # Docker build sẽ tự động dùng Dockerfile
-    # Không cần buildCommand và startCommand
+    runtime: docker
+    plan: free
+    region: singapore
     envVars:
-      # Server Configuration
       - key: SERVER_PORT
-        sync: false
         value: 8080
-      
-      # Database Configuration
       - key: MONGO_URI
         sync: false
-        # Value cần được set trong Render Dashboard
-      
-      # Email Configuration
       - key: EMAIL_USERNAME
         sync: false
       - key: EMAIL_PASSWORD
         sync: false
-      
-      # Google OAuth2 Configuration
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: GOOGLE_REFRESH_TOKEN
         sync: false
-      
-      # Cloudinary Configuration
       - key: CLOUDINARY_URL
         sync: false
-      
-      # VNPAY Configuration
       - key: VNPAY_TMN_CODE
         sync: false
       - key: VNPAY_HASH_SECRET
@@ -44,52 +30,53 @@ services:
         sync: false
       - key: VNPAY_RETURN_URL
         sync: false
-      - key: VNPAY_VERSION
-        value: 2.1.0
-      - key: VNPAY_COMMAND
-        value: pay
-      - key: VNPAY_CURRENCY
-        value: VND
-      - key: VNPAY_LOCALE
-        value: vn
-      - key: VNPAY_ORDER_TYPE
-        value: other
-      
-      # Frontend URLs
-      - key: FRONTEND_PAYMENT_SUCCESS_URL
-        sync: false
-      - key: FRONTEND_PAYMENT_FAILURE_URL
-        sync: false
-      
-      # Firebase Configuration Path
       - key: FIREBASE_CONFIG_PATH
         value: firebase-service-account.json
-      
-      # OpenAI Configuration
       - key: OPENAI_API_KEY
         sync: false
-      - key: OPENAI_MODERATION_ENABLED
-        value: false
-    
-    # Health check configuration
+      - key: ML_SERVICE_URL
+        fromService:
+          type: web
+          name: cellex-ml-service
+          property: host
     healthCheckPath: /actuator/health
-    
-    # Auto-deploy settings
     autoDeploy: true
-    
-    # Region
-    region: singapore  # Chọn region gần nhất: oregon, frankfurt, singapore
-    
-    # Disk configuration for storing files
     disk:
-      name: cellex-disk
+      name: cellex-backend-data
       mountPath: /opt/render/project/data
       sizeGB: 1
 
-# Database (nếu dùng MongoDB trên Render)
-# Nếu dùng MongoDB Atlas thì không cần phần này
-# databases:
-#   - name: cellex-mongodb
-#     plan: free
-#     databaseName: cellex
-#     user: cellex_user
+  # 2. ML Service FastAPI
+  - type: web
+    name: cellex-ml-service
+    runtime: docker
+    plan: free
+    region: singapore
+    # Docker context and file path for the ml-service subdirectory
+    dockerContext: .
+    dockerfilePath: ml-service/Dockerfile
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_DB
+        value: cellex
+      - key: POSTGRES_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.0-flash
+      - key: RETRAIN_ON_STARTUP
+        value: "false"
+      - key: MODEL_DIR
+        value: /opt/render/project/data/trained_models
+      - key: VECTOR_STORE_PATH
+        value: /opt/render/project/data/vector_store
+    healthCheckPath: /health
+    autoDeploy: true
+    disk:
+      name: cellex-ml-data
+      mountPath: /opt/render/project/data
+      sizeGB: 1
