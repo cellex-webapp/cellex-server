@@ -18,6 +18,8 @@ services:
         sync: false
       - key: SUPABASE_DB_PASSWORD
         sync: false
+      - key: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
+        value: "3"
       - key: APPLICATION_SECURITY_JWT_SECRET_KEY
         sync: false
       - key: APPLICATION_SECURITY_JWT_ACCESS_TOKEN_EXPIRATION
@@ -51,10 +53,7 @@ services:
       - key: GEMINI_API_KEY
         sync: false
       - key: ML_SERVICE_BASE_URL
-        fromService:
-          type: web
-          name: cellex-ml-service
-          property: host
+        value: http://cellex-ml-service:8000
     healthCheckPath: /actuator/health
     autoDeploy: true
 
