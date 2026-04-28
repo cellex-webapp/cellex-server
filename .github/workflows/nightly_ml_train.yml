@@ -1,0 +1,20 @@
+name: Nightly ML Retraining Trigger
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  trigger-train:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render Training Endpoint
+        env:
+          RENDER_APP_URL: ${{ secrets.RENDER_APP_URL }}
+          INTERNAL_TRAIN_TOKEN: ${{ secrets.INTERNAL_TRAIN_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --request POST "${RENDER_APP_URL}/api/v1/internal/train-all" \
+            --header "Authorization: Bearer ${INTERNAL_TRAIN_TOKEN}" \
+            --header "Content-Type: application/json"

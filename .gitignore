@@ -44,3 +44,7 @@ firebase-service-account.json
 scripts/
 
 venv/
+
+!.github/
+!.github/workflows/
+!.github/workflows/*.yml
