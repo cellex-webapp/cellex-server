@@ -51,7 +51,7 @@ services:
     plan: free
     region: singapore
     dockerContext: ml-service
-    dockerfilePath: Dockerfile.ml
+    dockerfilePath: ml-service/Dockerfile.ml
     envVars:
       - key: PORT
         value: 8000
