@@ -5,8 +5,6 @@ services:
     runtime: docker
     plan: free
     region: singapore
-    dockerContext: .
-    dockerfilePath: Dockerfile
     envVars:
       - key: SERVER_PORT
         value: 8080

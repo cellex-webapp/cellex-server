@@ -47,7 +47,7 @@ firebase-service-account.json
 !README.md
 
 # Docker
-Dockerfile
+# Dockerfile  <-- Commented out
 .dockerignore
 docker-compose*.yml
 
@@ -55,10 +55,10 @@ docker-compose*.yml
 .github/
 .gitlab-ci.yml
 
-# Build output (except target which we need)
-build/
-dist/
-out/
+# Build output
+# build/
+# dist/
+# out/
 
 # Test
 test-results/
