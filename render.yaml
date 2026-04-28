@@ -18,8 +18,16 @@ services:
         sync: false
       - key: SUPABASE_DB_PASSWORD
         sync: false
+      - key: JPA_DDL_AUTO
+        value: none
       - key: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
         value: "3"
+      - key: SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT
+        value: "-1"
+      - key: SPRING_DATASOURCE_HIKARI_DATA_SOURCE_PROPERTIES_SSLMODE
+        value: require
+      - key: SPRING_DATASOURCE_HIKARI_DATA_SOURCE_PROPERTIES_CONNECTTIMEOUT
+        value: "10"
       - key: SPRING_MAIN_LAZY_INITIALIZATION
         value: "true"
       - key: APPLICATION_SECURITY_JWT_SECRET_KEY
