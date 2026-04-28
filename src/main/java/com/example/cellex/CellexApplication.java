@@ -10,6 +10,8 @@ import java.nio.file.Path;
 import java.util.List;
 
 @SpringBootApplication
+@EnableAsync
+@EnableScheduling
 public class CellexApplication {
 
 	private static final List<String> CRITICAL_ENV_KEYS = List.of(

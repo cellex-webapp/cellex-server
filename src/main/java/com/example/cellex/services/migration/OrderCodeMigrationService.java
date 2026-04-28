@@ -1,7 +1,9 @@
 package com.example.cellex.services.migration;
 
 import com.example.cellex.services.order.OrderService;
-import jakarta.annotation.PostConstruct;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,7 +19,8 @@ public class OrderCodeMigrationService {
 
     private final OrderService orderService;
 
-    @PostConstruct
+    @Async
+    @EventListener(ApplicationReadyEvent.class)
     public void init() {
         try {
             log.info("Starting order code migration on application startup...");
