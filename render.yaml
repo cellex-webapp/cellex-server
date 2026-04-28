@@ -49,8 +49,9 @@ services:
     runtime: docker
     plan: free
     region: singapore
-    dockerContext: .
-    dockerfilePath: ml-service/Dockerfile
+    # Docker context and file path for the ml-service subdirectory
+    dockerContext: ml-service
+    dockerfilePath: Dockerfile
     envVars:
       - key: PORT
         value: 8000
