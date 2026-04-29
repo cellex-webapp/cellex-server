@@ -66,7 +66,7 @@ class Settings(BaseSettings):
 
     # Chatbot - LLM Configuration (Gemini)
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-2.5-flash-lite"
     gemini_temperature: float = 0.8
     gemini_max_tokens: int = 16384
     gemini_top_k: int = 40

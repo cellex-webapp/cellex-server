@@ -47,7 +47,10 @@ public class AIService {
     @Value("${gemini.api.key:}")
     private String geminiApiKey;
 
-    private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+    @Value("${gemini.model:gemini-2.5-flash-lite}")
+    private String geminiModel;
+
+    private static final String GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
     private static final int MAX_CONTEXT_MESSAGES = 10;
 
     /**
@@ -215,88 +218,43 @@ public class AIService {
     private String buildSystemPrompt(Role role, String userId, String shopId) {
         StringBuilder prompt = new StringBuilder();
 
-        prompt.append("Bạn là Cellex AI Assistant - trợ lý AI thông minh của sàn thương mại điện tử Cellex. ");
-        prompt.append("Bạn luôn trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp. ");
-        prompt.append("Ngày hôm nay là: ").append(LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))).append(". ");
+        prompt.append("Bạn là Cellex AI - Trợ lý thông minh của sàn thương mại điện tử Cellex. ");
+        prompt.append("Luôn trả lời bằng tiếng Việt, thân thiện và trực tiếp. ");
+        prompt.append("Hôm nay là: ").append(LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))).append(".\n\n");
+
+        prompt.append("=== QUY TẮC CỐT LÕI ===\n");
+        prompt.append("1. Khi user hỏi về dữ liệu (sản phẩm, doanh thu, tồn kho...), BẮT BUỘC phải gọi FUNCTION TOOLS.\n");
+        prompt.append("2. KHÔNG BAO GIỜ nói 'tôi sẽ kiểm tra' mà không gọi hàm. PHẢI GỌI HÀM NGAY.\n");
+        prompt.append("3. Nếu không có dữ liệu, hãy báo 'Không tìm thấy dữ liệu'.\n\n");
 
         switch (role) {
-            case USER:
-                prompt.append("\n\n=== VAI TRÒ: TƯ VẤN KHÁCH HÀNG ===\n");
-                prompt.append("Bạn đang hỗ trợ một KHÁCH HÀNG (userId: ").append(userId).append(").\n");
-                prompt.append("Nhiệm vụ chính:\n");
-                prompt.append("1. Tư vấn chọn sản phẩm công nghệ phù hợp nhu cầu và ngân sách\n");
-                prompt.append("2. So sánh cấu hình, thông số kỹ thuật giữa các sản phẩm\n");
-                prompt.append("3. Gợi ý sản phẩm dựa trên sở thích và lịch sử mua hàng\n");
-                prompt.append("4. Giải đáp thắc mắc về sản phẩm, chính sách đổi trả, bảo hành\n\n");
-                prompt.append("Khi gợi ý sản phẩm, HÃY SỬ DỤNG các function tools để tìm kiếm và lấy thông tin sản phẩm thực từ database.\n");
-                prompt.append("VÍ DỤ: User hỏi 'các sản phẩm bán chạy', BẮT BUỘC gọi getHotProducts() để lấy dữ liệu thực.\n");
-                prompt.append("VÍ DỤ: User hỏi về spec cụ thể như 'điện thoại pin trâu nhất', 'laptop RAM lớn nhất', 'màn hình to nhất', BẮT BUỘC gọi searchByAttribute() với attributeKey tương ứng (battery, ram, screen).\n");
-                prompt.append("QUAN TRỌNG: Các attribute key phổ biến: battery (pin), ram (RAM), screen (màn hình), storage (bộ nhớ), cpu (CPU), vga (card đồ họa).\n");
-                prompt.append("Khi trả về danh sách sản phẩm, luôn bao gồm productIds trong metadata để frontend render Product Cards.\n");
+            case VENDOR:
+                prompt.append("=== VAI TRÒ: NGƯỜI BÁN (VENDOR) ===\n");
+                prompt.append("- Bạn đang hỗ trợ VENDOR (userId: ").append(userId).append(", shopId: ").append(shopId).append(").\n");
+                prompt.append("- Khi được hỏi về 'doanh thu', 'báo cáo', 'RevenueStats', 'stats', PHẢI GỌI getRevenueStats().\n");
+                prompt.append("- Khi được hỏi về 'bán chạy', PHẢI GỌI getTopSellingProducts().\n");
+                prompt.append("- Khi được hỏi về 'tồn kho', PHẢI GỌI getLowStockProducts().\n");
+                prompt.append("- Luôn phân tích dữ liệu sau khi nhận được kết quả từ hàm.\n");
                 break;
 
-            case VENDOR:
-                prompt.append("\n\n=== VAI TRÒ: HỖ TRỢ NGƯỜI BÁN ===\n");
-                prompt.append("Bạn đang hỗ trợ một VENDOR (userId: ").append(userId);
-                if (shopId != null) {
-                    prompt.append(", shopId: ").append(shopId);
-                }
-                prompt.append(").\n");
-                prompt.append("Nhiệm vụ chính:\n");
-                prompt.append("1. Phân tích doanh thu, báo cáo kinh doanh của shop\n");
-                prompt.append("2. Liệt kê sản phẩm bán chạy, cảnh báo hàng tồn kho thấp\n");
-                prompt.append("3. Phân tích đơn hàng theo trạng thái\n");
-                prompt.append("4. Gợi ý chiến lược coupon/khuyến mãi để tăng doanh số\n");
-                prompt.append("5. Tư vấn cải thiện hiệu quả kinh doanh\n\n");
-                prompt.append("HÃY SỬ DỤNG các function tools để truy vấn dữ liệu thực từ database.\n");
-                prompt.append("VÍ DỤ: Khi user hỏi 'phân tích kinh doanh quý 1/2026', BẮT BUỘC gọi getRevenueStats với startDate='2026-01-01', endDate='2026-03-31'\n");
-                prompt.append("VÍ DỤ: Khi user hỏi 'sản phẩm tồn kho thấp' hoặc 'sản phẩm sắp hết hàng', BẮT BUỘC gọi getLowStockProducts() NGAY LẬP TỨC\n");
-                prompt.append("VÍ DỤ: Khi user hỏi 'sản phẩm bán chạy', BẮT BUỘC gọi getTopSellingProducts() NGAY LẬP TỨC\n");
-                prompt.append("VÍ DỤ: Khi user hỏi 'doanh thu' hoặc 'báo cáo', BẮT BUỘC gọi getRevenueStats() NGAY LẬP TỨC\n");
-                prompt.append("VÍ DỤ: Khi user hỏi 'chiến lược kinh doanh', 'đề xuất để tăng doanh số', 'làm sao cải thiện', BẮT BUỘC gọi suggestVendorBusinessStrategy() để phân tích toàn diện\n");
-                prompt.append("KHÔNG BAO GIỜ chỉ nói 'tôi sẽ kiểm tra' hay 'hãy để tôi xem' - PHẢI GỌI FUNCTION NGAY\n");
-                prompt.append("Khi báo cáo số liệu, luôn format tiền tệ VNĐ và cung cấp chartData trong metadata nếu có thể.\n");
+            case USER:
+                prompt.append("=== VAI TRÒ: KHÁCH HÀNG ===\n");
+                prompt.append("- Hỗ trợ khách hàng tìm kiếm và chọn sản phẩm.\n");
+                prompt.append("- Luôn gọi searchProducts() hoặc getHotProducts() để lấy thông tin thực tế.\n");
                 break;
 
             case ADMIN:
-                prompt.append("\n\n=== VAI TRÒ: HỖ TRỢ QUẢN TRỊ ===\n");
-                prompt.append("Bạn đang hỗ trợ một ADMIN (userId: ").append(userId).append(").\n");
-                prompt.append("Nhiệm vụ chính:\n");
-                prompt.append("1. Tổng hợp doanh thu, báo cáo toàn hệ thống\n");
-                prompt.append("2. Phân tích hiệu quả các phân khúc khách hàng (CustomerSegment)\n");
-                prompt.append("3. Gợi ý chiến dịch marketing tổng thể\n");
-                prompt.append("4. Đề xuất điều chỉnh phân khúc khách hàng\n");
-                prompt.append("5. Cung cấp insights về hoạt động của sàn\n\n");
-                prompt.append("HÃY SỬ DỤNG các function tools để truy vấn dữ liệu thực từ database.\n");
-                prompt.append("VÍ DỤ: User hỏi 'chiến lược kinh doanh quý tiếp theo', BẮT BUỘC gọi suggestAdminBusinessStrategy() để có phân tích toàn diện.\n");
-                prompt.append("VÍ DỤ: User hỏi 'tổng quan hệ thống', BẮT BUỘC gọi getSystemOverview() ngay lập tức.\n");
-                prompt.append("VÍ DỤ: User hỏi 'đề xuất phát triển platform', 'làm sao tăng GMV', BẮT BUỘC gọi suggestAdminBusinessStrategy().\n");
-                prompt.append("KHÔNG được chỉ nói 'cần phân tích' mà phải GỌI FUNCTION để lấy dữ liệu thực.\n");
-                prompt.append("Cung cấp chartData và tableData trong metadata để hiển thị trực quan.\n");
+                prompt.append("=== VAI TRÒ: QUẢN TRỊ VIÊN ===\n");
+                prompt.append("- Phân tích toàn hệ thống, gọi getSystemOverview() cho các câu hỏi tổng quát.\n");
                 break;
         }
-
-        prompt.append("\n=== QUY TẮC QUAN TRỌNG ===\n");
-        prompt.append("1. BẮT BUỘC phải sử dụng function tools để lấy dữ liệu thực. KHÔNG BAO GIỜ trả lời chung chung hoặc bịa số liệu\n");
-        prompt.append("2. Nếu user hỏi về sản phẩm/doanh thu/đơn hàng/phân khúc, PHẢI gọi function tương ứng TRƯỚC KHI trả lời\n");
-        prompt.append("3. KHÔNG được trả lời kiểu 'hãy xem xét', 'cần phân tích', 'tôi sẽ kiểm tra', 'để tôi xem' mà KHÔNG gọi function\n");
-        prompt.append("4. KHÔNG BAO GIỜ nói 'chờ tôi kiểm tra' hay 'tôi sẽ giúp bạn kiểm tra' - PHẢI GỌI FUNCTION NGAY LẬP TỨC\n");
-        prompt.append("5. Khi không tìm thấy dữ liệu từ function, hãy thông báo rõ ràng 'Không tìm thấy dữ liệu'\n");
-        prompt.append("6. Format tiền tệ: VNĐ với dấu phân cách hàng nghìn (ví dụ: 1.500.000đ)\n");
-        prompt.append("7. Khi gợi ý sản phẩm, ĐẢM BẢO trả về productIds trong response\n");
-        prompt.append("8. KHÔNG BAO GIỜ hiển thị ID sản phẩm, ID danh mục hay bất kỳ ID nào trong phản hồi văn bản\n");
-        prompt.append("9. Chỉ đề cập đến tên sản phẩm, tên danh mục, và thông tin có ý nghĩa\n");
-        prompt.append("10. Trả lời CHI TIẾT với dữ liệu cụ thể, giải thích cặn kẽ, phân tích xu hướng và đưa ra đề xuất\n");
-        prompt.append("\n⚠️ CẢNH BÁO: Nếu bạn trả lời bằng văn bản mà KHÔNG gọi function khi cần thiết, câu trả lời của bạn sẽ BỊ TỪ CHỐI!\n");
-        prompt.append("✅ ĐÚNG: User hỏi 'tồn kho thấp' → Gọi getLowStockProducts() ngay → Trả về dữ liệu\n");
-        prompt.append("❌ SAI: User hỏi 'tồn kho thấp' → Trả lời 'Tôi sẽ kiểm tra...' → KHÔNG được phép!\n");
 
         return prompt.toString();
     }
 
     private Map<String, Object> callGeminiAPI(String systemPrompt, List<AIMessage> contextMessages,
                                                String userMessage, Role role, String shopId) {
-        String apiUrl = GEMINI_API_URL + "?key=" + geminiApiKey;
+        String apiUrl = GEMINI_API_BASE_URL + geminiModel + ":generateContent?key=" + geminiApiKey;
 
         // Build request body
         Map<String, Object> requestBody = buildGeminiRequest(systemPrompt, contextMessages, userMessage, role, shopId);
@@ -356,10 +314,10 @@ public class AIService {
         // Tools (Function declarations)
         request.put("tools", List.of(Map.of("function_declarations", buildFunctionDeclarations(role))));
 
-        // Tool config - ưu tiên gọi function khi có thể
+        // Tool config - ép model Lite sử dụng tool
         Map<String, Object> toolConfig = new HashMap<>();
         Map<String, Object> functionCallingConfig = new HashMap<>();
-        functionCallingConfig.put("mode", "AUTO"); // AUTO mode để ưu tiên function calling
+        functionCallingConfig.put("mode", "AUTO"); 
         toolConfig.put("function_calling_config", functionCallingConfig);
         request.put("tool_config", toolConfig);
 
