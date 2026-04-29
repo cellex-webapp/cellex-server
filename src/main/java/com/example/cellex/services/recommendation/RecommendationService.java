@@ -40,8 +40,8 @@ public class RecommendationService {
      * Flow: ML service (hybrid) -> CF -> Cold-start
      */
     public List<RecommendationResponse> getRecommendationsForUser(String userId, String categoryId, Integer limit) {
-        int finalLimit = limit != null ? limit : 20;
-        int minResults = 10;
+        int finalLimit = limit != null ? limit : 50;
+        int minResults = 50;
 
         log.info("Getting recommendations for user: {}, category: {}, limit: {}", userId, categoryId, finalLimit);
 
@@ -101,7 +101,7 @@ public class RecommendationService {
                     .collect(Collectors.toSet());
 
             for (Product p : coldStartProducts) {
-                if (recommendations.size() >= minResults || (recommendations.size() >= finalLimit)) break;
+                if (recommendations.size() >= minResults) break;
                 if (!existingIds.contains(p.getId())) {
                     recommendations.add(createResponseFromProduct(p, reason, explanation, recommendations.size() + 1));
                     existingIds.add(p.getId());
@@ -268,8 +268,8 @@ public class RecommendationService {
      * Lấy pre-computed recommendations
      */
     public List<RecommendationResponse> getPreComputedRecommendations(String userId, Integer limit) {
-        int finalLimit = limit != null ? limit : 20;
-        int minResults = 10;
+        int finalLimit = limit != null ? limit : 50;
+        int minResults = 50;
         
         List<Recommendation> recommendations = recommendationRepository
                 .findByUserIdOrderByRecommendationScoreDesc(userId, PageRequest.of(0, finalLimit));
