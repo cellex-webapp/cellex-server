@@ -29,6 +29,9 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
+    @Value("${NOTIFICATION_EMAIL_ENABLED:true}")
+    private boolean notificationEmailEnabled;
+
     /**
      * Gửi mã OTP (Giữ nguyên logic cũ của bạn)
      */
@@ -58,6 +61,11 @@ public class EmailService {
      */
     @Async // Chạy bất đồng bộ để không block luồng chính
     public void sendNotificationEmail(String to, String subject, String content, String actionUrl, String userName) {
+        if (!notificationEmailEnabled) {
+            log.info("Notification email is disabled by config. Skip sending to: {}", to);
+            return;
+        }
+
         try {
             validateEmailConfig();
 
