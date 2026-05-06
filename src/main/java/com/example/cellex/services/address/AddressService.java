@@ -9,7 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.PostConstruct;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
@@ -28,27 +30,28 @@ public class AddressService {
     private final ObjectMapper objectMapper;
     
     // Legacy data (current system - provinces.json, communes.json)
-    private List<Province> provinces;
-    private List<Commune> communes;
+    private List<Province> provinces = new ArrayList<>();
+    private List<Commune> communes = new ArrayList<>();
     
     // Old address system (before 07/2025) - data.json
-    private List<OldProvince> oldProvinces;
-    private Map<String, OldProvince> oldProvinceMap; // provinceId -> OldProvince
-    private Map<String, OldDistrict> oldDistrictMap; // districtId -> OldDistrict
-    private Map<String, String> districtToProvinceMap; // districtId -> provinceId
-    private Map<String, String> oldWardToDistrictMap; // wardId -> districtId
+    private List<OldProvince> oldProvinces = new ArrayList<>();
+    private Map<String, OldProvince> oldProvinceMap = new ConcurrentHashMap<>(); // provinceId -> OldProvince
+    private Map<String, OldDistrict> oldDistrictMap = new ConcurrentHashMap<>(); // districtId -> OldDistrict
+    private Map<String, String> districtToProvinceMap = new ConcurrentHashMap<>(); // districtId -> provinceId
+    private Map<String, String> oldWardToDistrictMap = new ConcurrentHashMap<>(); // wardId -> districtId
     
     // New address system (after 07/2025) - data_new.json
-    private List<NewProvince> newProvinces;
-    private Map<String, NewProvince> newProvinceMap; // provinceCode -> NewProvince
-    private Map<String, NewWard> newWardMap; // wardCode -> NewWard
+    private List<NewProvince> newProvinces = new ArrayList<>();
+    private Map<String, NewProvince> newProvinceMap = new ConcurrentHashMap<>(); // provinceCode -> NewProvince
+    private Map<String, NewWard> newWardMap = new ConcurrentHashMap<>(); // wardCode -> NewWard
     
     // Ward mappings - ward_mappings.json
-    private List<WardMapping> wardMappings;
-    private Map<String, WardMapping> oldToNewWardMap; // oldWardCode -> WardMapping
-    private Map<String, List<WardMapping>> newToOldWardsMap; // newWardCode -> List<WardMapping> (multiple old wards can map to one new)
+    private List<WardMapping> wardMappings = new ArrayList<>();
+    private Map<String, WardMapping> oldToNewWardMap = new ConcurrentHashMap<>(); // oldWardCode -> WardMapping
+    private Map<String, List<WardMapping>> newToOldWardsMap = new ConcurrentHashMap<>(); // newWardCode -> List<WardMapping>
 
-    @PostConstruct
+    @Async
+    @EventListener(ApplicationReadyEvent.class)
     public void loadData() {
         try {
             // Load legacy data

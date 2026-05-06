@@ -41,6 +41,9 @@ public class Product {
     // Thay thế attributes và specifications cũ bằng cấu trúc mới
     private List<ProductAttributeValue> attributeValues;
 
+    // Danh sach nhom bien the de frontend render bo loc (mau, dung luong,...)
+    private List<VariationOption> variationOptions;
+
     // Các thông tin thống kê
     @Builder.Default
     private Double averageRating = 0.0;
@@ -72,5 +75,14 @@ public class Product {
         private String value; // Giá trị của thuộc tính
         private String unit; // Đơn vị
         private String dataType; // Kiểu dữ liệu
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class VariationOption {
+        private String name;
+        private List<String> values;
     }
 }

@@ -77,6 +77,7 @@ class SVDpp:
         self.n_users: int = 0
         self.n_items: int = 0
         self.is_fitted: bool = False
+        self.last_epoch_rmse: Optional[float] = None
 
     def fit(
         self,
@@ -139,11 +140,12 @@ class SVDpp:
         for epoch in range(self.config.n_epochs):
             np.random.shuffle(train_data)
             epoch_loss = self._train_epoch(train_data)
+            epoch_rmse = float(np.sqrt(epoch_loss / len(train_data)))
+            self.last_epoch_rmse = epoch_rmse
 
             if self.config.verbose and (epoch + 1) % 5 == 0:
-                rmse = np.sqrt(epoch_loss / len(train_data))
                 logger.info("Epoch %d/%d - RMSE: %.4f",
-                           epoch + 1, self.config.n_epochs, rmse)
+                           epoch + 1, self.config.n_epochs, epoch_rmse)
 
         self.is_fitted = True
         elapsed = time.time() - t0

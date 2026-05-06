@@ -1,6 +1,8 @@
 package com.example.cellex.services.product;
 
 import com.example.cellex.dtos.request.product.ProductRequest;
+import com.example.cellex.dtos.request.product.ProductSkuRequest;
+import com.example.cellex.dtos.request.product.ProductVariationOptionRequest;
 import com.example.cellex.dtos.response.PageResponse;
 import com.example.cellex.dtos.response.product.ProductResponse;
 import com.example.cellex.enums.ShopStatus;
@@ -9,6 +11,7 @@ import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.models.category.Category;
 import com.example.cellex.models.category.CategoryAttribute;
 import com.example.cellex.models.product.Product;
+import com.example.cellex.models.product.ProductSku;
 import com.example.cellex.models.shop.Shop;
 import com.example.cellex.repositories.category.CategoryAttributeRepository;
 import com.example.cellex.repositories.category.CategoryRepository;
@@ -29,6 +32,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,6 +53,7 @@ public class ProductService {
     private final UserRepository userRepository;
     private final S3Service s3Service;
     private final ObjectMapper objectMapper;
+    private final ProductSkuService productSkuService;
 
     public ProductResponse createProduct(String vendorId, ProductRequest request) {
         // Kiểm tra shop của vendor có tồn tại và đã được verify chưa
@@ -78,6 +84,12 @@ public class ProductService {
         List<Product.ProductAttributeValue> attributeValues = validateAndMapAttributeValues(
                 request.getCategoryId(), request.getAttributeValues());
 
+        List<Product.VariationOption> variationOptions = mapVariationOptions(request.getVariationOptions());
+        int stockQuantity = request.getStockQuantity() != null ? request.getStockQuantity() : 0;
+        if (request.getSkus() != null && !request.getSkus().isEmpty()) {
+            stockQuantity = calculateTotalAvailableStock(request.getSkus());
+        }
+
         Product product = Product.builder()
                 .shopId(shop.getId())
                 .categoryId(request.getCategoryId())
@@ -87,12 +99,31 @@ public class ProductService {
                 .price(request.getPrice())
                 .saleOff(request.getSaleOff())
                 .finalPrice(finalPrice)
-                .stockQuantity(request.getStockQuantity())
+                .stockQuantity(stockQuantity)
                 .attributeValues(attributeValues)
+                .variationOptions(variationOptions)
                 .isPublished(false) // Mặc định chưa xuất bản, cần vendor tự xuất bản
                 .build();
 
         Product savedProduct = productRepository.save(product);
+
+        try {
+            if (request.getSkus() != null) {
+                List<ProductSku> savedSkus = productSkuService.replaceSkusForProduct(
+                        savedProduct.getId(),
+                        shop.getId(),
+                        request.getSkus());
+
+                if (!savedSkus.isEmpty()) {
+                    savedProduct.setStockQuantity(savedSkus.stream().mapToInt(ProductSku::getAvailableStock).sum());
+                    savedProduct = productRepository.save(savedProduct);
+                }
+            }
+        } catch (Exception ex) {
+            productRepository.deleteById(savedProduct.getId());
+            throw ex;
+        }
+
         log.info("Created product: {} for shop: {}", savedProduct.getId(), shop.getId());
 
         return mapToResponse(savedProduct, shop, category);
@@ -214,6 +245,15 @@ public class ProductService {
         // Validate và map attribute values
         List<Product.ProductAttributeValue> attributeValues = validateAndMapAttributeValues(
                 request.getCategoryId(), request.getAttributeValues());
+        List<Product.VariationOption> variationOptions = mapVariationOptions(request.getVariationOptions());
+
+        int stockQuantity = request.getStockQuantity() != null ? request.getStockQuantity() : 0;
+        if (request.getSkus() != null && !request.getSkus().isEmpty()) {
+            stockQuantity = calculateTotalAvailableStock(request.getSkus());
+        }
+
+        // Lấy bản sao cũ để rollback nếu lỗi
+        Product oldProduct = productRepository.findById(productId).orElse(null);
 
         // Update product
         product.setCategoryId(request.getCategoryId());
@@ -222,11 +262,32 @@ public class ProductService {
         product.setPrice(request.getPrice());
         product.setSaleOff(request.getSaleOff());
         product.setFinalPrice(finalPrice);
-        product.setStockQuantity(request.getStockQuantity());
+        product.setStockQuantity(stockQuantity);
         product.setAttributeValues(attributeValues);
+        product.setVariationOptions(variationOptions);
         product.setUpdatedAt(LocalDateTime.now());
 
         Product savedProduct = productRepository.save(product);
+
+        try {
+            if (request.getSkus() != null) {
+                List<ProductSku> savedSkus = productSkuService.replaceSkusForProduct(
+                        savedProduct.getId(),
+                        shop.getId(),
+                        request.getSkus());
+
+                if (!savedSkus.isEmpty()) {
+                    savedProduct.setStockQuantity(savedSkus.stream().mapToInt(ProductSku::getAvailableStock).sum());
+                    savedProduct = productRepository.save(savedProduct);
+                }
+            }
+        } catch (Exception ex) {
+            if (oldProduct != null) {
+                productRepository.save(oldProduct);
+            }
+            throw ex;
+        }
+
         log.info("Updated product: {}", productId);
 
         Category category = categoryRepository.findById(request.getCategoryId()).orElse(null);
@@ -350,6 +411,7 @@ public class ProductService {
     public ProductResponse createProductMultipart(String vendorId, String categoryId, String name, String description,
                                                  String price, String saleOff, String stockQuantity,
                                                  String attributeValues, String isPublished,
+                                                 String variationOptions, String skus,
                                                  MultipartFile[] images) throws IOException {
         log.info("Creating product for vendorId: {}, categoryId: {}", vendorId, categoryId);
 
@@ -379,37 +441,35 @@ public class ProductService {
         log.info("Found category: {} - {}", category.getId(), category.getName());
 
         // Parse và validate các giá trị
-        Double priceValue;
-        Double saleOffValue;
-        Integer stockQuantityValue;
-        Boolean isPublishedValue;
+        Double priceValue = 0.0;
+        Double saleOffValue = 0.0;
+        Integer stockQuantityValue = 0;
+        Boolean isPublishedValue = false;
 
         try {
-            priceValue = Double.parseDouble(price);
-            saleOffValue = saleOff != null && !saleOff.trim().isEmpty() ? Double.parseDouble(saleOff) : 0.0;
-            stockQuantityValue = Integer.parseInt(stockQuantity);
-            isPublishedValue = isPublished != null && !isPublished.trim().isEmpty() ? Boolean.parseBoolean(isPublished) : false;
+            if (price != null && !price.trim().isEmpty()) {
+                priceValue = Double.parseDouble(price);
+            }
+            if (saleOff != null && !saleOff.trim().isEmpty()) {
+                saleOffValue = Double.parseDouble(saleOff);
+            }
+            if (stockQuantity != null && !stockQuantity.trim().isEmpty()) {
+                stockQuantityValue = Integer.parseInt(stockQuantity);
+            }
+            if (isPublished != null && !isPublished.trim().isEmpty()) {
+                isPublishedValue = Boolean.parseBoolean(isPublished);
+            }
         } catch (NumberFormatException e) {
             log.error("Invalid number format in product data: price={}, saleOff={}, stockQuantity={}",
                      price, saleOff, stockQuantity, e);
-            throw new AppException(ErrorCode.INVALID_INPUT);
+            throw new AppException(ErrorCode.INVALID_INPUT, "Dinh dang so khong hop le");
         }
 
-        // Validate giá trị
-        if (priceValue <= 0) {
-            throw new AppException(ErrorCode.INVALID_INPUT);
-        }
         if (saleOffValue < 0 || saleOffValue > 100) {
-            throw new AppException(ErrorCode.INVALID_INPUT);
+            throw new AppException(ErrorCode.INVALID_INPUT, "saleOff khong hop le");
         }
         if (stockQuantityValue < 0) {
-            throw new AppException(ErrorCode.INVALID_INPUT);
-        }
-
-        // Tính final price
-        Double finalPrice = priceValue;
-        if (saleOffValue > 0) {
-            finalPrice = priceValue * (100 - saleOffValue) / 100;
+            throw new AppException(ErrorCode.INVALID_INPUT, "stockQuantity khong hop le");
         }
 
         // Upload images nếu có
@@ -442,6 +502,32 @@ public class ProductService {
             }
         }
 
+        // Parse variation options
+        List<Product.VariationOption> variationOptionList = new ArrayList<>();
+        if (variationOptions != null && !variationOptions.trim().isEmpty()) {
+            variationOptionList = parseVariationOptions(variationOptions);
+        }
+
+        // Parse SKU list
+        List<ProductSkuRequest> skuRequestList = null;
+        if (skus != null && !skus.trim().isEmpty()) {
+            skuRequestList = parseSkuRequests(skus);
+            stockQuantityValue = calculateTotalAvailableStock(skuRequestList);
+            if ((priceValue == null || priceValue <= 0) && !skuRequestList.isEmpty()) {
+                priceValue = skuRequestList.stream().mapToDouble(ProductSkuRequest::getPrice).min().orElse(0.0);
+            }
+        }
+        
+        if (priceValue == null || priceValue <= 0) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Gia san pham phai lon hon 0");
+        }
+
+        // Tính final price
+        Double finalPrice = priceValue;
+        if (saleOffValue > 0) {
+            finalPrice = priceValue * (100 - saleOffValue) / 100;
+        }
+
         // Tạo product
         Product product = Product.builder()
                 .shopId(shop.getId())
@@ -454,6 +540,7 @@ public class ProductService {
                 .finalPrice(finalPrice)
                 .stockQuantity(stockQuantityValue)
                 .attributeValues(attributeValueList)
+                .variationOptions(variationOptionList)
                 .isPublished(isPublishedValue)
                 .averageRating(0.0)
                 .reviewCount(0)
@@ -463,6 +550,24 @@ public class ProductService {
                 .build();
 
         Product savedProduct = productRepository.save(product);
+
+        try {
+            if (skuRequestList != null) {
+                List<ProductSku> savedSkus = productSkuService.replaceSkusForProduct(
+                        savedProduct.getId(),
+                        shop.getId(),
+                        skuRequestList);
+
+                if (!savedSkus.isEmpty()) {
+                    savedProduct.setStockQuantity(savedSkus.stream().mapToInt(ProductSku::getAvailableStock).sum());
+                    savedProduct = productRepository.save(savedProduct);
+                }
+            }
+        } catch (Exception ex) {
+            productRepository.deleteById(savedProduct.getId());
+            throw ex;
+        }
+
         log.info("Created product: {} for shop: {}", savedProduct.getId(), shop.getId());
 
         return mapToProductResponse(savedProduct, shop, category);
@@ -472,12 +577,15 @@ public class ProductService {
     public ProductResponse updateProductMultipart(String vendorId, String productId, String categoryId, String name,
                                                  String description, String price, String saleOff, String stockQuantity,
                                                  String attributeValues, String isPublished,
+                                                 String variationOptions, String skus,
                                                  MultipartFile[] images) throws IOException {
         log.info("Updating product {} for vendorId: {}", productId, vendorId);
 
         // Tìm và kiểm tra quyền sở hữu product
         Product product = findProductByVendor(productId, vendorId);
         log.info("Found product: {} belongs to shop: {}", product.getId(), product.getShopId());
+
+        Product oldProduct = productRepository.findById(productId).orElse(null);
 
         // Update category nếu có
         if (categoryId != null && !categoryId.trim().isEmpty()) {
@@ -582,6 +690,13 @@ public class ProductService {
             log.info("Updated isPublished to: {}", isPublishedValue);
         }
 
+        // Update variation options neu co
+        if (variationOptions != null && !variationOptions.trim().isEmpty()) {
+            List<Product.VariationOption> variationOptionList = parseVariationOptions(variationOptions);
+            product.setVariationOptions(variationOptionList);
+            log.info("Updated {} variation groups", variationOptionList.size());
+        }
+
         // Update images nếu có
         if (images != null && images.length > 0) {
             log.info("Updating {} images for product", images.length);
@@ -618,6 +733,36 @@ public class ProductService {
 
         product.setUpdatedAt(LocalDateTime.now());
         Product updatedProduct = productRepository.save(product);
+
+        // Update SKU list neu co
+        try {
+            if (skus != null && !skus.trim().isEmpty()) {
+                List<ProductSkuRequest> skuRequestList = parseSkuRequests(skus);
+                List<ProductSku> savedSkus = productSkuService.replaceSkusForProduct(
+                        updatedProduct.getId(),
+                        updatedProduct.getShopId(),
+                        skuRequestList);
+
+                int availableStock = savedSkus.stream().mapToInt(ProductSku::getAvailableStock).sum();
+                updatedProduct.setStockQuantity(availableStock);
+                
+                double minPrice = savedSkus.stream().mapToDouble(ProductSku::getPrice).min().orElse(0.0);
+                if (minPrice > 0) {
+                    updatedProduct.setPrice(minPrice);
+                    Double saleOffVal = updatedProduct.getSaleOff() != null ? updatedProduct.getSaleOff() : 0.0;
+                    updatedProduct.setFinalPrice(saleOffVal > 0 ? minPrice * (100 - saleOffVal) / 100 : minPrice);
+                }
+                
+                updatedProduct = productRepository.save(updatedProduct);
+                log.info("Updated {} skus, stockQuantity={}, minPrice={}", savedSkus.size(), availableStock, minPrice);
+            }
+        } catch (Exception ex) {
+            if (oldProduct != null) {
+                productRepository.save(oldProduct);
+            }
+            throw ex;
+        }
+
         log.info("Product updated successfully with ID: {}", updatedProduct.getId());
 
         return mapToProductResponse(updatedProduct);
@@ -689,6 +834,88 @@ public class ProductService {
         }
 
         return attributeValueList;
+    }
+
+    private List<Product.VariationOption> mapVariationOptions(List<ProductVariationOptionRequest> requests) {
+        if (requests == null || requests.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        return requests.stream()
+                .filter(item -> item.getName() != null && !item.getName().isBlank())
+                .map(item -> Product.VariationOption.builder()
+                        .name(item.getName().trim())
+                        .values(item.getValues() == null ? new ArrayList<>() : item.getValues().stream()
+                                .filter(value -> value != null && !value.isBlank())
+                                .map(String::trim)
+                                .toList())
+                        .build())
+                .toList();
+    }
+
+    private List<Product.VariationOption> parseVariationOptions(String variationOptionsJson) {
+        try {
+            List<ProductVariationOptionRequest> requests = objectMapper.readValue(
+                    variationOptionsJson,
+                    new TypeReference<List<ProductVariationOptionRequest>>() {
+                    }
+            );
+            return mapVariationOptions(requests);
+        } catch (JsonProcessingException e) {
+            log.error("Failed to parse variationOptions JSON", e);
+            throw new AppException(ErrorCode.INVALID_INPUT, "variationOptions JSON khong hop le");
+        }
+    }
+
+    private List<ProductSkuRequest> parseSkuRequests(String skusJson) {
+        try {
+            List<ProductSkuRequest> requests = objectMapper.readValue(
+                    skusJson,
+                    new TypeReference<List<ProductSkuRequest>>() {
+                    }
+            );
+
+            if (requests == null || requests.isEmpty()) {
+                throw new AppException(ErrorCode.INVALID_INPUT, "Danh sach SKU khong duoc de trong");
+            }
+
+            return requests.stream().map(item -> {
+                Map<String, String> variationData = new LinkedHashMap<>();
+                if (item.getVariationData() != null) {
+                    item.getVariationData().forEach((k, v) -> {
+                        if (k != null && !k.isBlank() && v != null && !v.isBlank()) {
+                            variationData.put(k.trim(), v.trim());
+                        }
+                    });
+                }
+
+                return ProductSkuRequest.builder()
+                        .skuCode(item.getSkuCode())
+                        .variationData(variationData)
+                        .price(item.getPrice())
+                        .onHandStock(item.getOnHandStock() != null ? item.getOnHandStock() : 0)
+                        .reservedStock(item.getReservedStock() != null ? item.getReservedStock() : 0)
+                        .safetyStock(item.getSafetyStock() != null ? item.getSafetyStock() : 0)
+                        .isActive(item.getIsActive() == null || item.getIsActive())
+                        .build();
+            }).toList();
+        } catch (JsonProcessingException e) {
+            log.error("Failed to parse skus JSON", e);
+            throw new AppException(ErrorCode.INVALID_INPUT, "skus JSON khong hop le");
+        }
+    }
+
+    private int calculateTotalAvailableStock(List<ProductSkuRequest> skuRequests) {
+        return skuRequests.stream()
+                .mapToInt(item -> {
+                    int onHand = item.getOnHandStock() != null ? item.getOnHandStock() : 0;
+                    int reserved = item.getReservedStock() != null ? item.getReservedStock() : 0;
+                    if (onHand < reserved) {
+                        throw new AppException(ErrorCode.INVALID_INPUT, "reservedStock khong the lon hon onHandStock");
+                    }
+                    return onHand - reserved;
+                })
+                .sum();
     }
 
     // Alternative method để parse attribute values từ key-value pairs format
@@ -804,11 +1031,22 @@ public class ProductService {
             // Validate giá trị theo dataType và validation pattern
             validateAttributeValue(attribute, requestValue.getValue());
 
+            // Chuẩn hóa giá trị Boolean nếu cần
+            String finalValue = requestValue.getValue();
+            if ("BOOLEAN".equals(attribute.getDataType())) {
+                String normalized = finalValue.trim().toLowerCase();
+                if (normalized.equals("có") || normalized.equals("1") || normalized.equals("yes") || normalized.equals("true")) {
+                    finalValue = "true";
+                } else if (normalized.equals("không") || normalized.equals("0") || normalized.equals("no") || normalized.equals("false")) {
+                    finalValue = "false";
+                }
+            }
+
             return Product.ProductAttributeValue.builder()
                     .attributeId(attribute.getId())
                     .attributeKey(attribute.getAttributeKey())
                     .attributeName(attribute.getAttributeName())
-                    .value(requestValue.getValue())
+                    .value(finalValue)
                     .unit(attribute.getUnit())
                     .dataType(attribute.getDataType())
                     .build();
@@ -826,7 +1064,9 @@ public class ProductService {
                 }
                 break;
             case "BOOLEAN":
-                if (!"true".equalsIgnoreCase(value) && !"false".equalsIgnoreCase(value)) {
+                String normalized = value.trim().toLowerCase();
+                List<String> validBooleans = List.of("true", "false", "có", "không", "yes", "no", "1", "0");
+                if (!validBooleans.contains(normalized)) {
                     throw new AppException(ErrorCode.INVALID_ATTRIBUTE_VALUE);
                 }
                 break;
@@ -848,6 +1088,14 @@ public class ProductService {
     }
 
     private ProductResponse mapToResponse(Product product, Shop shop, Category category) {
+        List<ProductSku> skus = product.getId() != null
+            ? productSkuService.getActiveSkusByProductId(product.getId())
+            : List.of();
+
+        int derivedStock = skus.isEmpty()
+            ? (product.getStockQuantity() != null ? product.getStockQuantity() : 0)
+            : skus.stream().mapToInt(ProductSku::getAvailableStock).sum();
+
         ProductResponse.ProductResponseBuilder builder = ProductResponse.builder()
                 .id(product.getId())
                 .shopId(product.getShopId())
@@ -858,7 +1106,7 @@ public class ProductService {
                 .price(product.getPrice())
                 .saleOff(product.getSaleOff())
                 .finalPrice(product.getFinalPrice())
-                .stockQuantity(product.getStockQuantity())
+                .stockQuantity(derivedStock)
                 .averageRating(product.getAverageRating())
                 .reviewCount(product.getReviewCount())
                 .purchaseCount(product.getPurchaseCount())
@@ -881,6 +1129,36 @@ public class ProductService {
                     .collect(Collectors.toList());
             builder.attributeValues(attributeResponses);
         }
+
+            if (product.getVariationOptions() != null && !product.getVariationOptions().isEmpty()) {
+                List<ProductResponse.VariationOptionResponse> variationResponses = product.getVariationOptions()
+                    .stream()
+                    .map(option -> ProductResponse.VariationOptionResponse.builder()
+                        .name(option.getName())
+                        .values(option.getValues())
+                        .build())
+                    .collect(Collectors.toList());
+                builder.variationOptions(variationResponses);
+            }
+
+            if (!skus.isEmpty()) {
+                List<ProductResponse.ProductSkuResponse> skuResponses = skus.stream()
+                    .sorted(Comparator.comparing(ProductSku::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())))
+                    .map(sku -> ProductResponse.ProductSkuResponse.builder()
+                        .id(sku.getId())
+                        .skuCode(sku.getSkuCode())
+                        .variationData(sku.getVariationData())
+                        .imageUrl(sku.getImageUrl())
+                        .price(sku.getPrice())
+                        .onHandStock(sku.getOnHandStock())
+                        .reservedStock(sku.getReservedStock())
+                        .safetyStock(sku.getSafetyStock())
+                        .availableStock(sku.getAvailableStock())
+                        .isActive(sku.getIsActive())
+                        .build())
+                    .collect(Collectors.toList());
+                builder.skus(skuResponses);
+            }
 
         // Map shop info nếu có - với tất cả các trường từ ShopResponse
         if (shop != null) {

@@ -6,9 +6,19 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # Database
+    # Database - MongoDB
     mongo_uri: str = "mongodb://admin:admin123@localhost:27017/cellex?authSource=admin"
     mongo_db: str = "cellex"
+
+    # Internal automation
+    internal_train_token: str = ""
+
+    # Database - PostgreSQL (Supabase)
+    # Format: postgresql+psycopg2://user:pass@host:port/dbname
+    # Converted from Spring Boot jdbc:postgresql:// format automatically
+    postgres_url: str = ""
+    postgres_pool_size: int = 5
+    postgres_max_overflow: int = 10
 
     # Service
     port: int = 8000
@@ -51,9 +61,12 @@ class Settings(BaseSettings):
     # Model versioning
     max_model_versions: int = 5
 
+    # ML Heads
+    ml_heads_model_dir: str = "./ml_heads_models"
+
     # Chatbot - LLM Configuration (Gemini)
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-2.5-flash-lite"
     gemini_temperature: float = 0.8
     gemini_max_tokens: int = 16384
     gemini_top_k: int = 40
@@ -80,6 +93,26 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"  # Ignore unknown env vars
+
+    def get_postgres_sqlalchemy_url(self) -> str:
+        """
+        Convert JDBC-style URL or plain URL to SQLAlchemy-compatible URL.
+        Handles:
+          jdbc:postgresql://host:port/db  -> postgresql+psycopg2://user:pass@host:port/db
+          postgresql://...               -> postgresql+psycopg2://...
+          postgresql+psycopg2://...      -> unchanged
+        """
+        if not self.postgres_url:
+            return ""
+        url = self.postgres_url
+        # Strip JDBC prefix
+        if url.startswith("jdbc:"):
+            url = url[5:]
+        # Ensure psycopg2 driver
+        if url.startswith("postgresql://"):
+            url = "postgresql+psycopg2://" + url[len("postgresql://"):]
+        return url
 
     def get_tuning_n_factors(self) -> list[int]:
         return [int(x.strip()) for x in self.tuning_n_factors_range.split(",")]

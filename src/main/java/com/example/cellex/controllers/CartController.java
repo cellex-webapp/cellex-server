@@ -273,12 +273,13 @@ public class CartController {
         String userId = user != null ? user.getId() : null;
         String userEmail = user != null ? user.getEmail() : "unknown";
         boolean isIncrease = request.getAction() == UpdateCartItemQuantityRequest.QuantityAction.INCREASE;
-        log.info("User {} (id={}) updating cart item quantity for product {}, action: {}",
-                userEmail, userId, request.getProductId(), request.getAction());
+        log.info("User {} (id={}) updating cart item quantity for product {}, sku {}, action: {}",
+                userEmail, userId, request.getProductId(), request.getSkuId(), request.getAction());
 
         CartResponse cartResponse = cartService.updateCartItemQuantity(
                 userId,
                 request.getProductId(),
+                request.getSkuId(),
                 isIncrease
         );
 
@@ -319,12 +320,13 @@ public class CartController {
 
         String userId = user != null ? user.getId() : null;
         String userEmail = user != null ? user.getEmail() : "unknown";
-        log.info("User {} (id={}) setting cart item quantity for product {} to {}",
-                userEmail, userId, request.getProductId(), request.getQuantity());
+        log.info("User {} (id={}) setting cart item quantity for product {}, sku {} to {}",
+                userEmail, userId, request.getProductId(), request.getSkuId(), request.getQuantity());
 
         CartResponse cartResponse = cartService.setCartItemQuantity(
                 userId,
                 request.getProductId(),
+                request.getSkuId(),
                 request.getQuantity()
         );
 

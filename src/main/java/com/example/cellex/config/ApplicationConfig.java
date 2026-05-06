@@ -119,10 +119,12 @@ public class ApplicationConfig {
             isConfigValid = false;
         }
 
-        // Test kết nối chỉ khi có config hợp lệ
+        // Test kết nối chỉ khi có config hợp lệ (Tắt trong production để tránh delay startup)
+        /*
         if (cloudinary != null && isConfigValid) {
             testCloudinaryConnection(cloudinary);
         }
+        */
 
         System.out.println("========================================\n");
 

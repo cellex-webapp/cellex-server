@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Builder
@@ -27,6 +28,8 @@ public class ProductResponse {
     private Double finalPrice;
     private Integer stockQuantity;
     private List<ProductAttributeValueResponse> attributeValues;
+    private List<VariationOptionResponse> variationOptions;
+    private List<ProductSkuResponse> skus;
     private Double averageRating;
     private Integer reviewCount;
     private Integer purchaseCount;
@@ -51,6 +54,32 @@ public class ProductResponse {
         private String value;
         private String unit;
         private String dataType;
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class VariationOptionResponse {
+        private String name;
+        private List<String> values;
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ProductSkuResponse {
+        private String id;
+        private String skuCode;
+        private Map<String, String> variationData;
+        private String imageUrl;
+        private Double price;
+        private Integer onHandStock;
+        private Integer reservedStock;
+        private Integer safetyStock;
+        private Integer availableStock;
+        private Boolean isActive;
     }
 
     @Data

@@ -40,50 +40,94 @@ public class RecommendationService {
      * Flow: ML service (hybrid) -> CF -> Cold-start
      */
     public List<RecommendationResponse> getRecommendationsForUser(String userId, String categoryId, Integer limit) {
-        int finalLimit = limit != null ? limit : 20;
+        int finalLimit = limit != null ? limit : 50;
+        int minResults = 50;
 
         log.info("Getting recommendations for user: {}, category: {}, limit: {}", userId, categoryId, finalLimit);
 
-        // Kiểm tra user có lịch sử tương tác không
+        List<RecommendationResponse> recommendations = new ArrayList<>();
+
+        // 1. Thử lấy từ ML service trước
         boolean hasHistory = userInteractionService.hasUserInteractions(userId);
-
-        // Nếu user có history, thử gọi ML service trước
         if (hasHistory) {
-            log.debug("User has interaction history. Trying ML service first...");
-
+            log.debug("User has interaction history. Trying ML service...");
             var mlRecommendations = mlRecommendationService.getHybridRecommendations(userId, finalLimit, categoryId);
-
+            
             if (mlRecommendations.isPresent() && !mlRecommendations.get().isEmpty()) {
-                log.info("Using ML-based recommendations for user: {}", userId);
-                return convertMLRecommendationsToResponses(mlRecommendations.get());
+                recommendations = convertMLRecommendationsToResponses(mlRecommendations.get());
             }
+        }
 
-            log.info("ML service unavailable or returned empty. Falling back to rule-based CF.");
+        // 2. Nếu ML service không có kết quả hoặc ít hơn 10, thử bổ sung bằng CF (cho user có history)
+        if (recommendations.size() < minResults && hasHistory) {
+            log.debug("ML results insufficient ({}). Trying CF fallback...", recommendations.size());
+            List<Product> cfProducts = getCollaborativeFilteringRecommendations(userId, categoryId, finalLimit);
+            
+            Set<String> existingIds = recommendations.stream()
+                    .map(RecommendationResponse::getProductId)
+                    .collect(Collectors.toSet());
+            
+            for (Product p : cfProducts) {
+                if (recommendations.size() >= finalLimit) break;
+                if (!existingIds.contains(p.getId())) {
+                    recommendations.add(createResponseFromProduct(p, "COLLABORATIVE_FILTERING", 
+                            "Dựa trên lịch sử tương tác của bạn", recommendations.size() + 1));
+                    existingIds.add(p.getId());
+                }
+            }
+        }
 
-            // Fallback to rule-based CF
-            List<Product> recommendedProducts = getCollaborativeFilteringRecommendations(userId, categoryId, finalLimit);
-            return convertToRecommendationResponses(recommendedProducts, "COLLABORATIVE_FILTERING",
-                    "Dựa trên lịch sử mua hàng và sản phẩm tương tự mà bạn đã quan tâm");
-        } else {
-            // User mới -> dùng Cold-start handling
-            log.debug("New user detected. Using cold-start recommendations.");
-
-            List<Product> recommendedProducts;
+        // 3. Nếu vẫn ít hơn 10 kết quả (hoặc user mới), dùng Cold-start để fill đủ ít nhất 10
+        if (recommendations.size() < minResults) {
+            log.debug("Results still insufficient ({}). Using cold-start to reach at least {}...", 
+                    recommendations.size(), minResults);
+            
+            List<Product> coldStartProducts;
             String reason;
             String explanation;
 
             if (categoryId != null) {
-                recommendedProducts = coldStartService.getPopularProductsByCategory(categoryId, finalLimit);
+                coldStartProducts = coldStartService.getPopularProductsByCategory(categoryId, minResults * 2);
                 reason = "POPULAR_IN_CATEGORY";
-                explanation = "Sản phẩm phổ biến trong danh mục bạn quan tâm";
+                explanation = "Sản phẩm phổ biến trong danh mục";
             } else {
-                recommendedProducts = coldStartService.getPopularityBasedRecommendations(finalLimit);
+                coldStartProducts = coldStartService.getPopularityBasedRecommendations(minResults * 2);
                 reason = "TRENDING";
                 explanation = "Sản phẩm đang được yêu thích nhất";
             }
 
-            return convertToRecommendationResponses(recommendedProducts, reason, explanation);
+            Set<String> existingIds = recommendations.stream()
+                    .map(RecommendationResponse::getProductId)
+                    .collect(Collectors.toSet());
+
+            for (Product p : coldStartProducts) {
+                if (recommendations.size() >= minResults) break;
+                if (!existingIds.contains(p.getId())) {
+                    recommendations.add(createResponseFromProduct(p, reason, explanation, recommendations.size() + 1));
+                    existingIds.add(p.getId());
+                }
+            }
         }
+
+        log.info("Returning {} recommendations for user: {}", recommendations.size(), userId);
+        return recommendations;
+    }
+
+    private RecommendationResponse createResponseFromProduct(Product product, String reason, String explanation, int rank) {
+        return RecommendationResponse.builder()
+                .productId(product.getId())
+                .productName(product.getName())
+                .productImage(product.getImages() != null && !product.getImages().isEmpty() 
+                        ? product.getImages().get(0) : null)
+                .price(product.getPrice())
+                .finalPrice(product.getFinalPrice())
+                .averageRating(product.getAverageRating())
+                .reviewCount(product.getReviewCount())
+                .recommendationScore(Math.max(0.1, 1.0 - (rank * 0.05)))
+                .recommendationReason(reason)
+                .explanation(explanation)
+                .rank(rank)
+                .build();
     }
 
     /**
@@ -224,13 +268,15 @@ public class RecommendationService {
      * Lấy pre-computed recommendations
      */
     public List<RecommendationResponse> getPreComputedRecommendations(String userId, Integer limit) {
-        int finalLimit = limit != null ? limit : 20;
+        int finalLimit = limit != null ? limit : 50;
+        int minResults = 50;
         
         List<Recommendation> recommendations = recommendationRepository
                 .findByUserIdOrderByRecommendationScoreDesc(userId, PageRequest.of(0, finalLimit));
         
-        if (recommendations.isEmpty()) {
-            // Fallback to real-time computation
+        if (recommendations.size() < minResults) {
+            log.debug("Pre-computed recommendations insufficient ({}). Falling back to real-time computation.", 
+                    recommendations.size());
             return getRecommendationsForUser(userId, null, finalLimit);
         }
         

@@ -1,5 +1,6 @@
 package com.example.cellex.models.user;
 
+import com.example.cellex.config.StringUuidConverter;
 import com.example.cellex.enums.Role;
 import com.example.cellex.models.jpa.RoleEntity;
 import com.example.cellex.models.jpa.UserAddressEntity;

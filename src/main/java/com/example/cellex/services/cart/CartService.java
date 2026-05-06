@@ -9,10 +9,12 @@ import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.models.cart.Cart;
 import com.example.cellex.models.product.Product;
+import com.example.cellex.models.product.ProductSku;
 import com.example.cellex.models.shop.Shop;
 import com.example.cellex.repositories.cart.CartRepository;
 import com.example.cellex.repositories.product.ProductRepository;
 import com.example.cellex.repositories.shop.ShopRepository;
+import com.example.cellex.services.product.ProductSkuService;
 import com.example.cellex.services.recommendation.UserInteractionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,6 +35,7 @@ public class CartService {
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
     private final ShopRepository shopRepository;
+    private final ProductSkuService productSkuService;
     private final UserInteractionService userInteractionService;
 
     /**
@@ -58,14 +62,36 @@ public class CartService {
             throw new AppException(ErrorCode.PRODUCT_NOT_FOUND);
         }
 
-        // Kiểm tra stock
-        if (product.getStockQuantity() <= 0) {
-            throw new AppException(ErrorCode.PRODUCT_OUT_OF_STOCK);
+        ProductSku selectedSku = null;
+        if (request.getSkuId() != null && !request.getSkuId().isBlank()) {
+            selectedSku = productSkuService.findActiveById(request.getSkuId())
+                    .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND, "SKU khong ton tai"));
+
+            if (!Objects.equals(product.getId(), selectedSku.getProductId())) {
+                throw new AppException(ErrorCode.INVALID_REQUEST, "SKU khong thuoc san pham");
+            }
+
+            if (selectedSku.getAvailableStock() <= 0) {
+                throw new AppException(ErrorCode.PRODUCT_OUT_OF_STOCK);
+            }
+
+            if (selectedSku.getAvailableStock() < request.getQuantity()) {
+                throw new AppException(ErrorCode.INSUFFICIENT_STOCK);
+            }
+        } else {
+            // Kiểm tra stock theo product thường
+            if (product.getStockQuantity() <= 0) {
+                throw new AppException(ErrorCode.PRODUCT_OUT_OF_STOCK);
+            }
+
+            if (product.getStockQuantity() < request.getQuantity()) {
+                throw new AppException(ErrorCode.INSUFFICIENT_STOCK);
+            }
         }
 
-        if (product.getStockQuantity() < request.getQuantity()) {
-            throw new AppException(ErrorCode.INSUFFICIENT_STOCK);
-        }
+        double unitPrice = selectedSku != null && selectedSku.getPrice() != null
+                ? selectedSku.getPrice()
+                : (product.getFinalPrice() != null ? product.getFinalPrice() : product.getPrice());
 
         // Lấy thông tin shop
         Shop shop = shopRepository.findById(product.getShopId()).orElse(null);
@@ -84,16 +110,22 @@ public class CartService {
         // Kiểm tra xem sản phẩm đã có trong giỏ hàng chưa
         boolean itemExists = false;
         for (Cart.CartItem item : cart.getItems()) {
-            if (item.getProductId().equals(request.getProductId())) {
+            if (item.getProductId().equals(request.getProductId())
+                    && Objects.equals(item.getSkuId(), selectedSku != null ? selectedSku.getId() : null)) {
                 // Cập nhật số lượng
                 int newQuantity = item.getQuantity() + request.getQuantity();
 
                 // Kiểm tra stock với số lượng mới
-                if (product.getStockQuantity() < newQuantity) {
+                if (selectedSku != null) {
+                    if (selectedSku.getAvailableStock() < newQuantity) {
+                        throw new AppException(ErrorCode.INSUFFICIENT_STOCK);
+                    }
+                } else if (product.getStockQuantity() < newQuantity) {
                     throw new AppException(ErrorCode.INSUFFICIENT_STOCK);
                 }
 
                 item.setQuantity(newQuantity);
+                item.setPrice(unitPrice);
                 itemExists = true;
                 log.info("Updated quantity for product {} in cart to {}", request.getProductId(), newQuantity);
                 break;
@@ -108,10 +140,13 @@ public class CartService {
 
             Cart.CartItem newItem = Cart.CartItem.builder()
                     .productId(product.getId())
+                    .skuId(selectedSku != null ? selectedSku.getId() : null)
+                    .skuCode(selectedSku != null ? selectedSku.getSkuCode() : null)
+                    .variationData(selectedSku != null ? selectedSku.getVariationData() : null)
                     .productName(product.getName())
                     .productImage(productImage)
                     .quantity(request.getQuantity())
-                    .price(product.getFinalPrice() != null ? product.getFinalPrice() : product.getPrice())
+                    .price(unitPrice)
                     .shopId(product.getShopId())
                     .shopName(shopName)
                     .build();
@@ -229,7 +264,8 @@ public class CartService {
      * Cập nhật số lượng sản phẩm trong giỏ hàng (tăng/giảm 1)
      */
     @Transactional
-    public CartResponse updateCartItemQuantity(String userId, String productId, boolean isIncrease) {
+    public CartResponse updateCartItemQuantity(String userId, String productId, String skuId, boolean isIncrease) {
+        String normalizedSkuId = (skuId == null || skuId.isBlank()) ? null : skuId.trim();
         log.info("Updating quantity for product {} in cart for user {}, action: {}",
                 productId, userId, isIncrease ? "INCREASE" : "DECREASE");
 
@@ -238,7 +274,8 @@ public class CartService {
 
         // Tìm sản phẩm trong giỏ hàng
         Cart.CartItem cartItem = cart.getItems().stream()
-                .filter(item -> item.getProductId().equals(productId))
+            .filter(item -> item.getProductId().equals(productId)
+                && Objects.equals(item.getSkuId(), normalizedSkuId))
                 .findFirst()
                 .orElseThrow(() -> new AppException(ErrorCode.CART_ITEM_NOT_FOUND));
 
@@ -251,7 +288,13 @@ public class CartService {
             int newQuantity = cartItem.getQuantity() + 1;
 
             // Kiểm tra stock
-            if (product.getStockQuantity() < newQuantity) {
+            if (cartItem.getSkuId() != null && !cartItem.getSkuId().isBlank()) {
+                ProductSku sku = productSkuService.findActiveById(cartItem.getSkuId())
+                        .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND, "SKU khong ton tai"));
+                if (sku.getAvailableStock() < newQuantity) {
+                    throw new AppException(ErrorCode.INSUFFICIENT_STOCK);
+                }
+            } else if (product.getStockQuantity() < newQuantity) {
                 throw new AppException(ErrorCode.INSUFFICIENT_STOCK);
             }
 
@@ -285,7 +328,8 @@ public class CartService {
      * Thiết lập số lượng cụ thể cho sản phẩm trong giỏ hàng
      */
     @Transactional
-    public CartResponse setCartItemQuantity(String userId, String productId, Integer quantity) {
+    public CartResponse setCartItemQuantity(String userId, String productId, String skuId, Integer quantity) {
+        String normalizedSkuId = (skuId == null || skuId.isBlank()) ? null : skuId.trim();
         log.info("Setting quantity for product {} in cart for user {} to {}", productId, userId, quantity);
 
         Cart cart = cartRepository.findByUserId(userId)
@@ -293,7 +337,8 @@ public class CartService {
 
         // Tìm sản phẩm trong giỏ hàng
         Cart.CartItem cartItem = cart.getItems().stream()
-                .filter(item -> item.getProductId().equals(productId))
+            .filter(item -> item.getProductId().equals(productId)
+                && Objects.equals(item.getSkuId(), normalizedSkuId))
                 .findFirst()
                 .orElseThrow(() -> new AppException(ErrorCode.CART_ITEM_NOT_FOUND));
 
@@ -307,7 +352,13 @@ public class CartService {
                     .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
 
             // Kiểm tra stock
-            if (product.getStockQuantity() < quantity) {
+            if (cartItem.getSkuId() != null && !cartItem.getSkuId().isBlank()) {
+                ProductSku sku = productSkuService.findActiveById(cartItem.getSkuId())
+                        .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND, "SKU khong ton tai"));
+                if (sku.getAvailableStock() < quantity) {
+                    throw new AppException(ErrorCode.INSUFFICIENT_STOCK);
+                }
+            } else if (product.getStockQuantity() < quantity) {
                 throw new AppException(ErrorCode.INSUFFICIENT_STOCK);
             }
 
@@ -349,11 +400,17 @@ public class CartService {
                 .map(item -> {
                     // Lấy thông tin sản phẩm hiện tại để kiểm tra stock
                     Product product = productRepository.findById(item.getProductId()).orElse(null);
+                    ProductSku sku = (item.getSkuId() != null && !item.getSkuId().isBlank())
+                            ? productSkuService.findActiveById(item.getSkuId()).orElse(null)
+                            : null;
 
                     Integer availableStock = null;
                     boolean isAvailable;
 
-                    if (product != null) {
+                    if (product != null && sku != null) {
+                        availableStock = sku.getAvailableStock();
+                        isAvailable = product.getIsPublished() && availableStock > 0;
+                    } else if (product != null) {
                         availableStock = product.getStockQuantity();
                         isAvailable = product.getIsPublished() && product.getStockQuantity() > 0;
                     } else {
@@ -362,6 +419,9 @@ public class CartService {
 
                     return CartResponse.CartItemResponse.builder()
                             .productId(item.getProductId())
+                            .skuId(item.getSkuId())
+                            .skuCode(item.getSkuCode())
+                            .variationData(item.getVariationData())
                             .productName(item.getProductName())
                             .productImage(item.getProductImage())
                             .quantity(item.getQuantity())

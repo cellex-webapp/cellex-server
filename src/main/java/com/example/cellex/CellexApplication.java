@@ -2,6 +2,8 @@ package com.example.cellex;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import io.github.cdimascio.dotenv.Dotenv;
 
 import java.io.IOException;
@@ -10,6 +12,8 @@ import java.nio.file.Path;
 import java.util.List;
 
 @SpringBootApplication
+@EnableAsync
+@EnableScheduling
 public class CellexApplication {
 
 	private static final List<String> CRITICAL_ENV_KEYS = List.of(
