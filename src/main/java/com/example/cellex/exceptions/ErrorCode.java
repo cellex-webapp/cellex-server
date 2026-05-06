@@ -35,6 +35,7 @@ public enum ErrorCode {
     SHOP_ALREADY_EXISTS(2005, "Bạn đã có cửa hàng, không thể đăng ký thêm", HttpStatus.BAD_REQUEST),
     SHOP_NOT_VERIFIED(2006, "Cửa hàng chưa được duyệt", HttpStatus.BAD_REQUEST),
     SHOP_NOT_FOUND_OR_NOT_VERIFIED(2007, "Không tìm thấy cửa hàng hoặc cửa hàng chưa được duyệt", HttpStatus.BAD_REQUEST),
+    SHOP_ALREADY_HAS_THEME(2016, "Cửa hàng đã có cấu hình giao diện", HttpStatus.BAD_REQUEST),
 
     // Category Attribute Errors
     CATEGORY_ATTRIBUTE_NOT_FOUND(2008, "Không tìm thấy thuộc tính danh mục", HttpStatus.NOT_FOUND),
@@ -68,6 +69,8 @@ public enum ErrorCode {
     INVALID_EMAIL_FORMAT(5004, "Định dạng email không hợp lệ", HttpStatus.BAD_REQUEST),
     INVALID_PHONE_FORMAT(5005, "Định dạng số điện thoại không hợp lệ", HttpStatus.BAD_REQUEST),
     DUPLICATE_VALUE(5006, "Giá trị bị trùng lặp không được phép", HttpStatus.BAD_REQUEST),
+    INVALID_ID_FORMAT(5007, "Định dạng ID không hợp lệ", HttpStatus.BAD_REQUEST),
+    NOT_FOUND(5008, "Tài nguyên không tìm thấy", HttpStatus.NOT_FOUND),
 
     // Account Ban Errors
     ACCOUNT_BANNED(6001, "Tài khoản đã bị khóa", HttpStatus.FORBIDDEN),
