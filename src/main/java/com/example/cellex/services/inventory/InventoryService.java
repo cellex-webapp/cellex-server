@@ -16,10 +16,12 @@ import com.example.cellex.models.inventory.*;
 import com.example.cellex.models.product.Product;
 import com.example.cellex.models.product.ProductSku;
 import com.example.cellex.models.shop.Shop;
+import com.example.cellex.models.shop.ShopStaffMember;
 import com.example.cellex.repositories.inventory.*;
 import com.example.cellex.repositories.product.ProductRepository;
 import com.example.cellex.repositories.product.ProductSkuRepository;
 import com.example.cellex.repositories.shop.ShopRepository;
+import com.example.cellex.repositories.shop.ShopStaffMemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -44,6 +46,7 @@ public class InventoryService {
     private final InventoryCheckRepository inventoryCheckRepository;
     private final InventoryCheckItemRepository inventoryCheckItemRepository;
     private final ShopRepository shopRepository;
+    private final ShopStaffMemberRepository shopStaffMemberRepository;
     private final SupplierService supplierService;
 
     @Transactional
@@ -370,8 +373,11 @@ public class InventoryService {
         }
 
         Shop shop = shopRepository.findByVendorId(userId)
+                .orElse(null);
+        if (shop != null) return shop.getId();
+        return shopStaffMemberRepository.findByUserUuidAndIsActiveTrue(UUID.fromString(userId))
+                .map(ShopStaffMember::getShopId)
                 .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
-        return shop.getId();
     }
 
     private String generateReferenceId(String prefix) {

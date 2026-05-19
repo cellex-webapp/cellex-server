@@ -26,6 +26,7 @@ import com.example.cellex.repositories.coupon.UserCouponRepository;
 import com.example.cellex.repositories.order.OrderRepository;
 import com.example.cellex.repositories.product.ProductRepository;
 import com.example.cellex.repositories.shop.ShopRepository;
+import com.example.cellex.repositories.shop.ShopStaffMemberRepository;
 import com.example.cellex.repositories.user.UserRepository;
 import com.example.cellex.services.livestream.LivestreamEventPublisher;
 import com.example.cellex.services.user.UserService;
@@ -54,6 +55,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final ShopRepository shopRepository;
+    private final ShopStaffMemberRepository shopStaffMemberRepository;
     private final UserCouponRepository userCouponRepository;
     private final CartRepository cartRepository;
     private final UserRepository userRepository;
@@ -994,11 +996,18 @@ public class OrderService {
     }
 
     private Order findOrderByVendor(String vendorId, String orderId) {
-        Shop shop = shopRepository.findByVendorId(vendorId)
-                .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
+        Shop shop = resolveOperatorShop(vendorId);
 
         return orderRepository.findByIdAndShopId(orderId, shop.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+    }
+
+    private Shop resolveOperatorShop(String userId) {
+        return shopRepository.findByVendorId(userId).orElseGet(() ->
+                shopStaffMemberRepository.findByUserUuidAndIsActiveTrue(UUID.fromString(userId))
+                        .flatMap(m -> shopRepository.findById(m.getShopUuid()))
+                        .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND))
+        );
     }
 
     private boolean canApplyCoupon(UserCoupon coupon, Order order) {

@@ -6,7 +6,11 @@ import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.PageResponse;
 import com.example.cellex.dtos.response.review.ReviewResponse;
 import com.example.cellex.dtos.response.review.ReviewStatsResponse;
+import com.example.cellex.enums.Role;
+import com.example.cellex.exceptions.AppException;
+import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.services.review.ReviewService;
+import com.example.cellex.services.staff.StaffPermissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Encoding;
@@ -32,6 +36,7 @@ import org.springframework.web.bind.annotation.*;
 public class ReviewController {
 
     private final ReviewService reviewService;
+    private final StaffPermissionService staffPermissionService;
 
     @Operation(
             summary = "Create a review",
@@ -60,7 +65,7 @@ public class ReviewController {
 
     @Operation(summary = "Add vendor response", description = "Vendor adds a response to a review")
     @PostMapping(value = "/{reviewId}/vendor-response", consumes = "application/json")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     public ResponseEntity<ApiResponse<ReviewResponse>> addVendorResponse(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable String reviewId,
@@ -68,7 +73,11 @@ public class ReviewController {
     ) {
         log.info("Received vendor response request: {}", request);
         log.info("Comment value: {}", request.getComment());
-        String vendorId = ((com.example.cellex.models.user.User) userDetails).getId();
+        com.example.cellex.models.user.User operator = (com.example.cellex.models.user.User) userDetails;
+        if (operator.getRole() == Role.STAFF && !staffPermissionService.hasPermission(operator.getId(), "REVIEW:RESPOND")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
+        String vendorId = operator.getId();
         ReviewResponse review = reviewService.addVendorResponse(vendorId, reviewId, request);
 
         return ResponseEntity.ok(ApiResponse.<ReviewResponse>builder()
@@ -80,12 +89,16 @@ public class ReviewController {
 
     @Operation(summary = "Delete vendor response", description = "Vendor deletes their response to a review")
     @DeleteMapping("/{reviewId}/vendor-response")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     public ResponseEntity<ApiResponse<Void>> deleteVendorResponse(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable String reviewId
     ) {
-        String vendorId = ((com.example.cellex.models.user.User) userDetails).getId();
+        com.example.cellex.models.user.User operator = (com.example.cellex.models.user.User) userDetails;
+        if (operator.getRole() == Role.STAFF && !staffPermissionService.hasPermission(operator.getId(), "REVIEW:RESPOND")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
+        String vendorId = operator.getId();
         reviewService.deleteVendorResponse(vendorId, reviewId);
 
         return ResponseEntity.ok(ApiResponse.<Void>builder()

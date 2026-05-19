@@ -6,7 +6,11 @@ import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.PageResponse;
 import com.example.cellex.dtos.response.inventory.SupplierResponse;
 import com.example.cellex.models.user.User;
+import com.example.cellex.enums.Role;
+import com.example.cellex.exceptions.AppException;
+import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.services.inventory.SupplierService;
+import com.example.cellex.services.staff.StaffPermissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -26,9 +30,10 @@ import org.springframework.web.bind.annotation.*;
 public class SupplierController {
 
     private final SupplierService supplierService;
+    private final StaffPermissionService staffPermissionService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','VENDOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','VENDOR','STAFF')")
     @Operation(summary = "Lay danh sach nha cung cap", description = "Ho tro phan trang va tim kiem theo ten")
     public ResponseEntity<ApiResponse<PageResponse<SupplierResponse>>> getSuppliers(
             Authentication authentication,
@@ -40,6 +45,9 @@ public class SupplierController {
             @RequestParam(defaultValue = "desc") String sortType
     ) {
         User user = (User) authentication.getPrincipal();
+        if (user.getRole() == Role.STAFF && !staffPermissionService.hasPermission(user.getId(), "SUPPLIER:VIEW")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
 
         int pageNumber = Math.max(page - 1, 0);
         Sort.Direction direction = "asc".equalsIgnoreCase(sortType) ? Sort.Direction.ASC : Sort.Direction.DESC;
@@ -61,13 +69,16 @@ public class SupplierController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','VENDOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','VENDOR','STAFF')")
     @Operation(summary = "Tao nha cung cap")
     public ResponseEntity<ApiResponse<SupplierResponse>> createSupplier(
             Authentication authentication,
             @Valid @RequestBody CreateSupplierRequest request
     ) {
         User user = (User) authentication.getPrincipal();
+        if (user.getRole() == Role.STAFF && !staffPermissionService.hasPermission(user.getId(), "SUPPLIER:CREATE")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
 
         SupplierResponse result = supplierService.createSupplier(user.getId(), user.getRole(), request);
 
@@ -79,7 +90,7 @@ public class SupplierController {
     }
 
     @PutMapping("/{supplierId}")
-    @PreAuthorize("hasAnyRole('ADMIN','VENDOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','VENDOR','STAFF')")
     @Operation(summary = "Cap nhat nha cung cap")
     public ResponseEntity<ApiResponse<SupplierResponse>> updateSupplier(
             Authentication authentication,
@@ -87,6 +98,9 @@ public class SupplierController {
             @Valid @RequestBody UpdateSupplierRequest request
     ) {
         User user = (User) authentication.getPrincipal();
+        if (user.getRole() == Role.STAFF && !staffPermissionService.hasPermission(user.getId(), "SUPPLIER:UPDATE")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
 
         SupplierResponse result = supplierService.updateSupplier(user.getId(), user.getRole(), supplierId, request);
 

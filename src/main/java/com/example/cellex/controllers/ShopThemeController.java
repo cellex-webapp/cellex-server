@@ -3,7 +3,12 @@ package com.example.cellex.controllers;
 import com.example.cellex.dtos.request.shop.ShopThemeRequest;
 import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.shop.ShopThemeResponse;
+import com.example.cellex.enums.Role;
+import com.example.cellex.exceptions.AppException;
+import com.example.cellex.exceptions.ErrorCode;
+import com.example.cellex.models.user.User;
 import com.example.cellex.services.shop.ShopThemeService;
+import com.example.cellex.services.staff.StaffPermissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -17,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -43,6 +49,7 @@ import java.util.UUID;
 public class ShopThemeController {
 
     private final ShopThemeService shopThemeService;
+    private final StaffPermissionService staffPermissionService;
 
     /**
      * GET: Retrieve theme configuration for a shop.
@@ -96,7 +103,7 @@ public class ShopThemeController {
      * @return created theme response DTO
      */
     @PostMapping("/{shopId}/theme")
-    @PreAuthorize("hasRole('VENDOR') and @shopSecurityValidator.isShopOwner(authentication, #shopId)")
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(
         summary = "Create shop theme configuration",
@@ -120,6 +127,7 @@ public class ShopThemeController {
         )
     })
     public ResponseEntity<ApiResponse<ShopThemeResponse>> createTheme(
+            Authentication authentication,
             @PathVariable
             @Parameter(description = "Shop UUID", required = true, example = "550e8400-e29b-41d4-a716-446655440000")
             UUID shopId,
@@ -128,6 +136,7 @@ public class ShopThemeController {
             @Valid
             @Parameter(description = "Theme configuration", required = true)
             ShopThemeRequest request) {
+        validateThemeManagementPermission(authentication, shopId);
 
         log.info("POST /api/v1/shops/{}/theme - Creating new theme", shopId);
         ShopThemeResponse response = shopThemeService.createTheme(shopId, request);
@@ -149,7 +158,7 @@ public class ShopThemeController {
      * @return updated theme response DTO
      */
     @PutMapping("/{shopId}/theme")
-    @PreAuthorize("hasRole('VENDOR') and @shopSecurityValidator.isShopOwner(authentication, #shopId)")
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     @Operation(
         summary = "Update shop theme configuration",
         description = "Update an existing SDUI theme configuration for a shop. " +
@@ -176,6 +185,7 @@ public class ShopThemeController {
         )
     })
     public ResponseEntity<ApiResponse<ShopThemeResponse>> updateTheme(
+            Authentication authentication,
             @PathVariable
             @Parameter(description = "Shop UUID", required = true, example = "550e8400-e29b-41d4-a716-446655440000")
             UUID shopId,
@@ -184,6 +194,7 @@ public class ShopThemeController {
             @Valid
             @Parameter(description = "Updated theme configuration", required = true)
             ShopThemeRequest request) {
+        validateThemeManagementPermission(authentication, shopId);
 
         log.info("PUT /api/v1/shops/{}/theme - Updating theme", shopId);
         ShopThemeResponse response = shopThemeService.updateTheme(shopId, request);
@@ -203,7 +214,7 @@ public class ShopThemeController {
      * @return success message
      */
     @DeleteMapping("/{shopId}/theme")
-    @PreAuthorize("hasRole('VENDOR') and @shopSecurityValidator.isShopOwner(authentication, #shopId)")
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     @Operation(
         summary = "Delete shop theme configuration",
         description = "Delete the SDUI theme configuration for a shop. " +
@@ -225,9 +236,11 @@ public class ShopThemeController {
         )
     })
     public ResponseEntity<ApiResponse<String>> deleteTheme(
+            Authentication authentication,
             @PathVariable
             @Parameter(description = "Shop UUID", required = true, example = "550e8400-e29b-41d4-a716-446655440000")
             UUID shopId) {
+        validateThemeManagementPermission(authentication, shopId);
 
         log.info("DELETE /api/v1/shops/{}/theme - Deleting theme", shopId);
         shopThemeService.deleteThemeByShopId(shopId);
@@ -237,5 +250,22 @@ public class ShopThemeController {
             .message("Delete theme successfully")
             .result("Theme deleted")
             .build());
+    }
+
+    private void validateThemeManagementPermission(Authentication authentication, UUID shopId) {
+        User operator = (User) authentication.getPrincipal();
+        if (operator.getRole() == Role.VENDOR) {
+            return;
+        }
+        if (operator.getRole() != Role.STAFF) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+        if (!staffPermissionService.hasPermission(operator.getId(), "SHOP_THEME:MANAGE")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
+        String staffShopId = staffPermissionService.getStaffShopId(operator.getId());
+        if (staffShopId == null || !shopId.toString().equals(staffShopId)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
     }
 }

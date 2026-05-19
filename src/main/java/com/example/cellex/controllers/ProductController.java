@@ -5,9 +5,13 @@ import com.example.cellex.dtos.response.PageResponse;
 import com.example.cellex.dtos.response.product.ProductComparisonResponse;
 import com.example.cellex.dtos.response.product.ProductResponse;
 import com.example.cellex.models.user.User;
+import com.example.cellex.enums.Role;
+import com.example.cellex.exceptions.AppException;
+import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.services.product.ProductComparisonService;
 import com.example.cellex.services.product.ProductService;
 import com.example.cellex.services.recommendation.UserInteractionService;
+import com.example.cellex.services.staff.StaffPermissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -40,10 +44,11 @@ public class ProductController {
     private final ProductService productService;
     private final ProductComparisonService productComparisonService;
     private final UserInteractionService userInteractionService;
+    private final StaffPermissionService staffPermissionService;
 
     // CREATE - Multipart Form Data
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     @Operation(
             summary = "Tạo sản phẩm mới",
             description = """
@@ -230,7 +235,11 @@ public class ProductController {
             )
             @RequestPart(value = "images", required = false) MultipartFile[] images) throws IOException {
 
-        String vendorId = ((User)authentication.getPrincipal()).getId();
+        User operator = (User) authentication.getPrincipal();
+        if (operator.getRole() == Role.STAFF && !staffPermissionService.hasPermission(operator.getId(), "PRODUCT:CREATE")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
+        String vendorId = operator.getId();
         ProductResponse response = productService.createProductMultipart(
                 vendorId, categoryId, name, description, price, saleOff,
                 stockQuantity, attributeValues, isPublished, variationOptions, skus, images);
@@ -427,7 +436,7 @@ public class ProductController {
 
     // GET MY PRODUCTS - Vendor xem tất cả sản phẩm của mình
     @GetMapping("/my-products")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     @Operation(
             summary = "Lấy tất cả sản phẩm của vendor",
             description = """
@@ -479,7 +488,11 @@ public class ProductController {
             @Parameter(description = "Trường để sắp xếp (createdAt, name, price, stockQuantity, isPublished)")
             @RequestParam(defaultValue = "createdAt") String sortBy) {
 
-        String vendorId = ((User) authentication.getPrincipal()).getId();
+        User operator = (User) authentication.getPrincipal();
+        if (operator.getRole() == Role.STAFF && !staffPermissionService.hasPermission(operator.getId(), "PRODUCT:VIEW")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
+        String vendorId = operator.getId();
 
         int pageNumber = Math.max(page - 1, 0);
         Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
@@ -498,7 +511,7 @@ public class ProductController {
 
     // UPDATE - Multipart Form Data
     @PutMapping(value = "/{productId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     @Operation(
             summary = "Cập nhật sản phẩm",
             description = """
@@ -653,7 +666,11 @@ public class ProductController {
             )
             @RequestPart(value = "images", required = false) MultipartFile[] images) throws IOException {
 
-        String vendorId = ((User)authentication.getPrincipal()).getId();
+        User operator = (User) authentication.getPrincipal();
+        if (operator.getRole() == Role.STAFF && !staffPermissionService.hasPermission(operator.getId(), "PRODUCT:UPDATE")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
+        String vendorId = operator.getId();
         ProductResponse response = productService.updateProductMultipart(
                 vendorId, productId, categoryId, name, description, price, saleOff,
                 stockQuantity, attributeValues, isPublished, variationOptions, skus, images);
@@ -666,7 +683,7 @@ public class ProductController {
     }
 
     @DeleteMapping("/{productId}")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     @Operation(
             summary = "Xóa sản phẩm",
             description = "Vendor xóa sản phẩm của mình",
@@ -676,7 +693,11 @@ public class ProductController {
             Authentication authentication,
             @Parameter(description = "ID của sản phẩm") @PathVariable String productId) {
 
-        String vendorId = ((User)authentication.getPrincipal()).getId();
+        User operator = (User) authentication.getPrincipal();
+        if (operator.getRole() == Role.STAFF && !staffPermissionService.hasPermission(operator.getId(), "PRODUCT:DELETE")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
+        String vendorId = operator.getId();
         productService.deleteProduct(vendorId, productId);
 
         return ResponseEntity.ok(ApiResponse.<String>builder()

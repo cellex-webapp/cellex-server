@@ -4,7 +4,11 @@ import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.analytics.*;
 import com.example.cellex.dtos.response.analytics.VendorDashboardResponse;
 import com.example.cellex.models.user.User;
+import com.example.cellex.enums.Role;
+import com.example.cellex.exceptions.AppException;
+import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.services.analytics.*;
+import com.example.cellex.services.staff.StaffPermissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -46,6 +50,7 @@ public class AnalyticsController {
     private final ProductAnalyticsService productAnalyticsService;
     private final ShopAnalyticsService shopAnalyticsService;
     private final AnalyticsService vendorAnalyticsService;
+    private final StaffPermissionService staffPermissionService;
 
     // ==================== ADMIN DASHBOARD ====================
 
@@ -214,7 +219,7 @@ public class AnalyticsController {
      * - Recent Orders
      */
     @GetMapping("/vendor/dashboard")
-    @PreAuthorize("hasAnyRole('VENDOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('VENDOR', 'ADMIN', 'STAFF')")
     @Operation(
         summary = "Vendor Dashboard - Thống kê cửa hàng",
         description = "Lấy toàn bộ thông tin thống kê của cửa hàng. " +
@@ -231,6 +236,15 @@ public class AnalyticsController {
     ) {
         log.info("User {} requesting vendor dashboard for shop {} - date range: {} to {}", 
                 currentUser.getId(), shopId, startDate, endDate);
+        if (currentUser.getRole() == Role.STAFF) {
+            if (!staffPermissionService.hasPermission(currentUser.getId(), "ANALYTICS:VIEW")) {
+                throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+            }
+            String staffShopId = staffPermissionService.getStaffShopId(currentUser.getId());
+            if (staffShopId == null || !staffShopId.equals(shopId)) {
+                throw new AppException(ErrorCode.UNAUTHORIZED);
+            }
+        }
         
         VendorDashboardResponse dashboard = vendorAnalyticsService.getVendorDashboard(
                 shopId, currentUser, startDate, endDate);

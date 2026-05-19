@@ -14,6 +14,7 @@ import com.example.cellex.models.shop.Shop;
 import com.example.cellex.models.user.User;
 import com.example.cellex.repositories.product.ProductRepository;
 import com.example.cellex.repositories.shop.ShopRepository;
+import com.example.cellex.repositories.shop.ShopStaffMemberRepository;
 import com.example.cellex.repositories.user.UserRepository;
 import com.example.cellex.services.S3Service;
 import com.example.cellex.services.address.AddressService;
@@ -31,6 +32,7 @@ import java.util.List;
 public class ShopService {
 
     private final ShopRepository shopRepository;
+    private final ShopStaffMemberRepository shopStaffMemberRepository;
     private final UserRepository userRepository;
     private final S3Service s3Service;
     private final AddressService addressService;
@@ -127,8 +129,7 @@ public class ShopService {
     }
 
     public ShopResponse getShopByVendorId(String vendorId) {
-        Shop shop = shopRepository.findByVendorId(vendorId)
-                .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
+        Shop shop = resolveOperatorShop(vendorId);
         return mapToShopResponse(shop);
     }
 
@@ -419,8 +420,7 @@ public class ShopService {
                                      String detailAddress, String phoneNumber, String email,
                                      MultipartFile logoFile) throws IOException {
         // Tìm shop của vendor
-        Shop shop = shopRepository.findByVendorId(vendorId)
-                .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
+        Shop shop = resolveOperatorShop(vendorId);
 
         // Update shop name if provided
         if (shopName != null && !shopName.trim().isEmpty()) {
@@ -573,5 +573,13 @@ public class ShopService {
                 .createdAt(shop.getCreatedAt())
                 .updatedAt(shop.getUpdatedAt())
                 .build();
+    }
+
+    private Shop resolveOperatorShop(String userId) {
+        Shop own = shopRepository.findByVendorId(userId).orElse(null);
+        if (own != null) return own;
+        return shopStaffMemberRepository.findByUserUuidAndIsActiveTrue(java.util.UUID.fromString(userId))
+                .flatMap(m -> shopRepository.findById(m.getShopUuid()))
+                .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
     }
 }

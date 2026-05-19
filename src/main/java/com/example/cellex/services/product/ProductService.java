@@ -17,6 +17,7 @@ import com.example.cellex.repositories.category.CategoryAttributeRepository;
 import com.example.cellex.repositories.category.CategoryRepository;
 import com.example.cellex.repositories.product.ProductRepository;
 import com.example.cellex.repositories.shop.ShopRepository;
+import com.example.cellex.repositories.shop.ShopStaffMemberRepository;
 import com.example.cellex.repositories.user.UserRepository;
 import com.example.cellex.services.S3Service;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -48,6 +49,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final ShopRepository shopRepository;
+    private final ShopStaffMemberRepository shopStaffMemberRepository;
     private final CategoryRepository categoryRepository;
     private final CategoryAttributeRepository categoryAttributeRepository;
     private final UserRepository userRepository;
@@ -197,9 +199,7 @@ public class ProductService {
 
     // GET MY PRODUCTS - Vendor xem tất cả sản phẩm của mình (bao gồm cả chưa xuất bản)
     public PageResponse<ProductResponse> getMyProducts(String vendorId, Pageable pageable) {
-        // Tìm shop của vendor
-        Shop shop = shopRepository.findByVendorId(vendorId)
-                .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
+        Shop shop = resolveOperatorShop(vendorId);
 
         // Lấy tất cả sản phẩm của shop (bao gồm cả published và unpublished)
         Page<Product> products = productRepository.findByShopId(shop.getId(), pageable);
@@ -416,7 +416,7 @@ public class ProductService {
         log.info("Creating product for vendorId: {}, categoryId: {}", vendorId, categoryId);
 
         // Kiểm tra shop của vendor có tồn tại không
-        Optional<Shop> shopOptional = shopRepository.findByVendorId(vendorId);
+        Optional<Shop> shopOptional = Optional.ofNullable(resolveOperatorShop(vendorId));
         if (shopOptional.isEmpty()) {
             log.error("No shop found for vendorId: {}", vendorId);
             throw new AppException(ErrorCode.SHOP_NOT_FOUND);
@@ -978,11 +978,25 @@ public class ProductService {
         Shop shop = shopRepository.findById(product.getShopId())
                 .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
 
-        if (!shop.getVendorId().equals(vendorId)) {
+        if (!isShopOperator(vendorId, shop.getId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 
         return product;
+    }
+
+    private Shop resolveOperatorShop(String userId) {
+        Optional<Shop> ownShop = shopRepository.findByVendorId(userId);
+        if (ownShop.isPresent()) return ownShop.get();
+        return shopStaffMemberRepository.findByUserUuidAndIsActiveTrue(java.util.UUID.fromString(userId))
+                .flatMap(m -> shopRepository.findById(m.getShopUuid()))
+                .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
+    }
+
+    private boolean isShopOperator(String userId, String shopId) {
+        if (shopRepository.findByVendorId(userId).map(s -> s.getId().equals(shopId)).orElse(false)) return true;
+        return shopStaffMemberRepository.findByShopUuidAndUserUuidAndIsActiveTrue(
+                java.util.UUID.fromString(shopId), java.util.UUID.fromString(userId)).isPresent();
     }
 
 
