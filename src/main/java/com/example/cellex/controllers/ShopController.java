@@ -6,7 +6,11 @@ import com.example.cellex.dtos.response.PageResponse;
 import com.example.cellex.dtos.response.shop.ShopResponse;
 import com.example.cellex.enums.ShopStatus;
 import com.example.cellex.models.user.User;
+import com.example.cellex.enums.Role;
+import com.example.cellex.exceptions.AppException;
+import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.services.shop.ShopService;
+import com.example.cellex.services.staff.StaffPermissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -36,6 +40,7 @@ import org.springframework.data.domain.Pageable;
 public class ShopController {
 
     private final ShopService shopService;
+    private final StaffPermissionService staffPermissionService;
 
     // CREATE - Multipart Form Data
     @PostMapping(value = "/register-vendor", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -86,6 +91,7 @@ public class ShopController {
 
     // UPDATE - Multipart Form Data
     @PutMapping(value = "/my-shop", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     @Operation(
         summary = "Vendor cập nhật cửa hàng của mình",
         description = "Vendor cập nhật thông tin cửa hàng của mình. Shop ID được tự động lấy từ vendor ID trong JWT."
@@ -118,7 +124,11 @@ public class ShopController {
             Authentication authentication) throws IOException {
 
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String vendorId = ((User) userDetails).getId();
+        User operator = (User) userDetails;
+        if (operator.getRole() == Role.STAFF && !staffPermissionService.hasPermission(operator.getId(), "SHOP:UPDATE")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
+        String vendorId = operator.getId();
 
         ShopResponse shopResponse = shopService.updateMyShop(
                 vendorId, shopName, description, provinceCode, communeCode,
@@ -195,6 +205,7 @@ public class ShopController {
     }
 
     @GetMapping("/my-shop")
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     @Operation(summary = "Lấy thông tin cửa hàng của vendor", description = "Vendor xem thông tin cửa hàng của mình")
     public ResponseEntity<ApiResponse<ShopResponse>> getMyShop(Authentication authentication) {
 

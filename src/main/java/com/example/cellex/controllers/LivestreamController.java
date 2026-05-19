@@ -5,15 +5,19 @@ import com.example.cellex.dtos.request.livestream.CreateLivestreamRequest;
 import com.example.cellex.dtos.response.ApiResponse;
 import com.example.cellex.dtos.response.livestream.LivestreamProductResponse;
 import com.example.cellex.dtos.response.livestream.LivestreamSessionResponse;
+import com.example.cellex.enums.Role;
+import com.example.cellex.exceptions.AppException;
+import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.models.user.User;
 import com.example.cellex.services.livestream.LivestreamEventPublisher;
 import com.example.cellex.services.livestream.LivestreamService;
+import com.example.cellex.services.staff.StaffPermissionService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -23,28 +27,35 @@ public class LivestreamController {
 
     private final LivestreamService livestreamService;
     private final LivestreamEventPublisher eventPublisher;
+    private final StaffPermissionService staffPermissionService;
 
     @PostMapping("/sessions")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     public ApiResponse<LivestreamSessionResponse> createSession(
             Authentication authentication,
             @Valid @RequestBody CreateLivestreamRequest request) {
-        User vendor = (User) authentication.getPrincipal();
+        User operator = (User) authentication.getPrincipal();
+        if (operator.getRole() == Role.STAFF && !staffPermissionService.hasPermission(operator.getId(), "LIVESTREAM:CREATE")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
         return ApiResponse.<LivestreamSessionResponse>builder()
-                .result(livestreamService.createSession(vendor, request))
-                .message("Tạo phiên Live thành công")
+                .result(livestreamService.createSession(operator, request))
+                .message("Tao phien Live thanh cong")
                 .build();
     }
 
     @PutMapping("/sessions/{id}/end")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     public ApiResponse<Void> endSession(
             @PathVariable String id,
             Authentication authentication) {
-        User vendor = (User) authentication.getPrincipal();
-        livestreamService.endSession(id, vendor);
+        User operator = (User) authentication.getPrincipal();
+        if (operator.getRole() == Role.STAFF && !staffPermissionService.hasPermission(operator.getId(), "LIVESTREAM:MANAGE")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
+        livestreamService.endSession(id, operator);
         return ApiResponse.<Void>builder()
-                .message("Kết thúc phiên Live thành công")
+                .message("Ket thuc phien Live thanh cong")
                 .build();
     }
 
@@ -56,7 +67,7 @@ public class LivestreamController {
     }
 
     @GetMapping("/sessions/{id}/viewer-token")
-    @PreAuthorize("hasAnyRole('USER', 'VENDOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'VENDOR', 'ADMIN', 'STAFF')")
     public ApiResponse<String> getViewerToken(
             @PathVariable String id,
             Authentication authentication) {
@@ -67,36 +78,41 @@ public class LivestreamController {
     }
 
     @PostMapping("/sessions/{id}/products")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     public ApiResponse<Void> addProductToBag(
             @PathVariable String id,
             @Valid @RequestBody AddProductToLiveBagRequest request,
             Authentication authentication) {
-        User vendor = (User) authentication.getPrincipal();
-        livestreamService.addProductToBag(id, request, vendor);
+        User operator = (User) authentication.getPrincipal();
+        if (operator.getRole() == Role.STAFF && !staffPermissionService.hasPermission(operator.getId(), "LIVESTREAM:MANAGE")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
+        livestreamService.addProductToBag(id, request, operator);
         return ApiResponse.<Void>builder()
-                .message("Đã thêm sản phẩm vào túi hàng")
+                .message("Da them san pham vao tui hang")
                 .build();
     }
 
-        @GetMapping("/sessions/{id}/products")
-        public ApiResponse<List<LivestreamProductResponse>> getSessionProducts(@PathVariable String id) {
-                return ApiResponse.<List<LivestreamProductResponse>>builder()
-                                .result(livestreamService.getSessionProducts(id))
-                                .build();
-        }
+    @GetMapping("/sessions/{id}/products")
+    public ApiResponse<List<LivestreamProductResponse>> getSessionProducts(@PathVariable String id) {
+        return ApiResponse.<List<LivestreamProductResponse>>builder()
+                .result(livestreamService.getSessionProducts(id))
+                .build();
+    }
 
-    // API để Vendor ghim sản phẩm (Sẽ bắn WebSocket xuống cho Viewers)
     @PostMapping("/sessions/{id}/products/{productId}/pin")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     public ApiResponse<Void> pinProduct(
             @PathVariable String id,
             @PathVariable String productId,
             Authentication authentication) {
-        // Tạm bỏ qua logic validate host để giữ code gọn
+        User operator = (User) authentication.getPrincipal();
+        if (operator.getRole() == Role.STAFF && !staffPermissionService.hasPermission(operator.getId(), "LIVESTREAM:MANAGE")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
         eventPublisher.broadcastPinProduct(id, productId);
         return ApiResponse.<Void>builder()
-                .message("Đã ghim sản phẩm lên màn hình")
+                .message("Da ghim san pham len man hinh")
                 .build();
     }
 }

@@ -10,10 +10,14 @@ import com.example.cellex.models.jpa.LivestreamProductEntity;
 import com.example.cellex.models.jpa.LivestreamSessionEntity;
 import com.example.cellex.models.livestream.LivestreamStatus;
 import com.example.cellex.models.product.Product;
+import com.example.cellex.models.shop.Shop;
+import com.example.cellex.models.shop.ShopStaffMember;
 import com.example.cellex.models.user.User;
 import com.example.cellex.repositories.jpa.LivestreamProductRepository;
 import com.example.cellex.repositories.jpa.LivestreamSessionRepository;
 import com.example.cellex.repositories.product.ProductRepository;
+import com.example.cellex.repositories.shop.ShopRepository;
+import com.example.cellex.repositories.shop.ShopStaffMemberRepository;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,6 +39,8 @@ public class LivestreamService {
     private final LivestreamProductRepository livestreamProductRepository;
     private final ProductRepository productRepository;
     private final ZegoTokenService zegoTokenService;
+    private final ShopRepository shopRepository;
+    private final ShopStaffMemberRepository shopStaffMemberRepository;
 
     @Transactional
     public LivestreamSessionResponse createSession(User vendor, CreateLivestreamRequest request) {
@@ -61,8 +67,9 @@ public class LivestreamService {
     public void endSession(String sessionId, User vendor) {
         LivestreamSessionEntity session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new AppException(ErrorCode.LIVE_SESSION_NOT_FOUND));
-
-        if (!session.getVendor().getId().equals(vendor.getId())) {
+        String operatorShopId = resolveOperatorShopId(vendor.getId());
+        String sessionShopId = resolveOperatorShopId(session.getVendor().getId());
+        if (!session.getVendor().getId().equals(vendor.getId()) && !operatorShopId.equals(sessionShopId)) {
             throw new AppException(ErrorCode.NOT_HOST_OF_SESSION);
         }
 
@@ -104,9 +111,15 @@ public class LivestreamService {
     public void addProductToBag(String sessionId, AddProductToLiveBagRequest request, User vendor) {
         LivestreamSessionEntity session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new AppException(ErrorCode.LIVE_SESSION_NOT_FOUND));
-
-        if (!session.getVendor().getId().equals(vendor.getId())) {
+        String operatorShopId = resolveOperatorShopId(vendor.getId());
+        String sessionShopId = resolveOperatorShopId(session.getVendor().getId());
+        if (!session.getVendor().getId().equals(vendor.getId()) && !operatorShopId.equals(sessionShopId)) {
             throw new AppException(ErrorCode.NOT_HOST_OF_SESSION);
+        }
+        Product product = productRepository.findById(request.getProductId())
+                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_EXISTED));
+        if (!operatorShopId.equals(product.getShopId())) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 
         LivestreamProductEntity liveProduct = LivestreamProductEntity.builder()
@@ -179,5 +192,13 @@ public class LivestreamService {
         }
 
         return builder.build();
+    }
+
+    private String resolveOperatorShopId(String operatorId) {
+        return shopRepository.findByVendorId(operatorId)
+                .map(Shop::getId)
+                .orElseGet(() -> shopStaffMemberRepository.findByUserUuidAndIsActiveTrue(UUID.fromString(operatorId))
+                        .map(ShopStaffMember::getShopId)
+                        .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND)));
     }
 }

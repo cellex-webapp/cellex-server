@@ -200,7 +200,7 @@ public class ChatConversationSeeder {
         List<String> templates = switch (role) {
             case VENDOR -> VENDOR_TEMPLATES;
             case ADMIN -> ADMIN_TEMPLATES;
-            case USER -> BUYER_TEMPLATES;
+            case USER, STAFF -> BUYER_TEMPLATES;
         };
 
         return templates.get(ThreadLocalRandom.current().nextInt(templates.size()));

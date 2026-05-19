@@ -16,11 +16,13 @@ import com.example.cellex.models.product.Product;
 import com.example.cellex.models.review.Review;
 import com.example.cellex.models.review.VendorResponse;
 import com.example.cellex.models.shop.Shop;
+import com.example.cellex.models.shop.ShopStaffMember;
 import com.example.cellex.models.user.User;
 import com.example.cellex.repositories.order.OrderRepository;
 import com.example.cellex.repositories.product.ProductRepository;
 import com.example.cellex.repositories.review.ReviewRepository;
 import com.example.cellex.repositories.shop.ShopRepository;
+import com.example.cellex.repositories.shop.ShopStaffMemberRepository;
 import com.example.cellex.repositories.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +46,7 @@ public class ReviewService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final ShopRepository shopRepository;
+    private final ShopStaffMemberRepository shopStaffMemberRepository;
     private final ReviewModerationService reviewModerationService;
 
     // List of statuses visible to public users
@@ -160,17 +163,15 @@ public class ReviewService {
                 .orElseThrow(() -> new AppException(ErrorCode.REVIEW_NOT_FOUND));
 
         // 2. Kiểm tra shop của vendor có quyền trả lời review này không
-        Shop shop = shopRepository.findByVendorId(vendorId)
-                .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
-
-        if (!review.getShopId().equals(shop.getId())) {
+        String operatorShopId = resolveOperatorShopId(vendorId);
+        if (!review.getShopId().equals(operatorShopId)) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 
         // 3. Thêm hoặc cập nhật vendor response
         VendorResponse vendorResponse = VendorResponse.builder()
                 .vendorId(vendorId)
-                .vendorName(shop.getShopName())
+                .vendorName(resolveShopName(operatorShopId))
                 .comment(request.getComment())
                 .createdAt(review.getVendorResponse() != null ?
                         review.getVendorResponse().getCreatedAt() : LocalDateTime.now())
@@ -194,10 +195,8 @@ public class ReviewService {
                 .orElseThrow(() -> new AppException(ErrorCode.REVIEW_NOT_FOUND));
 
         // 2. Kiểm tra shop của vendor có quyền xóa response này không
-        Shop shop = shopRepository.findByVendorId(vendorId)
-                .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
-
-        if (!review.getShopId().equals(shop.getId())) {
+        String operatorShopId = resolveOperatorShopId(vendorId);
+        if (!review.getShopId().equals(operatorShopId)) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 
@@ -496,5 +495,19 @@ public class ReviewService {
         reviewRepository.delete(review);
 
         log.info("Review {} deleted successfully by user {}", reviewId, userId);
+    }
+
+    private String resolveOperatorShopId(String operatorId) {
+        return shopRepository.findByVendorId(operatorId)
+                .map(Shop::getId)
+                .orElseGet(() -> shopStaffMemberRepository.findByUserUuidAndIsActiveTrue(java.util.UUID.fromString(operatorId))
+                        .map(ShopStaffMember::getShopId)
+                        .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND)));
+    }
+
+    private String resolveShopName(String shopId) {
+        return shopRepository.findById(java.util.UUID.fromString(shopId))
+                .map(Shop::getShopName)
+                .orElse("Shop");
     }
 }

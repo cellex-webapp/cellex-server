@@ -9,8 +9,10 @@ import com.example.cellex.exceptions.AppException;
 import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.models.inventory.Supplier;
 import com.example.cellex.models.shop.Shop;
+import com.example.cellex.models.shop.ShopStaffMember;
 import com.example.cellex.repositories.inventory.SupplierRepository;
 import com.example.cellex.repositories.shop.ShopRepository;
+import com.example.cellex.repositories.shop.ShopStaffMemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -27,6 +29,7 @@ public class SupplierService {
 
     private final SupplierRepository supplierRepository;
     private final ShopRepository shopRepository;
+    private final ShopStaffMemberRepository shopStaffMemberRepository;
 
     public PageResponse<SupplierResponse> getSuppliers(
             String userId,
@@ -160,8 +163,11 @@ public class SupplierService {
         }
 
         Shop shop = shopRepository.findByVendorId(userId)
+                .orElse(null);
+        if (shop != null) return shop.getId();
+        return shopStaffMemberRepository.findByUserUuidAndIsActiveTrue(java.util.UUID.fromString(userId))
+                .map(ShopStaffMember::getShopId)
                 .orElseThrow(() -> new AppException(ErrorCode.SHOP_NOT_FOUND));
-        return shop.getId();
     }
 
     private SupplierResponse toResponse(Supplier supplier) {

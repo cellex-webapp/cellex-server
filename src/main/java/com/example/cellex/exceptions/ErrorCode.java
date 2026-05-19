@@ -164,7 +164,19 @@ public enum ErrorCode {
     PRODUCT_NOT_IN_LIVE_BAG(16003, "Sản phẩm không có trong túi hàng của phiên Live", HttpStatus.BAD_REQUEST),
     LIVE_SESSION_ALREADY_ENDED(16004, "Phiên Livestream này đã kết thúc", HttpStatus.BAD_REQUEST),
     LIVE_ZEGO_CONFIG_INVALID(16005, "Cấu hình Zego Cloud chưa hợp lệ", HttpStatus.SERVICE_UNAVAILABLE),
-    LIVE_TOKEN_GENERATION_FAILED(16006, "Không thể sinh token Livestream", HttpStatus.INTERNAL_SERVER_ERROR);
+    LIVE_TOKEN_GENERATION_FAILED(16006, "Không thể sinh token Livestream", HttpStatus.INTERNAL_SERVER_ERROR),
+
+    SHOP_ROLE_NOT_FOUND(17001, "Không tìm thấy role cửa hàng", HttpStatus.NOT_FOUND),
+    SHOP_ROLE_ALREADY_EXISTS(17002, "Role cửa hàng đã tồn tại", HttpStatus.BAD_REQUEST),
+    SHOP_ROLE_IN_USE(17003, "Role đang được staff sử dụng", HttpStatus.BAD_REQUEST),
+    INVITATION_NOT_FOUND(17004, "Không tìm thấy lời mời", HttpStatus.NOT_FOUND),
+    INVITATION_EXPIRED(17005, "Lời mời đã hết hạn", HttpStatus.BAD_REQUEST),
+    INVITATION_ALREADY_PROCESSED(17006, "Lời mời đã được xử lý", HttpStatus.BAD_REQUEST),
+    USER_ALREADY_STAFF_OF_SHOP(17007, "User đã là staff của shop", HttpStatus.BAD_REQUEST),
+    USER_ALREADY_INVITED(17008, "User đã có lời mời chờ xử lý", HttpStatus.BAD_REQUEST),
+    STAFF_MEMBER_NOT_FOUND(17009, "Không tìm thấy nhân viên", HttpStatus.NOT_FOUND),
+    INSUFFICIENT_STAFF_PERMISSION(17010, "Staff không có quyền thực hiện hành động này", HttpStatus.FORBIDDEN),
+    CANNOT_INVITE_VENDOR_OR_ADMIN(17011, "Không thể mời vendor hoặc admin làm staff", HttpStatus.BAD_REQUEST);
 
     private final int code;
     private final String message;

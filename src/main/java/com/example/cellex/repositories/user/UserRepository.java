@@ -109,4 +109,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             return Optional.empty();
         }
     }
+
+    @Query("SELECT u FROM User u WHERE (LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    List<User> searchByFullNameOrEmail(@Param("keyword") String keyword, Pageable pageable);
 }

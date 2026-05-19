@@ -7,8 +7,12 @@ import com.example.cellex.dtos.response.order.AvailableCouponResponse;
 import com.example.cellex.dtos.response.order.CheckoutResponse;
 import com.example.cellex.dtos.response.order.OrderResponse;
 import com.example.cellex.enums.OrderStatus;
+import com.example.cellex.enums.Role;
+import com.example.cellex.exceptions.AppException;
+import com.example.cellex.exceptions.ErrorCode;
 import com.example.cellex.models.user.User;
 import com.example.cellex.services.order.OrderService;
+import com.example.cellex.services.staff.StaffPermissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -34,6 +38,7 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+    private final StaffPermissionService staffPermissionService;
 
     // ==================== USER APIS ====================
 
@@ -394,7 +399,7 @@ public class OrderController {
     // ==================== VENDOR APIS ====================
 
     @PostMapping("/{orderId}/confirm")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     @Operation(
             summary = "[VENDOR] Xác nhận đơn hàng",
             description = """
@@ -415,7 +420,11 @@ public class OrderController {
             Authentication authentication,
             @Parameter(description = "ID đơn hàng") @PathVariable String orderId) {
 
-        String vendorId = ((User) authentication.getPrincipal()).getId();
+        User operator = (User) authentication.getPrincipal();
+        if (operator.getRole() == Role.STAFF && !staffPermissionService.hasPermission(operator.getId(), "ORDER:CONFIRM")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
+        String vendorId = operator.getId();
         OrderResponse response = orderService.confirmOrder(vendorId, orderId);
 
         return ResponseEntity.ok(ApiResponse.<OrderResponse>builder()
@@ -426,7 +435,7 @@ public class OrderController {
     }
 
     @PostMapping("/{orderId}/ship")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     @Operation(
             summary = "[VENDOR] Xác nhận đã gửi hàng",
             description = """
@@ -447,7 +456,11 @@ public class OrderController {
             Authentication authentication,
             @Parameter(description = "ID đơn hàng") @PathVariable String orderId) {
 
-        String vendorId = ((User) authentication.getPrincipal()).getId();
+        User operator = (User) authentication.getPrincipal();
+        if (operator.getRole() == Role.STAFF && !staffPermissionService.hasPermission(operator.getId(), "ORDER:SHIP")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
+        String vendorId = operator.getId();
         OrderResponse response = orderService.shipOrder(vendorId, orderId);
 
         return ResponseEntity.ok(ApiResponse.<OrderResponse>builder()
@@ -458,7 +471,7 @@ public class OrderController {
     }
 
     @GetMapping("/shop/orders")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     @Operation(
             summary = "[VENDOR] Lấy danh sách đơn hàng của shop",
             description = """
@@ -477,7 +490,11 @@ public class OrderController {
             @Parameter(description = "Sắp xếp theo") @RequestParam(defaultValue = "createdAt") String sortBy,
             @Parameter(description = "Kiểu sắp xếp") @RequestParam(defaultValue = "desc") String sortType) {
 
-        String vendorId = ((User) authentication.getPrincipal()).getId();
+        User operator = (User) authentication.getPrincipal();
+        if (operator.getRole() == Role.STAFF && !staffPermissionService.hasPermission(operator.getId(), "ORDER:VIEW")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
+        String vendorId = operator.getId();
 
         int pageNumber = Math.max(page - 1, 0);
         Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
@@ -495,7 +512,7 @@ public class OrderController {
     }
 
     @GetMapping("/shop/orders/by-status/{status}")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     @Operation(
             summary = "[VENDOR] Lấy đơn hàng theo trạng thái",
             description = """
@@ -517,7 +534,11 @@ public class OrderController {
             @Parameter(description = "Sắp xếp theo") @RequestParam(defaultValue = "createdAt") String sortBy,
             @Parameter(description = "Kiểu sắp xếp") @RequestParam(defaultValue = "desc") String sortType) {
 
-        String vendorId = ((User) authentication.getPrincipal()).getId();
+        User operator = (User) authentication.getPrincipal();
+        if (operator.getRole() == Role.STAFF && !staffPermissionService.hasPermission(operator.getId(), "ORDER:VIEW")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
+        String vendorId = operator.getId();
 
         int pageNumber = Math.max(page - 1, 0);
         Sort.Direction direction = "asc".equalsIgnoreCase(sortType)
