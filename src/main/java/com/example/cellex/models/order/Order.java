@@ -141,6 +141,14 @@ public class Order {
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
 
+    /**
+     * Thời điểm hết hạn thanh toán (10 phút sau khi tạo order chưa thanh toán).
+     * NULL = order không cần đếm ngược (đã thanh toán hoặc COD đã confirm).
+     * Scheduler sẽ hủy order và release stock nếu quá thời gian này.
+     */
+    @Column(name = "payment_expires_at")
+    private LocalDateTime paymentExpiresAt;
+
     @Column(name = "confirmed_at")
     private LocalDateTime confirmedAt;
 

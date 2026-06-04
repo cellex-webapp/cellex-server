@@ -73,6 +73,9 @@ public class OrderResponse {
     @JsonProperty("cancelled_at")
     private LocalDateTime cancelledAt;
 
+    @JsonProperty("payment_expires_at")
+    private LocalDateTime paymentExpiresAt;
+
     @JsonProperty("confirmed_at")
     private LocalDateTime confirmedAt;
 
