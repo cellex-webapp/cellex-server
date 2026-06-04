@@ -97,6 +97,7 @@ public class VnpayController {
                     if ("00".equals(responseCode)) {
                         order.setStatus(OrderStatus.CONFIRMED);
                         order.setConfirmedAt(LocalDateTime.now());
+                        order.setPaymentExpiresAt(null); // Xóa bộ đếm
                     }
 
                     orderRepository.save(order);
@@ -155,6 +156,7 @@ public class VnpayController {
                     order.setVnpayPayDate(payDate);
                     order.setStatus(OrderStatus.CONFIRMED);
                     order.setConfirmedAt(LocalDateTime.now());
+                    order.setPaymentExpiresAt(null); // Xóa bộ đếm
                     
                     orderRepository.save(order);
                     log.info("Order {} payment confirmed and completed via VNPay", orderId);

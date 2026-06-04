@@ -56,6 +56,7 @@ public class ProductService {
     private final S3Service s3Service;
     private final ObjectMapper objectMapper;
     private final ProductSkuService productSkuService;
+    private final ImageSearchService imageSearchService;
 
     public ProductResponse createProduct(String vendorId, ProductRequest request) {
         // Kiểm tra shop của vendor có tồn tại và đã được verify chưa
@@ -125,6 +126,8 @@ public class ProductService {
             productRepository.deleteById(savedProduct.getId());
             throw ex;
         }
+
+        imageSearchService.indexProductAsync(savedProduct);
 
         log.info("Created product: {} for shop: {}", savedProduct.getId(), shop.getId());
 
@@ -288,6 +291,8 @@ public class ProductService {
             throw ex;
         }
 
+        imageSearchService.indexProductAsync(savedProduct);
+
         log.info("Updated product: {}", productId);
 
         Category category = categoryRepository.findById(request.getCategoryId()).orElse(null);
@@ -305,6 +310,7 @@ public class ProductService {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 
+        imageSearchService.deleteProductEmbeddingsAsync(productId);
         productRepository.delete(product);
         log.info("Deleted product: {}", productId);
     }
@@ -355,6 +361,7 @@ public class ProductService {
         product.setImages(currentImages);
 
         Product savedProduct = productRepository.save(product);
+        imageSearchService.indexProductAsync(savedProduct);
 
         Shop shop = product.getShopId() != null 
             ? shopRepository.findById(product.getShopId()).orElse(null) 
@@ -396,6 +403,7 @@ public class ProductService {
 
         product.setImages(imageUrls);
         Product savedProduct = productRepository.save(product);
+        imageSearchService.indexProductAsync(savedProduct);
 
         Shop shop = product.getShopId() != null 
             ? shopRepository.findById(product.getShopId()).orElse(null) 
@@ -567,6 +575,8 @@ public class ProductService {
             productRepository.deleteById(savedProduct.getId());
             throw ex;
         }
+
+        imageSearchService.indexProductAsync(savedProduct);
 
         log.info("Created product: {} for shop: {}", savedProduct.getId(), shop.getId());
 
@@ -762,6 +772,8 @@ public class ProductService {
             }
             throw ex;
         }
+
+        imageSearchService.indexProductAsync(updatedProduct);
 
         log.info("Product updated successfully with ID: {}", updatedProduct.getId());
 

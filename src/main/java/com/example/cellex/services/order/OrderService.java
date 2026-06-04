@@ -52,6 +52,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class OrderService {
 
+    private static final int PAYMENT_TIMEOUT_MINUTES = 10;
+
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final ShopRepository shopRepository;
@@ -168,6 +170,9 @@ public class OrderService {
         // Thêm lịch sử trạng thái
         addStatusHistory(order, OrderStatus.PENDING, "Đơn hàng được tạo", userId);
 
+        if (!Boolean.TRUE.equals(order.getIsPaid())) {
+            order.setPaymentExpiresAt(LocalDateTime.now().plusMinutes(PAYMENT_TIMEOUT_MINUTES));
+        }
         Order savedOrder = orderRepository.save(order);
         log.info("Order created from product successfully: {}", savedOrder.getId());
 
@@ -324,6 +329,9 @@ public class OrderService {
 
         addStatusHistory(order, OrderStatus.PENDING, "Đơn hàng được tạo", userId);
 
+        if (!Boolean.TRUE.equals(order.getIsPaid())) {
+            order.setPaymentExpiresAt(LocalDateTime.now().plusMinutes(PAYMENT_TIMEOUT_MINUTES));
+        }
         Order savedOrder = orderRepository.save(order);
         log.info("Order created from cart successfully: {}", savedOrder.getId());
 
@@ -543,6 +551,9 @@ public class OrderService {
             cartRepository.save(cart);
         });
 
+        if (request.getPaymentMethod() == PaymentMethod.COD) {
+            order.setPaymentExpiresAt(null);
+        }
         Order updated = orderRepository.save(order);
         log.info("Order checked out successfully: {}", orderId);
 
@@ -1095,6 +1106,7 @@ public class OrderService {
                 .note(order.getNote())
                 .cancelReason(order.getCancelReason())
                 .cancelledAt(order.getCancelledAt())
+                .paymentExpiresAt(order.getPaymentExpiresAt())
                 .confirmedAt(order.getConfirmedAt())
                 .shippingAt(order.getShippingAt())
                 .deliveredAt(order.getDeliveredAt())

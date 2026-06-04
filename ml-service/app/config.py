@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     postgres_pool_size: int = 5
     postgres_max_overflow: int = 10
 
+    # CLIP Image Search
+    clip_model_name: str = "clip-ViT-B-32"
+    image_search_top_k: int = 20
+    image_search_min_score: float = 0.0
+
     # Service
     port: int = 8000
     model_dir: str = "./trained_models"

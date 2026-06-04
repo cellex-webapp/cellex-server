@@ -62,6 +62,15 @@ async def lifespan(app: FastAPI):
             "Set POSTGRES_URL in .env to enable full ML Heads features."
         )
 
+    # ── 2.5. CLIP Model for Image Search ─────────────────────────────────────
+    try:
+        from app.image_search.clip_model import clip_manager
+        from app.config import settings as _s
+        clip_manager.load(_s.clip_model_name)
+        logger.info("CLIP model loaded for image search.")
+    except Exception as e:
+        logger.warning(f"CLIP model load failed (image search disabled): {e}")
+
     # ── 3. SVD++ Model ────────────────────────────────────────────────────
     loaded = recommender.load()
     if loaded:
@@ -165,6 +174,9 @@ app.include_router(ml_router, prefix="/api/v1/ml")
 app.include_router(chatbot_router)
 app.include_router(internal_router)
 app.include_router(ml_heads_router)
+
+from app.api.image_search_routes import router as image_search_router
+app.include_router(image_search_router)
 
 
 @app.get("/health")

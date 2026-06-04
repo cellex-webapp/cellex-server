@@ -201,4 +201,15 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     }
 
     List<Order> findByCreatedAtAfter(LocalDateTime createdAt);
+
+    @Query("SELECT o FROM Order o WHERE o.status = :status AND o.isPaid = false AND o.paymentExpiresAt < :now")
+    List<Order> findExpiredPendingOrders(@Param("status") OrderStatus status, @Param("now") LocalDateTime now);
+
+    @Query("SELECT o FROM Order o WHERE o.userUuid = :userUuid AND o.status = :status AND o.isPaid = false AND o.paymentExpiresAt > :now AND o.paymentMethod = com.example.cellex.enums.PaymentMethod.VNPAY")
+    List<Order> findPendingPaymentOrdersByUserUuid(@Param("userUuid") UUID userUuid, @Param("status") OrderStatus status, @Param("now") LocalDateTime now);
+
+    default List<Order> findPendingPaymentOrdersByUserId(String userId, OrderStatus status, LocalDateTime now) {
+        try { return findPendingPaymentOrdersByUserUuid(UUID.fromString(userId), status, now); }
+        catch (IllegalArgumentException e) { return List.of(); }
+    }
 }
