@@ -96,6 +96,10 @@ public class OrderResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class OrderItemResponse {
+        // Primary key of the order_items table — used by the warranty claim feature
+        // to link a claim to a specific order item.
+        private String id;
+
         @JsonProperty("product_id")
         private String productId;
 

@@ -1117,6 +1117,7 @@ public class OrderService {
 
     private OrderResponse.OrderItemResponse mapItemToResponse(OrderItem item) {
         return OrderResponse.OrderItemResponse.builder()
+                .id(item.getUuid() != null ? item.getUuid().toString() : null)
                 .productId(item.getProductId())
                 .skuId(item.getSkuId())
                 .skuCode(item.getSkuCode())
