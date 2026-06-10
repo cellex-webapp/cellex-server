@@ -871,6 +871,44 @@ public class OrderService {
         return mapToResponse(updated);
     }
 
+    // Called when GHN webhook is DELIVERED
+    @Transactional
+    public void handleDelivered(Order order) {
+        order.setDeliveredAt(LocalDateTime.now());
+        for (OrderItem item : order.getItems()) {
+            productRepository.findById(item.getProductId())
+                    .ifPresent(product -> {
+                        if (item.getSkuId() != null && !item.getSkuId().isBlank()) {
+                            productSkuService.consumeReservedStock(item.getSkuId(), item.getQuantity());
+                            refreshProductStockFromSkus(product);
+                        }
+                        userInteractionService.recordPurchase(order.getUserId(), item.getProductId(), product.getCategoryId());
+                    });
+        }
+        if (order.getPaymentMethod() == PaymentMethod.COD) {
+            order.setIsPaid(true);
+            order.setPaidAt(LocalDateTime.now());
+        }
+    }
+
+    // Called when GHN webhook is RETURNED
+    @Transactional
+    public void handleReturned(Order order) {
+        order.setReturnedAt(LocalDateTime.now());
+        for (OrderItem item : order.getItems()) {
+            productRepository.findById(item.getProductId())
+                    .ifPresent(product -> {
+                        if (item.getSkuId() != null && !item.getSkuId().isBlank()) {
+                            productSkuService.releaseReservedStock(item.getSkuId(), item.getQuantity());
+                            refreshProductStockFromSkus(product);
+                        } else {
+                            product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
+                            productRepository.save(product);
+                        }
+                    });
+        }
+    }
+
     public PageResponse<OrderResponse> getMyOrders(String userId, Pageable pageable) {
         log.info("Getting orders for user: {}", userId);
         Page<Order> orders = orderRepository.findByUserId(userId, pageable);
@@ -1006,7 +1044,7 @@ public class OrderService {
         return normalizedProduct + "|" + normalizedSku;
     }
 
-    private Order findOrderByVendor(String vendorId, String orderId) {
+    public Order findOrderByVendor(String vendorId, String orderId) {
         Shop shop = resolveOperatorShop(vendorId);
 
         return orderRepository.findByIdAndShopId(orderId, shop.getId())
@@ -1112,6 +1150,8 @@ public class OrderService {
                 .deliveredAt(order.getDeliveredAt())
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
+                .ghnOrderCode(order.getGhnOrderCode())
+                .trackingUrl(order.getTrackingUrl())
                 .build();
     }
 

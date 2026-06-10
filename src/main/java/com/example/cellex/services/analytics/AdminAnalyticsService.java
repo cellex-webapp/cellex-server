@@ -685,9 +685,13 @@ public class AdminAnalyticsService {
         return switch (status) {
             case PENDING -> "Chờ xác nhận";
             case CONFIRMED -> "Đã xác nhận";
+            case READY_TO_SHIP -> "Chờ lấy hàng";
             case SHIPPING -> "Đang vận chuyển";
             case DELIVERED -> "Đã giao";
             case CANCELLED -> "Đã hủy";
+            case DELIVERY_FAILED -> "Giao thất bại";
+            case RETURNING -> "Đang hoàn trả";
+            case RETURNED -> "Đã hoàn trả";
         };
     }
 

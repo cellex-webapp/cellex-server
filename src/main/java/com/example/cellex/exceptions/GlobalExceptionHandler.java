@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 
 import jakarta.validation.ConstraintViolationException;
 
@@ -103,5 +104,12 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(apiResponse);
+    }
+
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    public void handleAsyncRequestNotUsableException(AsyncRequestNotUsableException ex) {
+        // Log at warn level without the full stack trace to avoid log pollution
+        // This exception usually happens when a client disconnects before the response is fully written
+        log.warn("Client disconnected before the response could be fully written: {}", ex.getMessage());
     }
 }

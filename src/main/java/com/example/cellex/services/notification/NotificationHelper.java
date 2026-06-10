@@ -205,4 +205,52 @@ public class NotificationHelper {
                 null
         );
     }
+
+    public void notifyReadyToShip(Order order, User user, String ghnOrderCode) {
+        String title = "Đơn hàng đang chờ lấy";
+        String message = String.format("Đơn hàng #%s đang chờ GHN lấy hàng. Mã vận đơn: %s",
+                order.getOrderCode(), ghnOrderCode);
+        String metadata = String.format("{\"orderId\": \"%s\"}", order.getId());
+        String actionUrl = "/orders/" + order.getId();
+
+        notificationService.sendNotificationToUser(
+                user, title, message, NotificationType.ORDER_READY_TO_SHIP, metadata, actionUrl, null
+        );
+    }
+
+    public void notifyShippingUpdate(Order order, User user, String description, String warehouse) {
+        String title = "Cập nhật hành trình đơn hàng";
+        String message = String.format("Đơn hàng #%s: %s (tại %s)",
+                order.getOrderCode(), description, warehouse);
+        String metadata = String.format("{\"orderId\": \"%s\"}", order.getId());
+        String actionUrl = "/orders/" + order.getId();
+
+        notificationService.sendNotificationToUser(
+                user, title, message, NotificationType.ORDER_SHIPPING_UPDATE, metadata, actionUrl, null
+        );
+    }
+
+    public void notifyDeliveryFailed(Order order, User user) {
+        String title = "Giao hàng không thành công";
+        String message = String.format("Đơn hàng #%s giao không thành công.",
+                order.getOrderCode());
+        String metadata = String.format("{\"orderId\": \"%s\"}", order.getId());
+        String actionUrl = "/orders/" + order.getId();
+
+        notificationService.sendNotificationToUser(
+                user, title, message, NotificationType.ORDER_DELIVERY_FAILED, metadata, actionUrl, null
+        );
+    }
+
+    public void notifyOrderReturned(Order order, User user) {
+        String title = "Đơn hàng đã hoàn trả";
+        String message = String.format("Đơn hàng #%s đã được hoàn trả về kho.",
+                order.getOrderCode());
+        String metadata = String.format("{\"orderId\": \"%s\"}", order.getId());
+        String actionUrl = "/orders/" + order.getId();
+
+        notificationService.sendNotificationToUser(
+                user, title, message, NotificationType.ORDER_RETURNED, metadata, actionUrl, null
+        );
+    }
 }

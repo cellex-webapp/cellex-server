@@ -166,6 +166,35 @@ public class Order {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    // GHN Shipping Fields
+    @Column(name = "ghn_order_code", length = 50)
+    private String ghnOrderCode;
+
+    @Column(name = "ghn_label_url", columnDefinition = "TEXT")
+    private String ghnLabelUrl;
+
+    @Column(name = "tracking_url", columnDefinition = "TEXT")
+    private String trackingUrl;
+
+    @Column(name = "carrier_status", length = 50)
+    private String carrierStatus;
+
+    @Column(name = "ghn_total_fee")
+    private Integer ghnTotalFee;
+
+    @Column(name = "ready_to_ship_at")
+    private LocalDateTime readyToShipAt;
+
+    @Column(name = "returned_at")
+    private LocalDateTime returnedAt;
+
+    // Timeline events JSONB
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "tracking_events_json", columnDefinition = "jsonb")
+    @Builder.Default
+    private List<TrackingEvent> trackingEvents = new ArrayList<>();
+
+
     // ==================== Backward-compatible ID accessors ====================
 
     @JsonProperty("id")
@@ -257,5 +286,17 @@ public class Order {
         private String note;
         private String updatedBy;
         private LocalDateTime updatedAt;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TrackingEvent {
+        private String ghnStatus;
+        private String description;
+        private String warehouse;
+        private LocalDateTime eventTime;
+        private LocalDateTime receivedAt;
     }
 }

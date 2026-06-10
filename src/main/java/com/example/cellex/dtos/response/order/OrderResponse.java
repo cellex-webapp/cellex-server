@@ -91,6 +91,12 @@ public class OrderResponse {
     @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
 
+    @JsonProperty("ghn_order_code")
+    private String ghnOrderCode;
+
+    @JsonProperty("tracking_url")
+    private String trackingUrl;
+
     @Data
     @Builder
     @NoArgsConstructor

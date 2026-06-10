@@ -20,6 +20,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import com.example.cellex.dtos.request.shipping.PrepareShipmentRequest;
+import com.example.cellex.dtos.response.shipping.ShipmentResponse;
+import com.example.cellex.dtos.response.shipping.TrackingResponse;
+import com.example.cellex.services.shipping.ShipmentService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -39,6 +43,7 @@ public class OrderController {
 
     private final OrderService orderService;
     private final StaffPermissionService staffPermissionService;
+    private final ShipmentService shipmentService;
 
     // ==================== USER APIS ====================
 
@@ -437,19 +442,8 @@ public class OrderController {
     @PostMapping("/{orderId}/ship")
     @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
     @Operation(
-            summary = "[VENDOR] Xác nhận đã gửi hàng",
-            description = """
-                    **Mục đích:** Vendor xác nhận đã giao hàng cho đơn vị vận chuyển
-                    
-                    **Điều kiện:**
-                    - Chỉ xác nhận được đơn hàng ở trạng thái CONFIRMED
-                    - Đơn hàng phải thuộc shop của vendor
-                    
-                    **Xử lý:**
-                    - Cập nhật trạng thái thành SHIPPING
-                    - Lưu thời gian bắt đầu vận chuyển
-                    - User có thể xác nhận đã nhận hàng sau bước này
-                    """,
+            summary = "[VENDOR] Xác nhận đã gửi hàng (Cũ)",
+            description = "Xác nhận đã giao hàng cho đơn vị vận chuyển (Luồng không dùng GHN)",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<ApiResponse<OrderResponse>> shipOrder(
@@ -466,6 +460,48 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.<OrderResponse>builder()
                 .code(1000)
                 .message("Xác nhận đã gửi hàng thành công")
+                .result(response)
+                .build());
+    }
+
+    @PutMapping("/{orderId}/prepare-shipment")
+    @PreAuthorize("hasAnyRole('VENDOR','STAFF')")
+    @Operation(
+            summary = "[VENDOR] Chuẩn bị hàng / Gửi GHN",
+            description = "Tạo vận đơn GHN, chuyển trạng thái sang READY_TO_SHIP",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<ApiResponse<ShipmentResponse>> prepareShipment(
+            Authentication authentication,
+            @PathVariable String orderId,
+            @Valid @RequestBody PrepareShipmentRequest request) {
+
+        User operator = (User) authentication.getPrincipal();
+        if (operator.getRole() == Role.STAFF && !staffPermissionService.hasPermission(operator.getId(), "ORDER:SHIP")) {
+            throw new AppException(ErrorCode.INSUFFICIENT_STAFF_PERMISSION);
+        }
+        
+        ShipmentResponse response = shipmentService.createShipment(operator.getId(), orderId, request);
+
+        return ResponseEntity.ok(ApiResponse.<ShipmentResponse>builder()
+                .code(1000)
+                .message("Tạo vận đơn GHN thành công")
+                .result(response)
+                .build());
+    }
+
+    @GetMapping("/{orderId}/tracking")
+    @PreAuthorize("hasAnyRole('USER','VENDOR','ADMIN')")
+    @Operation(
+            summary = "Lấy thông tin hành trình GHN",
+            description = "Lịch sử trạng thái vận chuyển từ webhook GHN",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<ApiResponse<TrackingResponse>> getOrderTracking(@PathVariable String orderId) {
+        TrackingResponse response = shipmentService.getTracking(orderId);
+        return ResponseEntity.ok(ApiResponse.<TrackingResponse>builder()
+                .code(1000)
+                .message("Lấy hành trình đơn hàng thành công")
                 .result(response)
                 .build());
     }

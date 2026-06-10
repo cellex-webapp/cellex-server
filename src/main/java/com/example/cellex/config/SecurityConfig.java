@@ -29,7 +29,8 @@ public class SecurityConfig {
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/actuator/**",   // Allow Render health checks
-            "/ws/**"  // WebSocket endpoint
+            "/ws/**",  // WebSocket endpoint
+            "/api/v1/webhooks/**" // GHN Webhook
     };
 
     @Bean
