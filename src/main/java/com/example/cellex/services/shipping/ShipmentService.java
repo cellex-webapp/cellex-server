@@ -66,7 +66,8 @@ public class ShipmentService {
 
         GhnCreateOrderRequest ghnRequest = GhnCreateOrderRequest.builder()
                 .paymentTypeId(2) // 2: Buyer/Seller pay shipping fee? GHN API uses 1 for shop pay, 2 for buyer pay.
-                .requiredNote(request.getNote() != null ? request.getNote() : "KHONGCHOXEMHANG")
+                .requiredNote("KHONGCHOXEMHANG")
+                .note(request.getNote())
                 .clientOrderCode(order.getId())
                 .toName(toName)
                 .toPhone(toPhone)

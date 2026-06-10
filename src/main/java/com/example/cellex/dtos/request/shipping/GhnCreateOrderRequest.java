@@ -15,6 +15,9 @@ public class GhnCreateOrderRequest {
     @JsonProperty("required_note")
     private String requiredNote;
 
+    @JsonProperty("note")
+    private String note;
+
     @JsonProperty("client_order_code")
     private String clientOrderCode;
 
